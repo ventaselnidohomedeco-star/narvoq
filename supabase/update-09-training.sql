@@ -1,6 +1,7 @@
 -- ============================================================
 -- Actualización 09 — Sección Training (rol profe/entrenador)
--- Ejecutar UNA VEZ en el SQL Editor de Supabase
+-- Ejecutar UNA VEZ en el SQL Editor de Supabase (idempotente:
+-- se puede volver a correr sin romper nada).
 -- ============================================================
 
 -- 1) Ampliar el enum de roles con 'coach' (profe)
@@ -42,7 +43,10 @@ create policy "trainings read shared" on trainings for select using (
 );
 
 -- 4) El profe puede registrar entrenamientos de sus alumnos vinculados.
+-- Dropeamos ambos nombres (viejo y nuevo) para que este script sea
+-- idempotente y no rompa si alguna versión ya se ejecutó antes.
 drop policy if exists "trainings insert self or complex" on trainings;
+drop policy if exists "trainings insert self or coach or complex" on trainings;
 create policy "trainings insert self or coach or complex" on trainings for insert with check (
   player_id = auth.uid()
   or coach_id = auth.uid()
