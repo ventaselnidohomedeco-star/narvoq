@@ -39,6 +39,9 @@ export default function Login() {
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
+      <p className="mt-4 text-center">
+        <Link href="/recuperar" className="text-white/60 text-sm underline">Olvidé mi contraseña</Link>
+      </p>
       <p className="mt-6 text-white/50">
         ¿No tenés cuenta? <Link href="/registro" className="text-ball font-semibold">Registrate</Link>
       </p>

@@ -41,6 +41,9 @@ export default function TrainingLogin() {
           {loading ? 'Entrando…' : 'Entrar como profe'}
         </button>
       </form>
+      <p className="mt-3 text-center">
+        <Link href="/recuperar" className="text-white/60 text-sm underline">Olvidé mi contraseña</Link>
+      </p>
       <p className="mt-6 text-white/50">
         ¿Todavía no tenés cuenta de profe? <Link href="/training/registro" className="text-ball font-semibold">Registrate</Link>
       </p>

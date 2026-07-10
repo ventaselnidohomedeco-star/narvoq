@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { uploadImage } from '@/lib/upload';
+import { notify } from '@/lib/notify';
 
 const KIND_META: Record<string, { label: string; emoji: string }> = {
   reserva_confirmada: { label: 'Reserva', emoji: '📅' },
@@ -123,7 +124,16 @@ export default function Feed() {
       ...x, likes: liked ? x.likes.filter((l: any) => l.player_id !== me.id) : [...x.likes, { player_id: me.id }]
     }));
     if (liked) await supabase.from('post_likes').delete().eq('post_id', p.id).eq('player_id', me.id);
-    else await supabase.from('post_likes').insert({ post_id: p.id, player_id: me.id });
+    else {
+      await supabase.from('post_likes').insert({ post_id: p.id, player_id: me.id });
+      if (p.author_profile_id) {
+        await notify({
+          user_id: p.author_profile_id, kind: 'like',
+          title: `A ${me.first_name} le gustó tu publicación`,
+          link: '/jugador/feed', ref_id: p.id
+        });
+      }
+    }
   }
 
   async function repostear(p: any) {
@@ -153,9 +163,18 @@ export default function Feed() {
 
   async function comentar(p: any) {
     if (!comment.trim() || !me) return;
+    const txt = comment.trim();
     const { error: err } = await supabase.from('post_comments')
-      .insert({ post_id: p.id, player_id: me.id, text_content: comment.trim() });
+      .insert({ post_id: p.id, player_id: me.id, text_content: txt });
     if (err) return setError(`No se pudo comentar: ${err.message}`);
+    if (p.author_profile_id) {
+      await notify({
+        user_id: p.author_profile_id, kind: 'comment',
+        title: `${me.first_name} comentó tu publicación`,
+        body: txt.slice(0, 80),
+        link: '/jugador/feed', ref_id: p.id
+      });
+    }
     setComment(''); load();
   }
 

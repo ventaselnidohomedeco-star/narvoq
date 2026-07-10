@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { notify } from '@/lib/notify';
 
 const TYPES: Record<string, string> = {
   tecnica: 'Técnica',
@@ -77,6 +78,12 @@ export default function AlumnoDashboard() {
     });
     setSaving(false);
     if (error) return setErr(error.message);
+    await notify({
+      user_id: player.id, kind: 'training_new',
+      title: `Nueva sesión cargada por ${me.first_name}`,
+      body: f.focus ? `Foco: ${f.focus}` : null,
+      link: '/jugador/entrenamientos'
+    });
     setF({ ...f, goals: '', homework: '', notes: '' });
     load();
   }

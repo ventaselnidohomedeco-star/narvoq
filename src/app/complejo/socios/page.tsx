@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { notify } from '@/lib/notify';
 
 export default function Socios() {
   const [cx, setCx] = useState<any>(null);
@@ -64,6 +65,12 @@ export default function Socios() {
       payment_confirmed_at: new Date().toISOString(),
       payment_confirmed_by: user!.id
     }).eq('membership_id', plan.id).eq('player_id', pid);
+    await notify({
+      user_id: pid, kind: 'membresia_ok',
+      title: `Membresía confirmada en ${cx?.name ?? 'el complejo'}`,
+      body: `Ya sos socio del plan ${plan.name}.`,
+      link: `/club/${cx.id}`
+    });
     load();
   }
 

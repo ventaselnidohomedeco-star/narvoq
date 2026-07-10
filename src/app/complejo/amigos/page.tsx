@@ -9,7 +9,7 @@ const Avatar = ({ url, name }: any) => url
       {name?.[0]?.toUpperCase() ?? '?'}
     </span>;
 
-export default function Amigos() {
+export default function AmigosComplejo() {
   const [me, setMe] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -69,7 +69,6 @@ export default function Amigos() {
             <p className="font-semibold truncate">{p.first_name} {p.last_name}</p>
             <p className="text-white/50 text-xs truncate">
               @{p.username} · <span className={`inline-block px-1.5 py-[1px] rounded ${rl.cls} text-[10px] font-black`}>{rl.txt}</span>
-              {p.role === 'player' && ` · cat. ${p.category}`}
             </p>
           </div>
         </Link>
@@ -82,8 +81,8 @@ export default function Amigos() {
   };
 
   return (
-    <main className="px-5 pt-8">
-      <h1 className="font-display font-black text-2xl">Amigos</h1>
+    <main className="px-5 py-6">
+      <h1 className="font-display font-black text-xl">Comunidad</h1>
       <p className="text-white/50 text-sm mt-1">Seguís a {following.length} · te siguen {followerCount}</p>
 
       <input className="input mt-4" placeholder="🔍 Buscar jugadores, profes o complejos…"
@@ -92,13 +91,13 @@ export default function Amigos() {
       <div className="mt-4 space-y-2 pb-8">
         {q.trim().length >= 2
           ? (results.length ? results.map(p => <Row key={p.id} p={p} />)
-            : <p className="text-white/50 text-sm mt-2">No encontramos jugadores con ese nombre.</p>)
+            : <p className="text-white/50 text-sm mt-2">No encontramos usuarios con ese nombre.</p>)
           : (following.length ? (
               <>
                 <p className="label">Siguiendo</p>
                 {following.map(p => <Row key={p.id} p={p} />)}
               </>
-            ) : <p className="text-white/50 text-sm mt-2">Buscá jugadores y empezá a seguirlos para armar partidos más rápido.</p>)}
+            ) : <p className="text-white/50 text-sm mt-2">Buscá jugadores, profes o colegas y seguilos.</p>)}
       </div>
     </main>
   );

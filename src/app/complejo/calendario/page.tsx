@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { buildSlots } from '@/lib/slots';
+import { notify } from '@/lib/notify';
 
 const Avatar = ({ url, name }: { url?: string | null; name: string }) => url
   ? <img src={url} alt="" className="w-7 h-7 rounded-full object-cover" />
@@ -87,6 +88,15 @@ export default function Calendario() {
       payment_confirmed_at: new Date().toISOString(),
       payment_confirmed_by: user!.id
     }).eq('id', b.id);
+    if (b.player_id) {
+      const when = new Date(b.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      await notify({
+        user_id: b.player_id, kind: 'reserva_ok',
+        title: `Tu reserva en ${cx?.name ?? 'el complejo'} está confirmada`,
+        body: `Turno del ${when}. ¡A jugar!`,
+        link: '/jugador/reservas'
+      });
+    }
     setSel(null); load();
   }
 

@@ -74,6 +74,17 @@ export default function TorneosComplejo() {
       author_complex_id: cx.id, kind: 'torneo_abierto',
       text_content: `🏆 Abrimos la inscripción: ${name.trim() || cfg.name}.${Number(price) > 0 ? ` Inscripción $${Number(price).toLocaleString('es-AR')} por pareja.` : ''} ¡Anotate desde la app!`
     });
+    // Notificar a todos los jugadores de la ciudad del complejo
+    const { data: players } = await supabase.from('profiles')
+      .select('id').eq('role', 'player').eq('city_id', cx.city_id);
+    if (players && players.length) {
+      await supabase.from('notifications').insert(players.map((p: any) => ({
+        user_id: p.id, kind: 'torneo_nuevo',
+        title: `Nuevo torneo en ${cx.name}`,
+        body: name.trim() || cfg.name,
+        link: '/jugador/torneos'
+      })));
+    }
     setName(''); setPrice(''); load();
   }
 

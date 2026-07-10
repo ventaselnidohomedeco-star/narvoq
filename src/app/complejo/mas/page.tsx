@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 const items = [
   { href: '/complejo/perfil', icon: 'CFG', title: 'Perfil del complejo', desc: 'Logo, fotos, redes, pagos, horarios y servicios' },
+  { href: '/complejo/amigos', icon: 'RED', title: 'Comunidad', desc: 'Buscá y seguí jugadores, profes u otros complejos' },
   { href: '/complejo/clientes', icon: 'CLI', title: 'Clientes', desc: 'Historial, frecuentes y facturacion' },
   { href: '/complejo/entrenamientos', icon: 'TR', title: 'Entrenamientos', desc: 'Registro tecnico, tareas y dashboard por jugador' },
   { href: '/complejo/jugadores', icon: 'RK', title: 'Observar y ascender', desc: 'Ranking interno, candidatos y ascensos' },

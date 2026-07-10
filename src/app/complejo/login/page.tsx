@@ -36,6 +36,9 @@ export default function LoginComplejo() {
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <button className="btn-ball w-full text-lg">Entrar</button>
       </form>
+      <p className="mt-3 text-center">
+        <Link href="/recuperar" className="text-white/60 text-sm underline">Olvidé mi contraseña</Link>
+      </p>
       <p className="mt-6 text-white/70">
         ¿Todavía no cargaste tu complejo?{' '}
         <Link href="/complejo/registro" className="text-ball font-semibold">Registralo acá</Link>

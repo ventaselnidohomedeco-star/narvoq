@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { notify } from '@/lib/notify';
 
 export default function Alumnos() {
   const [me, setMe] = useState<string | null>(null);
@@ -37,6 +38,13 @@ export default function Alumnos() {
     if (!me) return;
     const { error: err } = await supabase.from('coach_students').insert({ coach_id: me, player_id: p.id });
     if (err) return setError(err.code === '23505' ? 'Ese alumno ya está en tu lista.' : err.message);
+    const { data: coach } = await supabase.from('profiles').select('first_name, last_name').eq('id', me).single();
+    await notify({
+      user_id: p.id, kind: 'coach_add',
+      title: `Un profe te agregó como alumno`,
+      body: coach ? `${coach.first_name} ${coach.last_name} va a poder registrar tus sesiones.` : null,
+      link: '/jugador/entrenamientos'
+    });
     setQ(''); setCandidates([]); load();
   }
 
