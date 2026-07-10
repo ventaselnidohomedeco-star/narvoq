@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Tema oscuro carbón + lima (identidad Narvoq) ===== */
+:root {
+  --bg: #0B0F16;          /* carbón azulado */
+  --surface: #141A24;     /* tarjetas */
+  --surface-2: #0F141D;   /* inputs */
+}
+
+body { background: var(--bg); @apply text-white font-body antialiased; }
+
+/* Firma visual: doble línea de saque, ahora en lima */
+.court-divider {
+  height: 10px;
+  border-top: 3px solid rgba(216, 246, 70, 0.85);
+  border-bottom: 3px solid rgba(216, 246, 70, 0.25);
+}
+
+.btn-ball { @apply bg-ball text-courtdark font-display font-black rounded-xl px-5 py-3 active:scale-95 transition; }
+.btn-court { @apply bg-court text-white font-display font-bold rounded-xl px-5 py-3 active:scale-95 transition; }
+.card { background: var(--surface); @apply rounded-2xl border border-white/5 p-4 text-white; }
+.input { background: var(--surface-2); @apply w-full rounded-xl border border-white/10 px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-ball/70; }
+.label { @apply block text-sm font-semibold text-white/50 mb-1; }
+select.input option { color: #0B0F16; background: #F7F9FC; }
+select.input option:checked { color: #0B0F16; background: #D8F646; }
