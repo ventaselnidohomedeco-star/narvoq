@@ -80,11 +80,14 @@ export default function Reservas() {
 
       <div className="mt-4 flex gap-2">
         {[
-          { k: 'proximas', l: `Proximas (${upcoming.length})` },
+          { k: 'proximas', l: `Próximas (${upcoming.length})` },
           { k: 'cargar', l: `Cargar resultado (${toLoad.length})` }
         ].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold ${tab === t.k ? 'bg-court text-white' : 'bg-white border border-white/10 text-white/60'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-black transition
+              ${tab === t.k
+                ? 'bg-[#2A2E36] text-ball ring-1 ring-ball/40'
+                : 'bg-[#1A1D24] text-white/50 border border-white/10'}`}>
             {t.l}
           </button>
         ))}

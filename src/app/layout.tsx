@@ -6,10 +6,14 @@ const display = Archivo({ subsets: ['latin'], variable: '--font-display', weight
 const body = Inter({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  title: 'Narvoq — Elevate your game. Elevate your life.',
+  title: 'Narvoq — Elevá tu juego. Elevá tu nivel.',
   description: 'Reservas, torneos, ranking y entrenamientos de pádel.',
   manifest: '/manifest.json',
-  icons: { icon: '/brand/isotipo.png', apple: '/brand/isotipo.png' }
+  icons: {
+    icon: '/brand/icono-app.png',
+    apple: '/brand/icono-app.png',
+    shortcut: '/brand/icono-app.png'
+  }
 };
 export const viewport: Viewport = { themeColor: '#1747C8', width: 'device-width', initialScale: 1 };
 

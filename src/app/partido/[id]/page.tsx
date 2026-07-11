@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import PlacaButton from '@/components/PlacaButton';
+import CourtLayout from '@/components/CourtLayout';
 import { sharePlaca } from '@/lib/placas';
 
 export default function Partido() {
@@ -131,31 +132,24 @@ export default function Partido() {
         {match.booking?.price ? ` · $${Number(match.booking.price).toLocaleString('es-AR')} la cancha` : ''}
       </p>
 
-      {/* Jugadores */}
-      <div className="card mt-5">
-        <div className="flex justify-between text-sm font-semibold text-white/50">
-          <span>Nivel promedio: <b className="text-court">{avg}</b></span>
-          <span>Categoría sugerida: <b className="text-court">{match.suggested_category ?? '-'}</b></span>
+      {/* Cancha visual con equipos */}
+      <div className="mt-5">
+        <CourtLayout
+          players={players}
+          meId={me}
+          canSwap={match.creator_id === me}
+          onSwap={async (playerId, newTeam) => {
+            await supabase.from('match_players').update({ team: newTeam })
+              .eq('match_id', id).eq('player_id', playerId);
+            load();
+          }}
+        />
+        <div className="mt-3 flex justify-between text-xs font-semibold text-white/60">
+          <span>Nivel promedio <b className="text-ball">{avg}</b></span>
+          <span>Cat. sugerida <b className="text-ball">{match.suggested_category ?? '-'}</b></span>
         </div>
-        <div className="court-divider my-3" />
-        <ul className="space-y-2">
-          {players.map(p => (
-            <li key={p.player_id} className="flex items-center gap-2">
-              <Link href={`/u/${p.profile.username}`} className="flex items-center gap-2 flex-1">
-                {p.profile.avatar_url
-                  ? <img src={p.profile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                  : <span className="w-8 h-8 rounded-full bg-court text-white text-sm font-display font-black flex items-center justify-center">{p.profile.first_name[0]}</span>}
-                <span className="font-semibold">{p.profile.first_name} {p.profile.last_name}</span>
-              </Link>
-              <span className="text-white/50 text-xs">Eq. {p.team} · cat. {p.profile.category}</span>
-            </li>
-          ))}
-          {Array.from({ length: Math.max(0, spots) }).map((_, i) => (
-            <li key={i} className="text-white/50 italic text-sm">Cupo libre</li>
-          ))}
-        </ul>
         {waitlist.length > 0 && (
-          <p className="mt-3 text-xs text-white/50">Suplentes: {waitlist.map(w => w.profile.first_name).join(', ')}</p>
+          <p className="mt-2 text-xs text-white/50">Suplentes: {waitlist.map(w => w.profile.first_name).join(', ')}</p>
         )}
       </div>
 
@@ -241,7 +235,7 @@ export default function Partido() {
             title: spots > 0 ? `Falta${spots > 1 ? 'n' : ''} ${spots}` : 'Partido completo',
             main: `${match.booking?.court.complex.name} · ${match.booking?.court.name}`,
             detail: `${when?.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} hs · Nivel promedio ${avg}`
-          })} className="px-4 py-3 rounded-xl border border-white/15 font-semibold text-white/60">📸 Compartir placa</button>
+          })} className="self-start inline-flex items-center gap-1 bg-white/5 border border-white/10 text-white/60 text-xs font-bold rounded-lg px-3 py-1.5 active:scale-95 transition">📸 Compartir placa</button>
         </div>
       )}
     </main>

@@ -32,11 +32,23 @@ export default function AmigosComplejo() {
 
   async function buscar(text: string) {
     setQ(text);
-    if (text.trim().length < 2) return setResults([]);
-    const t = `%${text.trim()}%`;
+    const raw = text.trim();
+    if (raw.length < 2) return setResults([]);
+    const clean = raw.replace(/^@/, '');
+    const t = `%${clean}%`;
+    const digits = raw.replace(/\D/g, '');
+    const phoneT = digits.length >= 3 ? `%${digits}%` : null;
+    const parts = clean.split(/\s+/);
+    let orClauses = [
+      `username.ilike.${t}`, `first_name.ilike.${t}`, `last_name.ilike.${t}`
+    ];
+    if (phoneT) orClauses.push(`phone.ilike.${phoneT}`);
+    if (parts.length >= 2) {
+      orClauses.push(`and(first_name.ilike.%${parts[0]}%,last_name.ilike.%${parts.slice(1).join(' ')}%)`);
+    }
     const { data } = await supabase.from('profiles')
       .select('id, username, first_name, last_name, avatar_url, category, role')
-      .or(`username.ilike.${t},first_name.ilike.${t},last_name.ilike.${t}`)
+      .or(orClauses.join(','))
       .limit(20);
     setResults((data ?? []).filter(p => p.id !== me));
   }

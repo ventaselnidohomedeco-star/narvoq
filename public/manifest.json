@@ -1,13 +1,14 @@
 {
   "name": "Narvoq",
   "short_name": "Narvoq",
-  "description": "Elevate your game. Elevate your life. — Reservas, torneos, ranking y entrenamientos.",
+  "description": "Elevá tu juego. Elevá tu nivel. — Reservas, torneos, ranking y entrenamientos.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0F16",
   "theme_color": "#0B0F16",
   "icons": [
-    { "src": "/brand/isotipo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/brand/isotipo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/brand/icono-app.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icono-app.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icono-app.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

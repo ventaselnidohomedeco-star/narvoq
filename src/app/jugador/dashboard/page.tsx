@@ -42,8 +42,9 @@ export default function Dashboard() {
     <main className="px-5 pt-8">
       <header className="flex items-center justify-between">
         <div>
-          <p className="text-white/50 text-sm">Hola,</p>
-          <h1 className="font-display font-black text-2xl">{profile?.first_name ?? '…'} 👋</h1>
+          <p className="font-display font-black text-lg leading-tight">
+            <span className="text-white/50 font-bold">Hola,</span> {profile?.first_name ?? '…'} 👋
+          </p>
         </div>
         {profile && (
           <span className="flex items-center gap-2">
@@ -76,6 +77,21 @@ export default function Dashboard() {
       </section>
 
       <div className="court-divider my-6" />
+
+      <section className="grid grid-cols-3 gap-2 mb-6">
+        <Link href="/jugador/reservar" className="card text-center !py-3">
+          <p className="text-2xl">🎾</p>
+          <p className="text-xs font-bold mt-1">Reservar</p>
+        </Link>
+        <Link href="/marketplace" className="card text-center !py-3">
+          <p className="text-2xl">🛒</p>
+          <p className="text-xs font-bold mt-1">Marketplace</p>
+        </Link>
+        <Link href="/jugador/amigos" className="card text-center !py-3">
+          <p className="text-2xl">👥</p>
+          <p className="text-xs font-bold mt-1">Amigos</p>
+        </Link>
+      </section>
 
       <section>
         <div className="flex items-center justify-between">

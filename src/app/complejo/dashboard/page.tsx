@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { notify } from '@/lib/notify';
 
 const Avatar = ({ url, name, size = 'w-10 h-10' }: { url?: string | null; name: string; size?: string }) => url
   ? <img src={url} alt="" className={`${size} rounded-full object-cover shrink-0`} />
@@ -51,6 +52,8 @@ export default function DashboardComplejo() {
   const [periodo, setPeriodo] = useState<'semana' | 'mes'>('semana');
   const [today, setToday] = useState<any[]>([]);
   const [pending, setPending] = useState<any[]>([]);
+  const [reservasPendientes, setReservasPendientes] = useState<any[]>([]);
+  const [sociosPendientes, setSociosPendientes] = useState<any[]>([]);
   const [top, setTop] = useState<any[]>([]);
   const [stats, setStats] = useState({ turnos: 0, libres: 0, ocupacion: 0, plata: 0 });
 
@@ -109,6 +112,24 @@ export default function DashboardComplejo() {
       .select('*, match:matches(booking:bookings!inner(court_id, court:courts(name)))')
       .eq('status', 'pendiente');
     setPending((res ?? []).filter((r: any) => courtIds.includes(r.match?.booking?.court_id)));
+
+    // ---- Reservas de jugadores pendientes de aprobar ----
+    const { data: reservasPend } = await supabase.from('bookings')
+      .select('id, court_id, starts_at, price, payment_status, payment_proof_url, court:courts(name), player:profiles!player_id(id, first_name, last_name, avatar_url, phone)')
+      .in('court_id', courtIds)
+      .eq('type', 'reserva')
+      .neq('status', 'cancelada')
+      .not('payment_status', 'in', '(pagado,no_aplica)')
+      .gte('starts_at', new Date().toISOString())
+      .order('starts_at').limit(20);
+    setReservasPendientes(reservasPend ?? []);
+
+    // ---- Membresías pendientes de aprobar ----
+    const { data: memPend } = await supabase.from('membership_members')
+      .select('membership_id, player_id, payment_status, payment_proof_url, membership:memberships!inner(complex_id, name, price), player:profiles!player_id(id, first_name, last_name, avatar_url, phone)')
+      .eq('membership.complex_id', complex.id)
+      .neq('status', 'activa');
+    setSociosPendientes(memPend ?? []);
   }
   useEffect(() => { load(); }, [periodo]);
 
@@ -116,6 +137,40 @@ export default function DashboardComplejo() {
     const { data: { user } } = await supabase.auth.getUser();
     if (ok) await supabase.from('results').update({ status: 'validado', validated_by: user!.id }).eq('id', r.id);
     else await supabase.from('results').delete().eq('id', r.id);
+    load();
+  }
+
+  async function aprobarReserva(b: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('bookings').update({
+      status: 'confirmada', payment_status: 'pagado',
+      payment_confirmed_at: new Date().toISOString(), payment_confirmed_by: user!.id
+    }).eq('id', b.id);
+    if (b.player?.id) {
+      const when = new Date(b.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      await notify({
+        user_id: b.player.id, kind: 'reserva_ok',
+        title: `Tu reserva en ${cx?.name} está confirmada`,
+        body: `Turno del ${when}. ¡A jugar!`, link: '/jugador/reservas'
+      });
+    }
+    load();
+  }
+
+  async function aprobarSocio(m: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('membership_members').update({
+      status: 'activa', payment_status: 'pagado',
+      payment_confirmed_at: new Date().toISOString(), payment_confirmed_by: user!.id
+    }).eq('membership_id', m.membership_id).eq('player_id', m.player_id);
+    if (m.player?.id) {
+      await notify({
+        user_id: m.player.id, kind: 'membresia_ok',
+        title: `Membresía confirmada en ${cx?.name}`,
+        body: `Ya sos socio del plan ${m.membership?.name}.`,
+        link: `/club/${cx.id}`
+      });
+    }
     load();
   }
 
@@ -130,6 +185,68 @@ export default function DashboardComplejo() {
           <p className="text-white/50 text-sm">{new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
       </div>
+
+      {/* Aprobaciones pendientes: lo más urgente arriba */}
+      {(reservasPendientes.length > 0 || sociosPendientes.length > 0) && (
+        <section className="mt-4 rounded-2xl bg-yellow-300/10 border border-yellow-300/40 p-4">
+          <p className="font-display font-black text-yellow-300 text-sm">
+            🔔 Pendientes de aprobar ({reservasPendientes.length + sociosPendientes.length})
+          </p>
+          <div className="mt-3 space-y-2">
+            {reservasPendientes.map(b => {
+              const when = new Date(b.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+              const hasProof = !!b.payment_proof_url;
+              return (
+                <div key={b.id} className="bg-white/5 rounded-xl p-3">
+                  <div className="flex items-center gap-2">
+                    <Avatar url={b.player?.avatar_url} name={b.player?.first_name ?? '?'} size="w-9 h-9" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{b.player?.first_name} {b.player?.last_name}</p>
+                      <p className="text-white/50 text-xs truncate">{b.court?.name} · {when} · ${Number(b.price ?? 0).toLocaleString('es-AR')}</p>
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-1 rounded ${hasProof ? 'bg-ball/20 text-ball' : 'bg-white/10 text-white/50'}`}>
+                      {hasProof ? 'CON COMP' : 'SIN COMP'}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {hasProof && (
+                      <a href={b.payment_proof_url} target="_blank"
+                        className="flex-1 text-center py-2 rounded-lg bg-white/10 text-xs font-bold">Ver comprobante</a>
+                    )}
+                    <button onClick={() => aprobarReserva(b)}
+                      className="flex-1 py-2 rounded-lg bg-ball text-courtdark text-xs font-black">Aprobar ✓</button>
+                  </div>
+                </div>
+              );
+            })}
+            {sociosPendientes.map(m => {
+              const hasProof = !!m.payment_proof_url;
+              return (
+                <div key={`${m.membership_id}-${m.player_id}`} className="bg-white/5 rounded-xl p-3">
+                  <div className="flex items-center gap-2">
+                    <Avatar url={m.player?.avatar_url} name={m.player?.first_name ?? '?'} size="w-9 h-9" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{m.player?.first_name} {m.player?.last_name}</p>
+                      <p className="text-white/50 text-xs truncate">Membresía: {m.membership?.name} · ${Number(m.membership?.price ?? 0).toLocaleString('es-AR')}/mes</p>
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-1 rounded ${hasProof ? 'bg-ball/20 text-ball' : 'bg-white/10 text-white/50'}`}>
+                      {hasProof ? 'CON COMP' : 'SIN COMP'}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {hasProof && (
+                      <a href={m.payment_proof_url} target="_blank"
+                        className="flex-1 text-center py-2 rounded-lg bg-white/10 text-xs font-bold">Ver comprobante</a>
+                    )}
+                    <button onClick={() => aprobarSocio(m)}
+                      className="flex-1 py-2 rounded-lg bg-ball text-courtdark text-xs font-black">Aprobar ✓</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Filtro de período */}
       <div className="mt-4 flex gap-2">

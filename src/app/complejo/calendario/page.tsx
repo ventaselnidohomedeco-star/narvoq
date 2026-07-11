@@ -36,11 +36,12 @@ export default function Calendario() {
     setCx(complex);
     if (!complex) return;
     const to = new Date(day); to.setDate(to.getDate() + 1);
-    const { data } = await supabase.from('bookings')
-      .select('*, player:profiles(first_name, last_name, phone, avatar_url)')
+    const { data, error } = await supabase.from('bookings')
+      .select('*, player:profiles!player_id(first_name, last_name, phone, avatar_url)')
       .in('court_id', complex.courts.map((c: any) => c.id))
       .gte('starts_at', day.toISOString()).lt('starts_at', to.toISOString())
       .neq('status', 'cancelada');
+    if (error) console.error('Error cargando bookings:', error);
     setBookings(data ?? []);
   }
   useEffect(() => { if (cx || dayOffset >= 0) load(); }, [dayOffset]); // eslint-disable-line
@@ -102,9 +103,38 @@ export default function Calendario() {
 
   if (!cx) return <main className="p-8 text-white/70">Cargando…</main>;
 
+  const pendientes = bookings.filter(b =>
+    b.type === 'reserva' && b.payment_status !== 'pagado' && b.payment_status !== 'no_aplica'
+  );
+
   return (
     <main className="px-3 py-6">
       <h1 className="font-display font-black text-xl px-2">Calendario</h1>
+
+      {pendientes.length > 0 && (
+        <section className="mx-2 mt-3 rounded-2xl bg-yellow-300/10 border border-yellow-300/40 p-3">
+          <p className="font-display font-black text-yellow-300 text-sm">
+            🔔 Tenés {pendientes.length} reserva{pendientes.length > 1 ? 's' : ''} esperando aprobación
+          </p>
+          <div className="mt-2 space-y-1">
+            {pendientes.slice(0, 4).map(b => {
+              const court = cx.courts.find((c: any) => c.id === b.court_id);
+              const when = new Date(b.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+              return (
+                <button key={b.id} onClick={() => setSel({ court, t: new Date(b.starts_at), booking: b })}
+                  className="w-full flex items-center gap-2 bg-white/5 rounded-lg px-2 py-2 text-left text-xs">
+                  <Avatar url={b.player?.avatar_url} name={b.player?.first_name ?? b.guest_name ?? '?'} />
+                  <span className="flex-1 truncate">
+                    {b.player ? `${b.player.first_name} ${b.player.last_name}` : b.guest_name}
+                  </span>
+                  <span className="text-white/60">{court?.name} · {when}</span>
+                  <span className="text-ball font-bold">→</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Selector de día */}
       <div className="mt-3 flex gap-2 overflow-x-auto px-2 pb-1">
