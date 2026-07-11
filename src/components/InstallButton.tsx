@@ -36,11 +36,11 @@ export default function InstallButton({
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [helpKind, setHelpKind] = useState<'ios' | 'android' | 'desktop'>('android');
-  const [hidden, setHidden] = useState(true);
+  // Arrancamos VISIBLE. Solo escondemos si detectamos que ya está instalada.
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    if (isStandalone()) return;
-    setHidden(false);
+    if (isStandalone()) { setHidden(true); return; }
     setHelpKind(isIos() ? 'ios' : isAndroid() ? 'android' : 'desktop');
     const handler = (e: Event) => {
       e.preventDefault();

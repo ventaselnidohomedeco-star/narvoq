@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Banner from '@/components/Banner';
 import Brand from '@/components/Brand';
 import Bell from '@/components/Bell';
+import InstallButton from '@/components/InstallButton';
 
 const items = [
   { href: '/complejo/dashboard', label: 'Hoy', icon: '📊' },
@@ -26,7 +27,10 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
           <Brand variant="inline" size={28} />
           <span className="text-white/40 font-bold text-sm">· Complejos</span>
         </Link>
-        <Bell />
+        <div className="flex items-center gap-2">
+          <InstallButton variant="ghost" />
+          <Bell />
+        </div>
       </header>
       <div className="max-w-lg mx-auto">{children}</div>
       <nav className="fixed bottom-0 inset-x-0 bg-[#060D1F] border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">

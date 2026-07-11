@@ -4,15 +4,19 @@ import ProfileGuard from '@/components/ProfileGuard';
 import Banner from '@/components/Banner';
 import Brand from '@/components/Brand';
 import Bell from '@/components/Bell';
+import InstallButton from '@/components/InstallButton';
 
 export default function JugadorLayout({ children }: { children: React.ReactNode }) {
   return (
     <ProfileGuard>
       <Banner />
       <div className="min-h-dvh pb-24 max-w-md mx-auto">
-        <header className="px-5 pt-4 pb-2 flex items-center justify-between">
+        <header className="px-5 pt-4 pb-2 flex items-center justify-between gap-2">
           <Link href="/jugador/dashboard"><Brand variant="inline" size={24} /></Link>
-          <Bell />
+          <div className="flex items-center gap-2">
+            <InstallButton variant="ghost" />
+            <Bell />
+          </div>
         </header>
         {children}
         <BottomNav />
