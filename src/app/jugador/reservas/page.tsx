@@ -55,7 +55,7 @@ export default function Reservas() {
     <Link href={`/partido/${m.id}`} className="card !p-0 overflow-hidden flex">
       {m.booking.court.photo_url
         ? <img src={m.booking.court.photo_url} alt="" className="w-24 object-cover shrink-0" />
-        : <span className="w-24 bg-court/10 flex items-center justify-center text-2xl shrink-0">PA</span>}
+        : <span className="w-24 bg-grafito/10 flex items-center justify-center text-2xl shrink-0">PA</span>}
       <div className="p-3 flex-1 min-w-0">
         <p className="font-display font-bold truncate">{m.booking.court.complex.name}</p>
         <p className="text-white/50 text-sm">{m.booking.court.name} - {fmt(m.booking.starts_at)} hs</p>

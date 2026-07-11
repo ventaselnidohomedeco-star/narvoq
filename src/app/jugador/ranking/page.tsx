@@ -7,7 +7,7 @@ const CATS = ['Todas', '1', '2', '3', '4', '5', '6', '7', '8'];
 
 const Avatar = ({ url, name }: { url?: string | null; name: string }) => url
   ? <img src={url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-  : <span className="w-10 h-10 rounded-full bg-court text-white font-display font-black flex items-center justify-center shrink-0">
+  : <span className="w-10 h-10 rounded-full bg-grafito text-ball font-display font-black flex items-center justify-center shrink-0">
       {name?.[0]?.toUpperCase() ?? '?'}
     </span>;
 
@@ -92,7 +92,7 @@ export default function Ranking() {
                 ${i === 0 ? 'text-ball bg-courtdark rounded-lg py-1'
                 : i === 1 ? 'text-white/80'
                 : i === 2 ? 'text-white/60'
-                : 'text-court'}`}>{i + 1}</span>
+                : 'text-ball'}`}>{i + 1}</span>
               <Avatar url={r.avatar_url} name={r.first_name} />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{r.first_name} {r.last_name}</p>

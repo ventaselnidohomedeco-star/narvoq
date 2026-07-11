@@ -52,10 +52,10 @@ export default function Dashboard() {
           <Link href="/jugador/perfil" className="flex items-center gap-2">
             {profile.avatar_url
               ? <img src={profile.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover" />
-              : <span className="w-11 h-11 rounded-full bg-court text-white font-display font-black flex items-center justify-center">
+              : <span className="w-11 h-11 rounded-full bg-grafito text-white font-display font-black flex items-center justify-center">
                   {profile.first_name?.[0]}
                 </span>}
-            <span className="bg-court text-white font-display font-black rounded-xl px-3 py-2 text-sm">
+            <span className="bg-grafito text-white font-display font-black rounded-xl px-3 py-2 text-sm">
               Cat. {profile.category}
             </span>
           </Link>
@@ -70,7 +70,7 @@ export default function Dashboard() {
           { n: stats.points, l: 'Pts. torneo' }
         ].map(s => (
           <div key={s.l} className="card text-center">
-            <p className="font-display font-black text-3xl text-court">{s.n}</p>
+            <p className="font-display font-black text-3xl text-ball">{s.n}</p>
             <p className="text-white/50 text-xs font-semibold">{s.l}</p>
           </div>
         ))}
@@ -111,14 +111,14 @@ export default function Dashboard() {
                 {new Date(m.booking.starts_at).toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })} hs
               </p>
             </div>
-            <span className="text-court font-bold">→</span>
+            <span className="text-ball font-bold">→</span>
           </Link>
         ))}
       </section>
 
       <section className="mt-6 flex gap-3">
         <Link href="/jugador/entrenamientos" className="card flex-1 text-center">
-          <p className="font-display font-black text-2xl text-court">{stats.trainings}</p>
+          <p className="font-display font-black text-2xl text-ball">{stats.trainings}</p>
           <p className="text-white/50 text-xs font-semibold">Entrenamientos</p>
         </Link>
         <div className="card flex-1 flex items-center justify-center">

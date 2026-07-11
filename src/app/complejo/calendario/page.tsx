@@ -6,7 +6,7 @@ import { notify } from '@/lib/notify';
 
 const Avatar = ({ url, name }: { url?: string | null; name: string }) => url
   ? <img src={url} alt="" className="w-7 h-7 rounded-full object-cover" />
-  : <span className="w-7 h-7 rounded-full bg-court text-white text-xs font-display font-black flex items-center justify-center">
+  : <span className="w-7 h-7 rounded-full bg-grafito text-white text-xs font-display font-black flex items-center justify-center">
       {name?.[0]?.toUpperCase() ?? '?'}
     </span>;
 
@@ -140,7 +140,7 @@ export default function Calendario() {
       <div className="mt-3 flex gap-2 overflow-x-auto px-2 pb-1">
         {days.map((d, i) => (
           <button key={i} onClick={() => setDayOffset(i)}
-            className={`shrink-0 rounded-xl px-3 py-2 text-center ${i === dayOffset ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/70'}`}>
+            className={`shrink-0 rounded-xl px-3 py-2 text-center ${i === dayOffset ? 'bg-ball text-balldark' : 'bg-white/5 text-white/70'}`}>
             <p className="text-[10px] font-bold uppercase">{d.toLocaleDateString('es-AR', { weekday: 'short' })}</p>
             <p className="font-display font-black text-lg leading-none">{d.getDate()}</p>
           </button>
@@ -173,7 +173,7 @@ export default function Calendario() {
                     return (
                       <td key={c.id}>
                         <button onClick={() => setSel({ court: c, t, booking: b })}
-                          className={`w-full rounded-lg px-1.5 py-1.5 text-left ${b.type === 'block' ? 'bg-white/10' : 'bg-court'}`}>
+                          className={`w-full rounded-lg px-1.5 py-1.5 text-left ${b.type === 'block' ? 'bg-white/10' : 'bg-grafito'}`}>
                           <span className="flex items-center gap-1.5">
                             {b.type === 'block'
                               ? <span className="text-sm">⛔</span>
@@ -207,7 +207,7 @@ export default function Calendario() {
       {/* Panel de acción sobre una celda */}
       {sel && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setSel(null)}>
-          <div className="bg-courtdark border-t border-white/10 rounded-t-3xl w-full max-w-lg mx-auto p-5 pb-10 relative"
+          <div className="bg-grafitodark border-t border-white/10 rounded-t-3xl w-full max-w-lg mx-auto p-5 pb-10 relative"
             onClick={e => e.stopPropagation()}>
             <button onClick={() => setSel(null)} aria-label="Cerrar"
               className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold flex items-center justify-center active:scale-90">
@@ -253,7 +253,7 @@ export default function Calendario() {
                 )}
                 {sel.booking.type !== 'block' && sel.booking.payment_status !== 'pagado' && sel.booking.payment_proof_url && (
                   <button onClick={() => marcarPagado(sel.booking)}
-                    className="mt-3 w-full py-3 rounded-xl bg-ball text-courtdark font-display font-black">
+                    className="mt-3 w-full py-3 rounded-xl bg-ball text-balldark font-display font-black">
                     Marcar pagado y confirmar reserva
                   </button>
                 )}

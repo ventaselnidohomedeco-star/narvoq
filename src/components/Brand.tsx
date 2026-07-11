@@ -1,11 +1,13 @@
-// Componente de marca Narvoq. Renderiza el isotipo (paleta) + wordmark.
-// Sin handlers de cliente para que funcione en Server Components.
-// Si el PNG no existe en /public/brand/isotipo.png, el navegador muestra
-// solo el icono roto pero la app no se rompe.
+// Componente de marca Narvoq.
+// - variant="full" o "inline": usa /brand/logo.png (NARVOQ + paleta ya integrados)
+// - variant="mark": usa /brand/icono-app.png (isotipo con fondo redondeado)
+// - variant="isotipo": usa /brand/isotipo.png crudo
 
-type Variant = 'full' | 'mark' | 'inline';
+type Variant = 'full' | 'mark' | 'inline' | 'isotipo';
 
-const isotipoSrc = '/brand/isotipo.png';
+const logoSrc = '/brand/logo.png?v=3';
+const isotipoSrc = '/brand/isotipo.png?v=3';
+const iconoAppSrc = '/brand/icono-app.png?v=3';
 
 export default function Brand({
   variant = 'inline',
@@ -17,31 +19,27 @@ export default function Brand({
   className?: string;
 }) {
   if (variant === 'mark') {
+    // Ícono cuadrado (para tabs, favicons, chips)
+    return (
+      <img src={iconoAppSrc} alt="Narvoq" width={size} height={size}
+        className={`rounded-xl ${className}`}
+        style={{ width: size, height: size, objectFit: 'contain' }} />
+    );
+  }
+  if (variant === 'isotipo') {
     return (
       <img src={isotipoSrc} alt="Narvoq" width={size} height={size}
         className={className}
         style={{ width: size, height: size, objectFit: 'contain' }} />
     );
   }
-  if (variant === 'full') {
-    return (
-      <div className={`flex items-center gap-3 ${className}`}>
-        <img src={isotipoSrc} alt="" width={size} height={size}
-          style={{ width: size, height: size, objectFit: 'contain' }} />
-        <span className="font-display font-black tracking-wide" style={{ fontSize: size * 0.75 }}>
-          NARVO<span className="text-ball">Q</span>
-        </span>
-      </div>
-    );
-  }
-  // inline (default): isotipo chico + wordmark chico
+  // full o inline: usamos el LOGO.png completo (paleta + wordmark).
+  // El PNG tiene proporción ~3:1 (2172x724). Le damos width por altura.
+  const height = variant === 'full' ? size * 1.2 : size;
+  const width = height * 3;
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <img src={isotipoSrc} alt="" width={size * 0.7} height={size * 0.7}
-        style={{ width: size * 0.7, height: size * 0.7, objectFit: 'contain' }} />
-      <span className="font-display font-black">
-        NARVO<span className="text-ball">Q</span>
-      </span>
-    </span>
+    <img src={logoSrc} alt="Narvoq — Elevá tu juego, elevá tu nivel"
+      className={className}
+      style={{ height, width: 'auto', maxWidth: width, objectFit: 'contain', display: 'block' }} />
   );
 }

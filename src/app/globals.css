@@ -19,7 +19,7 @@ body { background: var(--bg); @apply text-white font-body antialiased; }
 }
 
 .btn-ball { @apply bg-ball text-courtdark font-display font-black rounded-xl px-5 py-3 active:scale-95 transition; }
-.btn-court { @apply bg-court text-white font-display font-bold rounded-xl px-5 py-3 active:scale-95 transition; }
+.btn-court { @apply bg-grafito text-ball font-display font-black rounded-xl px-5 py-3 active:scale-95 transition; }
 .card { background: var(--surface); @apply rounded-2xl border border-white/5 p-4 text-white; }
 .input { background: var(--surface-2); @apply w-full rounded-xl border border-white/10 px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-ball/70; }
 .label { @apply block text-sm font-semibold text-white/50 mb-1; }

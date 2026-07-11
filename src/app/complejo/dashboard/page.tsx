@@ -6,7 +6,7 @@ import { notify } from '@/lib/notify';
 
 const Avatar = ({ url, name, size = 'w-10 h-10' }: { url?: string | null; name: string; size?: string }) => url
   ? <img src={url} alt="" className={`${size} rounded-full object-cover shrink-0`} />
-  : <span className={`${size} rounded-full bg-court text-white font-display font-black flex items-center justify-center shrink-0`}>
+  : <span className={`${size} rounded-full bg-grafito text-white font-display font-black flex items-center justify-center shrink-0`}>
       {name?.[0]?.toUpperCase() ?? '?'}
     </span>;
 
@@ -33,7 +33,7 @@ function PromoBox({ cxId }: { cxId: string }) {
       <div className="flex gap-2 mt-2">
         {KINDS.map(([k, l]) => (
           <button key={k} onClick={() => { setKind(k); setText(PLANTILLAS[k]); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold ${kind === k ? 'bg-ball text-courtdark' : 'bg-white/10 text-white/60'}`}>
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold ${kind === k ? 'bg-ball text-balldark' : 'bg-white/10 text-white/60'}`}>
             {l}
           </button>
         ))}
@@ -214,7 +214,7 @@ export default function DashboardComplejo() {
                         className="flex-1 text-center py-2 rounded-lg bg-white/10 text-xs font-bold">Ver comprobante</a>
                     )}
                     <button onClick={() => aprobarReserva(b)}
-                      className="flex-1 py-2 rounded-lg bg-ball text-courtdark text-xs font-black">Aprobar ✓</button>
+                      className="flex-1 py-2 rounded-lg bg-ball text-balldark text-xs font-black">Aprobar ✓</button>
                   </div>
                 </div>
               );
@@ -239,7 +239,7 @@ export default function DashboardComplejo() {
                         className="flex-1 text-center py-2 rounded-lg bg-white/10 text-xs font-bold">Ver comprobante</a>
                     )}
                     <button onClick={() => aprobarSocio(m)}
-                      className="flex-1 py-2 rounded-lg bg-ball text-courtdark text-xs font-black">Aprobar ✓</button>
+                      className="flex-1 py-2 rounded-lg bg-ball text-balldark text-xs font-black">Aprobar ✓</button>
                   </div>
                 </div>
               );
@@ -252,7 +252,7 @@ export default function DashboardComplejo() {
       <div className="mt-4 flex gap-2">
         {(['semana', 'mes'] as const).map(k => (
           <button key={k} onClick={() => setPeriodo(k)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold ${periodo === k ? 'bg-ball text-courtdark' : 'bg-white/10 text-white/60'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-bold ${periodo === k ? 'bg-ball text-balldark' : 'bg-white/10 text-white/60'}`}>
             {k === 'semana' ? 'Últimos 7 días' : 'Últimos 30 días'}
           </button>
         ))}

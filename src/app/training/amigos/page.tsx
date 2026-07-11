@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 
 const Avatar = ({ url, name }: any) => url
   ? <img src={url} alt="" className="w-11 h-11 rounded-full object-cover shrink-0" />
-  : <span className="w-11 h-11 rounded-full bg-court text-white font-display font-black flex items-center justify-center shrink-0">
+  : <span className="w-11 h-11 rounded-full bg-grafito text-white font-display font-black flex items-center justify-center shrink-0">
       {name?.[0]?.toUpperCase() ?? '?'}
     </span>;
 
@@ -67,7 +67,7 @@ export default function AmigosTraining() {
   }
 
   const roleLabel = (r: string) =>
-    r === 'complex_admin' ? { txt: 'Complejo', cls: 'bg-court/30 text-court' }
+    r === 'complex_admin' ? { txt: 'Complejo', cls: 'bg-grafito/30 text-court' }
     : r === 'coach' ? { txt: 'Profe', cls: 'bg-ball/20 text-ball' }
     : { txt: 'Jugador', cls: 'bg-white/10 text-white/60' };
 
@@ -85,7 +85,7 @@ export default function AmigosTraining() {
           </div>
         </Link>
         <button onClick={() => toggle(p)}
-          className={`text-sm font-bold px-3 py-2 rounded-xl shrink-0 ${sigo(p.id) ? 'bg-white/10 text-white/60' : 'bg-court text-white'}`}>
+          className={`text-sm font-bold px-3 py-2 rounded-xl shrink-0 ${sigo(p.id) ? 'bg-white/10 text-white/60' : 'bg-grafito text-white'}`}>
           {sigo(p.id) ? 'Siguiendo ✓' : 'Seguir'}
         </button>
       </div>

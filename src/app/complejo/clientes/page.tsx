@@ -78,7 +78,7 @@ export default function Clientes() {
             <li key={i} className="flex items-center gap-3">
               {f.player?.avatar_url
                 ? <img src={f.player.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
-                : <span className="w-9 h-9 rounded-full bg-court font-display font-black flex items-center justify-center">
+                : <span className="w-9 h-9 rounded-full bg-grafito font-display font-black flex items-center justify-center">
                     {(f.player?.first_name ?? f.guest ?? '?')[0]}
                   </span>}
               <div className="flex-1 min-w-0">

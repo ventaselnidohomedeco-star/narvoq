@@ -61,7 +61,7 @@ function RegistroForm() {
             </select></div>
           <div><label className="label">Categoría</label>
             <select className="input" value={f.category} onChange={set('category')}>
-              {CATS.map(c => <option key={c} value={c}>{c} {c === 1 ? '(la mejor)' : c === 8 ? '(principiante)' : ''}</option>)}
+              {CATS.map(c => <option key={c} value={c}>{c}</option>)}
             </select></div>
         </div>
         <div><label className="label">Ciudad</label>

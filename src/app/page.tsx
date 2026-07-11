@@ -65,7 +65,7 @@ export default function Landing() {
 
       {/* COMPLEJO */}
       <section className="max-w-md mx-auto px-6 py-10 border-t border-white/5">
-        <p className="text-court text-xs font-black tracking-widest">SI TENÉS COMPLEJO</p>
+        <p className="text-ball text-xs font-black tracking-widest">SI TENÉS COMPLEJO</p>
         <h2 className="font-display font-black text-3xl mt-1 leading-tight">Menos WhatsApps, más canchas llenas.</h2>
 
         <div className="mt-6 space-y-4">
@@ -77,7 +77,7 @@ export default function Landing() {
         </div>
 
         <Link href="/complejo/login"
-          className="mt-6 block text-center bg-court text-white font-display font-black rounded-xl py-4">
+          className="mt-6 block text-center bg-grafito text-ball font-display font-black rounded-xl py-4">
           Entrar al portal de complejos →
         </Link>
       </section>
@@ -165,7 +165,7 @@ function MockRanking() {
         {players.map((p, i) => (
           <div key={p.n} className="flex items-center gap-3">
             <span className={`font-display font-black w-6 text-center ${i === 0 ? 'text-ball' : 'text-white/60'}`}>{i + 1}</span>
-            <span className="w-8 h-8 rounded-full bg-court flex items-center justify-center text-xs font-black">{p.n}</span>
+            <span className="w-8 h-8 rounded-full bg-grafito text-ball flex items-center justify-center text-xs font-black">{p.n}</span>
             <span className="flex-1 text-sm font-semibold">{p.name}</span>
             <span className="text-ball font-display font-black text-sm">{p.pts} pts</span>
           </div>
@@ -195,7 +195,7 @@ function MockStats() {
 function Stat({ n, l }: any) {
   return (
     <div className="text-center bg-white/5 rounded-xl py-2">
-      <p className="font-display font-black text-2xl text-court">{n}</p>
+      <p className="font-display font-black text-2xl text-ball">{n}</p>
       <p className="text-white/50 text-[9px] font-bold uppercase">{l}</p>
     </div>
   );

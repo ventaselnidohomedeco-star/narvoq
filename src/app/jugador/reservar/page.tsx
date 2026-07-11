@@ -94,21 +94,47 @@ export default function Reservar() {
           </select></div>
 
         {cityId && (
-          <div><label className="label">Complejo</label>
+          <div>
+            <label className="label">Complejo</label>
+
+            {/* Mapa embebido de Google Maps con la ciudad + complejos */}
+            {complexes.length > 0 && (
+              <div className="rounded-2xl overflow-hidden border border-white/10 mb-3">
+                <iframe
+                  key={cityId}
+                  title="Mapa de complejos"
+                  className="w-full h-56 border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                    'canchas de padel ' + (cities.find(c => c.id === cityId)?.name ?? '')
+                  )}&output=embed`}
+                />
+              </div>
+            )}
+
             <div className="grid gap-2">
               {complexes.map(cx => (
-                <div key={cx.id} className={`card ${complex?.id === cx.id ? 'ring-2 ring-court' : ''}`}>
+                <div key={cx.id} className={`card ${complex?.id === cx.id ? 'ring-2 ring-ball' : ''}`}>
                   <button onClick={() => setComplex(cx)} className="text-left w-full">
                     <p className="font-display font-bold">{cx.name}</p>
                     <p className="text-white/50 text-sm">{cx.address}</p>
                   </button>
-                  <Link href={`/club/${cx.id}`} className="mt-2 inline-block text-ball text-xs font-bold">
-                    Ver perfil, servicios y membresias
-                  </Link>
+                  <div className="mt-2 flex items-center gap-3">
+                    <Link href={`/club/${cx.id}`} className="text-ball text-xs font-bold">
+                      Ver perfil →
+                    </Link>
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cx.name + ' ' + (cx.address ?? ''))}`}
+                      target="_blank" rel="noreferrer"
+                      className="text-white/60 text-xs font-bold underline">
+                      Cómo llegar 🗺️
+                    </a>
+                  </div>
                 </div>
               ))}
               {complexes.length === 0 && <p className="text-white/50 text-sm">Todavía no hay complejos en esta ciudad.</p>}
-            </div></div>
+            </div>
+          </div>
         )}
 
         {complex && (
@@ -117,10 +143,10 @@ export default function Reservar() {
               <div className="grid gap-2">
                 {courts.map((c: any) => (
                   <button key={c.id} onClick={() => setCourt(c)}
-                    className={`card !p-0 overflow-hidden text-left flex ${court?.id === c.id ? 'ring-2 ring-court' : ''}`}>
+                    className={`card !p-0 overflow-hidden text-left flex ${court?.id === c.id ? 'ring-2 ring-ball' : ''}`}>
                     {c.photo_url
                       ? <img src={c.photo_url} alt="" className="w-24 h-20 object-cover shrink-0" />
-                      : <span className="w-24 h-20 bg-court/10 flex items-center justify-center text-2xl shrink-0">🎾</span>}
+                      : <span className="w-24 h-20 bg-ball/10 flex items-center justify-center text-2xl shrink-0">🎾</span>}
                     <span className="p-3 min-w-0">
                       <span className="font-display font-bold block">
                         {c.name} · ${Number(c.price_per_slot).toLocaleString('es-AR')}

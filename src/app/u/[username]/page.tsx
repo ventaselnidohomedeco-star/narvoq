@@ -41,7 +41,11 @@ export default function PerfilPublico() {
         points: (pts ?? []).filter(r => r.ref_tournament_id).reduce((a, r) => a + r.points, 0) });
 
       const { data: ps } = await supabase.from('posts')
-        .select('*').eq('author_profile_id', profile.id)
+        .select(`*,
+          original:posts!repost_of(id, text_content, image_url, created_at, kind,
+            author:profiles!author_profile_id(username, first_name, last_name, avatar_url),
+            complex:complexes!author_complex_id(id, name, logo_url))`)
+        .eq('author_profile_id', profile.id)
         .order('created_at', { ascending: false }).limit(12);
       setPosts(ps ?? []);
     })();
@@ -70,7 +74,7 @@ export default function PerfilPublico() {
   return (
     <main className="min-h-dvh max-w-md mx-auto pb-16">
       {/* Cabecera */}
-      <div className="bg-court text-white px-5 pt-8 pb-6 rounded-b-3xl relative overflow-hidden">
+      <div className="bg-grafito text-ball px-5 pt-8 pb-6 rounded-b-3xl relative overflow-hidden">
         <div className="absolute inset-3 border border-white/15 rounded-2xl pointer-events-none" />
         <div className="flex items-center gap-4 relative">
           {p.avatar_url
@@ -88,7 +92,7 @@ export default function PerfilPublico() {
         </div>
         {me && me !== p.id && (
           <button onClick={toggleFollow}
-            className={`mt-3 w-full py-2.5 rounded-xl font-display font-bold relative ${iFollow ? 'bg-white/15 text-white' : 'bg-ball text-courtdark'}`}>
+            className={`mt-3 w-full py-2.5 rounded-xl font-display font-bold relative ${iFollow ? 'bg-white/15 text-white' : 'bg-ball text-balldark'}`}>
             {iFollow ? 'Siguiendo ✓' : '+ Seguir'}
           </button>
         )}
@@ -108,7 +112,7 @@ export default function PerfilPublico() {
           { n: stats.points, l: 'Pts. torneo' }
         ].map(s => (
           <div key={s.l} className="card text-center !py-3">
-            <p className="font-display font-black text-2xl text-court">{s.n}</p>
+            <p className="font-display font-black text-2xl text-ball">{s.n}</p>
             <p className="text-white/50 text-xs font-semibold">{s.l}</p>
           </div>
         ))}
@@ -125,15 +129,46 @@ export default function PerfilPublico() {
       <div className="px-5 mt-6">
         <h2 className="font-display font-bold">Publicaciones</h2>
         <div className="mt-3 space-y-3">
-          {posts.map(post => (
-            <div key={post.id} className="card">
-              {post.text_content && <p className="text-sm">{post.text_content}</p>}
-              {post.image_url && <img src={post.image_url} alt="" className="mt-2 rounded-xl w-full" />}
-              <p className="text-white/50 text-xs mt-2">
-                {new Date(post.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
-              </p>
-            </div>
-          ))}
+          {posts.map(post => {
+            const isRepost = !!post.repost_of;
+            const original = post.original;
+            return (
+              <div key={post.id} className="card !p-3">
+                {isRepost && (
+                  <p className="text-xs text-white/50 mb-2">
+                    🔁 {p.first_name} reposteó
+                  </p>
+                )}
+                {isRepost ? (
+                  original ? (
+                    <div className="border border-white/10 rounded-xl p-3">
+                      <p className="text-xs text-white/50 mb-1">
+                        {original.complex?.name
+                          ? `🏢 ${original.complex.name}`
+                          : original.author?.username
+                            ? `@${original.author.username}`
+                            : 'Autor desconocido'}
+                      </p>
+                      {original.text_content && <p className="text-sm">{original.text_content}</p>}
+                      {original.image_url && <img src={original.image_url} alt="" className="mt-2 rounded-lg w-full" />}
+                    </div>
+                  ) : (
+                    <p className="text-white/40 text-sm italic">La publicación original ya no está disponible.</p>
+                  )
+                ) : (
+                  <>
+                    {post.text_content && <p className="text-sm">{post.text_content}</p>}
+                    {post.image_url && <img src={post.image_url} alt="" className="mt-2 rounded-xl w-full" />}
+                  </>
+                )}
+                <p className="text-white/50 text-xs mt-2">
+                  {post.created_at
+                    ? new Date(post.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
+                    : ''}
+                </p>
+              </div>
+            );
+          })}
           {posts.length === 0 && <p className="text-white/50 text-sm">Todavía no publicó nada.</p>}
         </div>
       </div>

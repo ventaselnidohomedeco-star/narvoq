@@ -222,7 +222,7 @@ export default function Partido() {
                   <div key={a.id} className="flex items-center gap-2">
                     {a.avatar_url
                       ? <img src={a.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                      : <span className="w-8 h-8 rounded-full bg-court text-white text-xs font-display font-black flex items-center justify-center">{a.first_name[0]}</span>}
+                      : <span className="w-8 h-8 rounded-full bg-grafito text-white text-xs font-display font-black flex items-center justify-center">{a.first_name[0]}</span>}
                     <span className="flex-1 text-sm font-semibold truncate">{a.first_name} {a.last_name} <span className="text-white/50 font-normal">cat. {a.category}</span></span>
                     <button onClick={() => agregarAmigo(a)} className="btn-ball !py-1.5 !px-3 text-xs">+ Agregar</button>
                   </div>

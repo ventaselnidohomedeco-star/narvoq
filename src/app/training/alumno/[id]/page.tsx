@@ -40,6 +40,9 @@ export default function AlumnoDashboard() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
+  const [objectives, setObjectives] = useState('');
+  const [savingObj, setSavingObj] = useState(false);
+
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -47,6 +50,9 @@ export default function AlumnoDashboard() {
     setMe(coach);
     const { data: p } = await supabase.from('profiles').select('*').eq('id', id).single();
     setPlayer(p);
+    const { data: link } = await supabase.from('coach_students')
+      .select('objectives').eq('coach_id', user.id).eq('player_id', id).maybeSingle();
+    setObjectives(link?.objectives ?? '');
     const { data } = await supabase.from('trainings')
       .select('*')
       .eq('player_id', id)
@@ -55,6 +61,14 @@ export default function AlumnoDashboard() {
     setItems(data ?? []);
   }
   useEffect(() => { if (id) load(); }, [id]);
+
+  async function guardarObjetivos() {
+    if (!me || !id) return;
+    setSavingObj(true);
+    await supabase.from('coach_students').update({ objectives })
+      .eq('coach_id', me.id).eq('player_id', id);
+    setSavingObj(false);
+  }
 
   async function guardar() {
     if (!me || !player) return;
@@ -147,6 +161,17 @@ export default function AlumnoDashboard() {
             <div className="mt-1 h-2 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-ball" style={{ width: `${value * 10}%` }} /></div>
           </div>
         ))}
+      </section>
+
+      <section className="card mt-4 space-y-2">
+        <p className="font-display font-bold text-ball text-sm">Objetivos con {player.first_name}</p>
+        <textarea className="input" rows={3}
+          placeholder="Ej: mejorar bandeja, subir a cat. 5 en 6 meses, trabajar constancia mental…"
+          value={objectives} onChange={e => setObjectives(e.target.value)} />
+        <button onClick={guardarObjetivos} disabled={savingObj}
+          className="btn-ball text-sm disabled:opacity-40 self-start">
+          {savingObj ? 'Guardando…' : 'Guardar objetivos'}
+        </button>
       </section>
 
       <section className="card mt-4 space-y-3">

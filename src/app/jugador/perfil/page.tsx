@@ -74,7 +74,7 @@ export default function Perfil() {
           <select className="input" defaultValue={p.category}
             onChange={e => save({ category: Number(e.target.value) })}>
             {[1,2,3,4,5,6,7,8].map(c =>
-              <option key={c} value={c}>{c} {c === 1 ? '(la mejor)' : c === 8 ? '(principiante)' : ''}</option>)}
+              <option key={c} value={c}>{c}</option>)}
           </select></div>
         <div><label className="label">Lado preferido</label>
           <div className="flex gap-2">

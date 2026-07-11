@@ -27,7 +27,7 @@ function timeAgo(iso: string) {
 
 const Avatar = ({ url, name, size = 'w-10 h-10' }: { url?: string | null; name: string; size?: string }) => url
   ? <img src={url} alt="" className={`${size} rounded-full object-cover shrink-0`} />
-  : <span className={`${size} rounded-full bg-court text-white font-display font-black flex items-center justify-center shrink-0`}>
+  : <span className={`${size} rounded-full bg-grafito text-white font-display font-black flex items-center justify-center shrink-0`}>
       {name?.[0]?.toUpperCase() ?? '?'}
     </span>;
 
@@ -188,7 +188,16 @@ export default function Feed() {
 
   function PostBody({ p, embedded = false }: { p: any; embedded?: boolean }) {
     const meta = KIND_META[p.kind];
-    const authorName = p.complex ? p.complex.name : `${p.author?.first_name ?? ''} ${p.author?.last_name ?? ''}`;
+    const authorName = p.complex?.name
+      ? p.complex.name
+      : (p.author?.first_name || p.author?.last_name)
+        ? `${p.author?.first_name ?? ''} ${p.author?.last_name ?? ''}`.trim()
+        : 'Usuario';
+    const subtitle = p.complex?.name
+      ? 'Complejo'
+      : p.author?.username
+        ? `@${p.author.username}`
+        : '';
     return (
       <div className={embedded ? 'border border-white/10 rounded-xl mx-4 mb-1 overflow-hidden' : ''}>
         <header className="flex items-center gap-3 px-4 pt-3">
@@ -201,7 +210,7 @@ export default function Feed() {
               <p className="font-display font-bold truncate text-sm">{authorName}</p>
             </AuthorLink>
             <p className="text-white/50 text-xs">
-              {p.complex ? 'Complejo' : `@${p.author?.username}`} · {timeAgo(p.created_at)}
+              {subtitle}{subtitle ? ' · ' : ''}{p.created_at ? timeAgo(p.created_at) : ''}
             </p>
           </div>
           {meta && !embedded && (
