@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Archivo, Inter } from 'next/font/google';
 import './globals.css';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 
 const display = Archivo({ subsets: ['latin'], variable: '--font-display', weight: ['600', '700', '900'] });
 const body = Inter({ subsets: ['latin'], variable: '--font-body' });
@@ -20,7 +21,10 @@ export const viewport: Viewport = { themeColor: '#1747C8', width: 'device-width'
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${display.variable} ${body.variable}`}>{children}</body>
+      <body className={`${display.variable} ${body.variable}`}>
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }

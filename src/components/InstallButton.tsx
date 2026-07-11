@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// Botón "Descargar Narvoq" que instala la PWA en el celular.
-// - Android / Chrome / Edge / Samsung Internet: usa beforeinstallprompt (instalación en 1 tap).
-// - iOS Safari / iPad: muestra un modal con instrucciones (Apple no permite la API programática).
-// - Si el usuario YA la tiene instalada, el botón no aparece.
+// Botón "Descargar app" que instala Narvoq como PWA en el celular.
+// - Android Chrome/Edge/Samsung Internet: usa beforeinstallprompt (instalación con 1 tap).
+// - iOS Safari: muestra instrucciones "Compartir → Agregar a pantalla de inicio".
+// - Android sin evento cacheado (raro): muestra instrucciones del menú del navegador.
+// - Ya instalada: no aparece.
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -15,6 +16,11 @@ function isIos() {
   if (typeof window === 'undefined') return false;
   const ua = window.navigator.userAgent;
   return /iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document);
+}
+
+function isAndroid() {
+  if (typeof window === 'undefined') return false;
+  return /Android/i.test(window.navigator.userAgent);
 }
 
 function isStandalone() {
@@ -28,14 +34,14 @@ export default function InstallButton({
   className = ''
 }: { variant?: 'primary' | 'ghost'; className?: string }) {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIosHelp, setShowIosHelp] = useState(false);
-  const [hidden, setHidden] = useState(true); // arranca oculto hasta chequear
-  const [ios, setIos] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpKind, setHelpKind] = useState<'ios' | 'android' | 'desktop'>('android');
+  const [hidden, setHidden] = useState(true);
 
   useEffect(() => {
-    if (isStandalone()) return; // ya está instalada
-    setIos(isIos());
+    if (isStandalone()) return;
     setHidden(false);
+    setHelpKind(isIos() ? 'ios' : isAndroid() ? 'android' : 'desktop');
     const handler = (e: Event) => {
       e.preventDefault();
       setPrompt(e as BeforeInstallPromptEvent);
@@ -47,14 +53,16 @@ export default function InstallButton({
 
   async function descargar() {
     if (prompt) {
-      await prompt.prompt();
-      const { outcome } = await prompt.userChoice;
-      if (outcome === 'accepted') setHidden(true);
+      try {
+        await prompt.prompt();
+        const { outcome } = await prompt.userChoice;
+        if (outcome === 'accepted') setHidden(true);
+      } catch { /* usuario canceló */ }
       setPrompt(null);
       return;
     }
-    // Fallback: iOS o navegador que no soporta prompt programático
-    setShowIosHelp(true);
+    // Sin prompt disponible (iOS siempre, Chrome Android si el criteria no se cumplió aún)
+    setShowHelp(true);
   }
 
   if (hidden) return null;
@@ -74,49 +82,76 @@ export default function InstallButton({
         Descargar app
       </button>
 
-      {showIosHelp && (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end sm:items-center justify-center" onClick={() => setShowIosHelp(false)}>
-          <div className="bg-[#141A24] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      {showHelp && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end sm:items-center justify-center"
+          onClick={() => setShowHelp(false)}>
+          <div className="bg-[#141A24] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4"
+            onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
-              <img src="/brand/icono-app.png" alt="Narvoq" className="w-14 h-14 rounded-2xl" />
+              <img src="/brand/icono-app.png?v=3" alt="Narvoq" className="w-14 h-14 rounded-2xl" />
               <div>
                 <p className="font-display font-black text-lg">Instalar Narvoq</p>
-                <p className="text-white/50 text-xs">{ios ? 'Instrucciones para iPhone' : 'Instrucciones'}</p>
+                <p className="text-white/50 text-xs">
+                  {helpKind === 'ios' ? 'iPhone / iPad' : helpKind === 'android' ? 'Android' : 'Escritorio'}
+                </p>
               </div>
             </div>
 
-            {ios ? (
+            {helpKind === 'ios' && (
               <ol className="space-y-3 text-sm">
                 <li className="flex gap-3">
                   <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">1</span>
-                  <span>Tocá el botón de <b>Compartir</b> abajo (□↑) en Safari.</span>
+                  <span>Verificá que estás en <b>Safari</b> (no Chrome). En Chrome de iPhone no se puede instalar.</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">2</span>
-                  <span>Deslizá y elegí <b>“Agregar a pantalla de inicio”</b>.</span>
+                  <span>Tocá el botón <b>Compartir</b> abajo (⬆︎ dentro de un cuadrado).</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">3</span>
-                  <span>Tocá <b>Agregar</b>. Listo: aparece el ícono en tu home 🎾.</span>
-                </li>
-                <p className="text-white/40 text-xs pt-1">
-                  Chrome en iPhone no permite instalar. Si estás en Chrome, cambiá a Safari.
-                </p>
-              </ol>
-            ) : (
-              <ol className="space-y-3 text-sm">
-                <li className="flex gap-3">
-                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">1</span>
-                  <span>Abrí el menú del navegador (⋮ arriba a la derecha).</span>
+                  <span>Deslizá y elegí <b>“Agregar a pantalla de inicio”</b>.</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">2</span>
-                  <span>Tocá <b>“Instalar app”</b> o <b>“Agregar a pantalla de inicio”</b>.</span>
+                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">4</span>
+                  <span>Tocá <b>Agregar</b>. Aparece el ícono con la paleta 🎾 en tu home.</span>
                 </li>
               </ol>
             )}
 
-            <button onClick={() => setShowIosHelp(false)}
+            {helpKind === 'android' && (
+              <ol className="space-y-3 text-sm">
+                <li className="flex gap-3">
+                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">1</span>
+                  <span>Tocá el menú del navegador (los <b>3 puntos verticales</b> arriba a la derecha).</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">2</span>
+                  <span>Elegí <b>“Instalar app”</b> o <b>“Agregar a la pantalla de inicio”</b>.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">3</span>
+                  <span>Confirmá <b>Instalar</b>. Listo, aparece Narvoq en tu home 🎾.</span>
+                </li>
+                <p className="text-white/40 text-xs pt-1">
+                  Si no aparece la opción, cerrá y volvé a abrir la app. A veces tarda unos segundos en habilitarse.
+                </p>
+              </ol>
+            )}
+
+            {helpKind === 'desktop' && (
+              <ol className="space-y-3 text-sm">
+                <li className="flex gap-3">
+                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">1</span>
+                  <span>En la barra de direcciones, tocá el ícono de <b>instalar</b> (una computadora con una flecha hacia abajo).</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">2</span>
+                  <span>Si no lo ves: menú <b>⋮</b> arriba a la derecha → <b>“Instalar Narvoq”</b>.</span>
+                </li>
+              </ol>
+            )}
+
+            <button onClick={() => setShowHelp(false)}
               className="w-full py-3 rounded-xl bg-white/10 font-semibold">Entendido</button>
           </div>
         </div>
