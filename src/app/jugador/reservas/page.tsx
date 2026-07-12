@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { notify } from '@/lib/notify';
 
 export default function Reservas() {
   const [tab, setTab] = useState<'proximas' | 'cargar'>('proximas');
@@ -13,7 +14,7 @@ export default function Reservas() {
     if (!user) return;
     const { data: mp } = await supabase.from('match_players')
       .select(`match:matches(id, status,
-        booking:bookings(id, starts_at, ends_at, price, status, payment_status, payment_proof_url,
+        booking:bookings(id, court_id, starts_at, ends_at, price, status, payment_status, payment_proof_url,
           court:courts(name, photo_url, complex:complexes(name, address, cancel_hours))),
         result:results(id, status))`)
       .eq('player_id', user.id).limit(100);
@@ -44,6 +45,25 @@ export default function Reservas() {
     if (!confirm('Cancelar esta reserva? El turno queda libre para otros jugadores.')) return;
     await supabase.from('bookings').update({ status: 'cancelada' }).eq('id', m.booking.id);
     await supabase.from('matches').update({ status: 'cancelada' }).eq('id', m.id);
+    // Aviso al primero en lista de espera
+    const { data: wl } = await supabase.from('booking_waitlist')
+      .select('id, player_id')
+      .eq('court_id', m.booking.court_id)
+      .eq('starts_at', m.booking.starts_at)
+      .is('fulfilled_at', null).is('notified_at', null)
+      .order('created_at').limit(1);
+    const next = wl?.[0];
+    if (next) {
+      await supabase.from('booking_waitlist').update({ notified_at: new Date().toISOString() })
+        .eq('id', next.id);
+      const when = new Date(m.booking.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      await notify({
+        user_id: next.player_id, kind: 'reserva_ok',
+        title: `Se liberó un turno en ${m.booking.court.complex.name}`,
+        body: `${m.booking.court.name} · ${when}. ¡Reservalo antes que otro!`,
+        link: '/jugador/reservar'
+      });
+    }
     setUpcoming(upcoming.filter((x: any) => x.id !== m.id));
   }
 

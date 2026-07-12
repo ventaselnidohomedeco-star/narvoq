@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { buildSlots, type Slot } from '@/lib/slots';
 import type { Complex, Court } from '@/lib/types';
 import { uploadImage } from '@/lib/upload';
+import { ruleFor, priceWithRule, type OffpeakRule } from '@/lib/offpeak';
 
 export default function Reservar() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function Reservar() {
   const [pending, setPending] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [offpeakRules, setOffpeakRules] = useState<OffpeakRule[]>([]);
+  const [myWaitlist, setMyWaitlist] = useState<any[]>([]);
+  const [msg, setMsg] = useState('');
 
   useEffect(() => { supabase.from('cities').select('*').eq('active', true).then(({ data }) => setCities(data ?? [])); }, []);
 
@@ -31,10 +35,27 @@ export default function Reservar() {
   }, [cityId]);
 
   useEffect(() => {
-    if (!complex) return setCourts([]);
+    if (!complex) { setCourts([]); setOffpeakRules([]); return; }
     supabase.from('courts').select('*').eq('complex_id', complex.id).eq('active', true)
       .then(({ data }) => { setCourts(data ?? []); setCourt(null); });
+    supabase.from('offpeak_rules').select('*').eq('complex_id', complex.id).eq('active', true)
+      .then(({ data }) => setOffpeakRules(data ?? []));
   }, [complex]);
+
+  useEffect(() => {
+    if (!court) { setMyWaitlist([]); return; }
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const from = new Date(date + 'T00:00:00');
+      const to = new Date(from); to.setDate(to.getDate() + 1);
+      const { data } = await supabase.from('booking_waitlist')
+        .select('*').eq('court_id', court.id).eq('player_id', user.id)
+        .gte('starts_at', from.toISOString()).lt('starts_at', to.toISOString())
+        .is('fulfilled_at', null);
+      setMyWaitlist(data ?? []);
+    })();
+  }, [court, date]);
 
   useEffect(() => {
     if (!court || !complex) return setSlots([]);
@@ -50,10 +71,12 @@ export default function Reservar() {
     if (!court || saving) return;
     setSaving(true); setError('');
     const { data: { user } } = await supabase.auth.getUser();
+    const rule = ruleFor(slot.start, offpeakRules);
+    const finalPrice = priceWithRule(Number(court.price_per_slot), rule);
     const { data: booking, error: bErr } = await supabase.from('bookings').insert({
       court_id: court.id, player_id: user!.id, status: 'pendiente', payment_status: 'pendiente',
       starts_at: slot.start.toISOString(), ends_at: slot.end.toISOString(),
-      price: court.price_per_slot
+      price: finalPrice
     }).select().single();
     if (bErr) { setError('Ese turno acaba de ocuparse. Elegí otro.'); setSaving(false); return; }
 
@@ -64,6 +87,31 @@ export default function Reservar() {
     await supabase.from('match_players').insert({ match_id: match.id, player_id: user!.id, team: 1 });
     setPending({ booking, match, slot, court, complex });
     setSaving(false);
+  }
+
+  async function sumarmeALaEspera(slot: Slot) {
+    setMsg(''); setError('');
+    if (!court) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return setError('Iniciá sesión primero.');
+    const { error: err } = await supabase.from('booking_waitlist').insert({
+      court_id: court.id, player_id: user.id, starts_at: slot.start.toISOString()
+    });
+    if (err) {
+      if (err.code === '23505') return setMsg('Ya estás en la lista de espera para este turno.');
+      return setError(`${err.message}. ¿Ejecutaste update-13-complex-features.sql?`);
+    }
+    setMsg('Te sumamos a la lista de espera. Te avisamos si se libera 🔔');
+    setMyWaitlist([...myWaitlist, { court_id: court.id, starts_at: slot.start.toISOString(), player_id: user.id }]);
+  }
+
+  async function salirDeLaEspera(slot: Slot) {
+    if (!court) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('booking_waitlist').delete()
+      .eq('court_id', court.id).eq('player_id', user.id).eq('starts_at', slot.start.toISOString());
+    setMyWaitlist(myWaitlist.filter(w => w.starts_at !== slot.start.toISOString()));
   }
 
   async function subirComprobante(e: React.ChangeEvent<HTMLInputElement>) {
@@ -206,16 +254,40 @@ export default function Reservar() {
         {court && !pending && (
           <div>
             <label className="label">Horarios disponibles</label>
+            {offpeakRules.length > 0 && (
+              <p className="text-ball text-xs font-bold mb-2">
+                🔥 Este complejo tiene descuentos en horarios de baja demanda.
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-2">
-              {slots.map((s, i) => (
-                <button key={i} disabled={!s.free || saving} onClick={() => reservar(s)}
-                  className={`py-3 rounded-xl font-display font-bold text-sm
-                    ${s.free ? 'bg-ball active:scale-95' : 'bg-white/5 text-white/20 line-through'}`}>
-                  {s.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                </button>
-              ))}
+              {slots.map((s, i) => {
+                const rule = ruleFor(s.start, offpeakRules);
+                const inMyWaitlist = myWaitlist.some(w => new Date(w.starts_at).getTime() === s.start.getTime());
+                return (
+                  <button key={i}
+                    disabled={saving}
+                    onClick={() => s.free ? reservar(s) : (inMyWaitlist ? salirDeLaEspera(s) : sumarmeALaEspera(s))}
+                    className={`relative py-3 rounded-xl font-display font-bold text-sm
+                      ${s.free ? 'bg-ball text-courtdark active:scale-95'
+                        : inMyWaitlist ? 'bg-yellow-300/20 text-yellow-200 border border-yellow-300/40'
+                        : 'bg-white/5 text-white/40 border border-white/10'}`}>
+                    <span>{s.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+                    {s.free && rule && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                        -{rule.discount_pct}%
+                      </span>
+                    )}
+                    {!s.free && (
+                      <span className="block text-[9px] font-black mt-0.5 uppercase">
+                        {inMyWaitlist ? 'Estás en espera' : 'Lista de espera'}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+            {msg && <p className="text-ball text-sm mt-2">{msg}</p>}
+            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
           </div>
         )}
       </div>
