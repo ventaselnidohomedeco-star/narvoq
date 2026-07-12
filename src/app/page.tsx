@@ -101,7 +101,7 @@ export default function Landing() {
 
       {/* CTA final */}
       <section className="max-w-md mx-auto px-6 py-10 border-t border-white/5 text-center">
-        <p className="font-display font-black text-3xl leading-tight">Instalá Narvoq y arrancá.</p>
+        <p className="font-display font-black text-3xl leading-tight">Instalá NarvoQ y arrancá.</p>
         <p className="text-white/60 text-sm mt-2">Gratis. Sin descargar de tienda. Ocupa lo mismo que 3 fotos.</p>
         <div className="mt-6 flex flex-col gap-3">
           <InstallButton variant="primary" className="w-full !justify-center" />
@@ -111,7 +111,7 @@ export default function Landing() {
       </section>
 
       <footer className="max-w-md mx-auto px-6 py-6 text-center text-white/30 text-xs border-t border-white/5">
-        © {new Date().getFullYear()} Narvoq · Elevá tu juego. Elevá tu nivel.
+        © {new Date().getFullYear()} NarvoQ · Elevá tu juego. Elevá tu nivel.
       </footer>
     </main>
   );

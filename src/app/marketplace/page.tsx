@@ -179,7 +179,7 @@ export default function Marketplace() {
                   {p.condition} · {p.seller?.first_name}
                 </p>
                 {p.contact_phone && (
-                  <a href={`https://wa.me/${p.contact_phone.replace(/\D/g, '')}?text=Hola, vi tu ${p.title} en Narvoq`} target="_blank"
+                  <a href={`https://wa.me/${p.contact_phone.replace(/\D/g, '')}?text=Hola, vi tu ${p.title} en NarvoQ`} target="_blank"
                     className="mt-2 block text-center py-2 rounded-lg bg-ball text-courtdark text-xs font-black">
                     WhatsApp
                   </a>

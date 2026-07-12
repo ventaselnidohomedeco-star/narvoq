@@ -1,13 +1,44 @@
-// Componente de marca Narvoq.
-// - variant="full" o "inline": usa /brand/logo.png (NARVOQ + paleta ya integrados)
-// - variant="mark": usa /brand/icono-app.png (isotipo con fondo redondeado)
-// - variant="isotipo": usa /brand/isotipo.png crudo
+// Componente de marca NarvoQ.
+// Renderiza:
+//   - variant="full":    isotipo grande + wordmark grande (para landings)
+//   - variant="inline":  isotipo chico + wordmark chico (para headers)
+//   - variant="mark":    solo el isotipo (icono cuadrado)
+// El isotipo se dibuja como SVG con fondo transparente, así se integra en
+// cualquier bg y no queda un "rectángulo" negro sobrepuesto.
 
-type Variant = 'full' | 'mark' | 'inline' | 'isotipo';
+type Variant = 'full' | 'mark' | 'inline';
 
-const logoSrc = '/brand/logo.png?v=3';
-const isotipoSrc = '/brand/isotipo.png?v=3';
-const iconoAppSrc = '/brand/icono-app.png?v=3';
+function Isotipo({ size = 32 }: { size?: number }) {
+  // Paleta de pádel: cabeza redonda con 4 puntos lima, mango con 3 rayas.
+  return (
+    <svg viewBox="0 0 64 100" width={size} height={size * 1.5}
+      role="img" aria-label="NarvoQ" style={{ display: 'block' }}>
+      {/* Cabeza de la paleta */}
+      <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" strokeWidth="6" />
+      {/* 4 puntos lima */}
+      <circle cx="26" cy="26" r="3.6" fill="#D8F646" />
+      <circle cx="38" cy="26" r="3.6" fill="#D8F646" />
+      <circle cx="26" cy="38" r="3.6" fill="#D8F646" />
+      <circle cx="38" cy="38" r="3.6" fill="#D8F646" />
+      {/* "V" del garganta */}
+      <path d="M22 55 L32 66 L42 55 Z" fill="currentColor" />
+      {/* Mango con 3 rayas */}
+      <rect x="28" y="66" width="8" height="6" rx="1" fill="currentColor" />
+      <rect x="28" y="74" width="8" height="6" rx="1" fill="currentColor" />
+      <rect x="28" y="82" width="8" height="6" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function Wordmark({ size = 24 }: { size?: number }) {
+  // Renderizamos "NarvoQ" con Q mayúscula (marca oficial), en font display.
+  return (
+    <span className="font-display font-black tracking-wide leading-none"
+      style={{ fontSize: size, whiteSpace: 'nowrap' }}>
+      Narvo<span className="text-ball">Q</span>
+    </span>
+  );
+}
 
 export default function Brand({
   variant = 'inline',
@@ -19,27 +50,26 @@ export default function Brand({
   className?: string;
 }) {
   if (variant === 'mark') {
-    // Ícono cuadrado (para tabs, favicons, chips)
     return (
-      <img src={iconoAppSrc} alt="Narvoq" width={size} height={size}
-        className={`rounded-xl ${className}`}
-        style={{ width: size, height: size, objectFit: 'contain' }} />
+      <span className={`inline-flex items-center justify-center text-white ${className}`}
+        style={{ width: size, height: size }}>
+        <Isotipo size={size * 0.7} />
+      </span>
     );
   }
-  if (variant === 'isotipo') {
+  if (variant === 'full') {
     return (
-      <img src={isotipoSrc} alt="Narvoq" width={size} height={size}
-        className={className}
-        style={{ width: size, height: size, objectFit: 'contain' }} />
+      <span className={`inline-flex items-center gap-3 text-white ${className}`}>
+        <Isotipo size={size * 0.9} />
+        <Wordmark size={size * 0.9} />
+      </span>
     );
   }
-  // full o inline: usamos el LOGO.png completo (paleta + wordmark).
-  // El PNG tiene proporción ~3:1 (2172x724). Le damos width por altura.
-  const height = variant === 'full' ? size * 1.2 : size;
-  const width = height * 3;
+  // inline (default): más compacto para headers
   return (
-    <img src={logoSrc} alt="Narvoq — Elevá tu juego, elevá tu nivel"
-      className={className}
-      style={{ height, width: 'auto', maxWidth: width, objectFit: 'contain', display: 'block' }} />
+    <span className={`inline-flex items-center gap-2 text-white ${className}`}>
+      <Isotipo size={size * 0.85} />
+      <Wordmark size={size * 0.85} />
+    </span>
   );
 }

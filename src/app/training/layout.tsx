@@ -6,11 +6,40 @@ import Brand from '@/components/Brand';
 import Bell from '@/components/Bell';
 import InstallButton from '@/components/InstallButton';
 
+const Icon = {
+  group: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="10" r="3.2" />
+      <circle cx="17" cy="9" r="2.4" />
+      <path d="M3 20v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1" />
+      <path d="M15 15h2a4 4 0 0 1 4 4v1" />
+    </svg>
+  ),
+  student: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
+    </svg>
+  ),
+  network: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+    </svg>
+  ),
+  profile: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+    </svg>
+  )
+};
+
 const items = [
-  { href: '/training/dashboard', label: 'Grupo', icon: 'GR' },
-  { href: '/training/alumnos', label: 'Alumnos', icon: 'AL' },
-  { href: '/training/amigos', label: 'Red', icon: 'RD' },
-  { href: '/training/perfil', label: 'Perfil', icon: 'PF' }
+  { href: '/training/dashboard', label: 'Grupo', icon: Icon.group },
+  { href: '/training/alumnos', label: 'Alumnos', icon: Icon.student },
+  { href: '/training/amigos', label: 'Red', icon: Icon.network },
+  { href: '/training/perfil', label: 'Perfil', icon: Icon.profile }
 ];
 
 export default function TrainingLayout({ children }: { children: React.ReactNode }) {
@@ -38,9 +67,10 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
             const active = path.startsWith(i.href);
             return (
               <Link key={i.href} href={i.href}
-                className={`flex flex-col items-center py-2 text-[10px] font-semibold ${active ? 'text-ball' : 'text-white/40'}`}>
-                <span className="text-[11px] font-display font-black">{i.icon}</span>{i.label}
-                {active && <span className="mt-1 h-1 w-5 rounded-full bg-ball" />}
+                className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold ${active ? 'text-ball' : 'text-white/50'}`}>
+                <span className="w-6 h-6 flex items-center justify-center">{i.icon}</span>
+                <span className="leading-none">{i.label}</span>
+                {active && <span className="mt-0.5 h-1 w-6 rounded-full bg-ball" />}
               </Link>
             );
           })}

@@ -128,7 +128,7 @@ export default function Dashboard() {
               title: `${profile.first_name} ${profile.last_name}`,
               main: `${stats.won} ganados · ${stats.lost} perdidos`,
               detail: `${stats.points} puntos de ranking · Categoría ${profile.category}`,
-              footer: `@${profile.username} vía Narvoq`
+              footer: `@${profile.username} vía NarvoQ`
             }} />
           )}
         </div>

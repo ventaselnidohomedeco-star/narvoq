@@ -363,7 +363,7 @@ export default function TorneosComplejo() {
                 <button onClick={() => sharePlaca({
                   kind: 'torneo_abierto', title: t.name, main: cx?.name,
                   detail: `${t.sum_target ? `Suma ${t.sum_target} · ` : ''}${Number(t.price) > 0 ? `$${Number(t.price).toLocaleString('es-AR')} · ` : ''}${t.max_pairs} parejas`,
-                  footer: 'Inscribite por Narvoq'
+                  footer: 'Inscribite por NarvoQ'
                 })} className="px-3 py-2 rounded-xl bg-white/10 text-sm font-semibold">📸 Placa</button>
                 <button onClick={() => eliminar(t)}
                   className="px-3 py-2 rounded-xl border border-red-400/40 text-red-400 text-sm font-semibold ml-auto">🗑️</button>

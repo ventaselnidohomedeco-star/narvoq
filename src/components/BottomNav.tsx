@@ -2,13 +2,50 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+// Íconos SVG inline: consistentes, siempre visibles, escalables.
+const I = {
+  home: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z" />
+    </svg>
+  ),
+  calendar: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  ),
+  trophy: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 4h8v5a4 4 0 0 1-8 0V4z" />
+      <path d="M4 5h4v3a2 2 0 0 1-4 0V5zM20 5h-4v3a2 2 0 0 0 4 0V5z" />
+      <path d="M10 14h4v3l2 3H8l2-3z" />
+    </svg>
+  ),
+  dumbbell: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 10v4M6 6v12M10 10h4M14 10h4M18 6v12M22 10v4" />
+    </svg>
+  ),
+  chart: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+    </svg>
+  ),
+  feed: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6h16M4 12h16M4 18h10" />
+    </svg>
+  )
+};
+
 const items = [
-  { href: '/jugador/dashboard', label: 'Inicio', icon: 'IN' },
-  { href: '/jugador/reservas', label: 'Reservas', icon: 'RS' },
-  { href: '/jugador/torneos', label: 'Torneos', icon: 'TRN' },
-  { href: '/jugador/entrenamientos', label: 'Training', icon: 'TR' },
-  { href: '/jugador/ranking', label: 'Ranking', icon: 'RK' },
-  { href: '/jugador/feed', label: 'Feed', icon: 'FD' }
+  { href: '/jugador/dashboard', label: 'Inicio', icon: I.home },
+  { href: '/jugador/reservas', label: 'Reservas', icon: I.calendar },
+  { href: '/jugador/torneos', label: 'Torneos', icon: I.trophy },
+  { href: '/jugador/entrenamientos', label: 'Training', icon: I.dumbbell },
+  { href: '/jugador/ranking', label: 'Ranking', icon: I.chart },
+  { href: '/jugador/feed', label: 'Feed', icon: I.feed }
 ];
 
 export default function BottomNav() {
@@ -20,9 +57,11 @@ export default function BottomNav() {
           const active = path.startsWith(i.href);
           return (
             <Link key={i.href} href={i.href}
-              className={`flex flex-col items-center py-2 text-[10px] font-semibold ${active ? 'text-ball' : 'text-white/40'}`}>
-              <span className="text-[11px] font-display font-black">{i.icon}</span>{i.label}
-              {active && <span className="mt-1 h-1 w-5 rounded-full bg-ball" />}
+              className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold transition
+                ${active ? 'text-ball' : 'text-white/50'}`}>
+              <span className="w-6 h-6 flex items-center justify-center">{i.icon}</span>
+              <span className="leading-none">{i.label}</span>
+              {active && <span className="mt-0.5 h-1 w-6 rounded-full bg-ball" />}
             </Link>
           );
         })}

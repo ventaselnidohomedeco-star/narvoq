@@ -88,9 +88,9 @@ export default function InstallButton({
           <div className="bg-[#141A24] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
-              <img src="/brand/icono-app.png?v=3" alt="Narvoq" className="w-14 h-14 rounded-2xl" />
+              <img src="/brand/icono-app.png?v=3" alt="NarvoQ" className="w-14 h-14 rounded-2xl" />
               <div>
-                <p className="font-display font-black text-lg">Instalar Narvoq</p>
+                <p className="font-display font-black text-lg">Instalar NarvoQ</p>
                 <p className="text-white/50 text-xs">
                   {helpKind === 'ios' ? 'iPhone / iPad' : helpKind === 'android' ? 'Android' : 'Escritorio'}
                 </p>
@@ -126,15 +126,20 @@ export default function InstallButton({
                 </li>
                 <li className="flex gap-3">
                   <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">2</span>
-                  <span>Elegí <b>“Instalar app”</b> o <b>“Agregar a la pantalla de inicio”</b>.</span>
+                  <span>Elegí <b>"Agregar a la pantalla de inicio"</b>. Si aparece <b>"Instalar app"</b>, funciona igual.</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">3</span>
-                  <span>Confirmá <b>Instalar</b>. Listo, aparece Narvoq en tu home 🎾.</span>
+                  <span>Confirmá <b>Agregar</b>. Aparece NarvoQ en tu home 🎾.</span>
                 </li>
-                <p className="text-white/40 text-xs pt-1">
-                  Si no aparece la opción, cerrá y volvé a abrir la app. A veces tarda unos segundos en habilitarse.
-                </p>
+                <div className="mt-3 p-3 rounded-xl bg-yellow-300/10 border border-yellow-300/30">
+                  <p className="text-yellow-200 text-xs font-bold">⚠️ Si Play Protect bloquea la instalación:</p>
+                  <p className="text-white/70 text-xs mt-1">
+                    Cuando aparezca el cartel del Play Protect, tocá <b>"Instalar de todas formas"</b>.
+                    NarvoQ es una PWA (no un .apk); Play Protect no la conoce por eso avisa, pero es 100% segura.
+                    Alternativa segura: usá "Agregar a la pantalla de inicio" en vez de "Instalar app" — no dispara Play Protect.
+                  </p>
+                </div>
               </ol>
             )}
 
@@ -146,7 +151,7 @@ export default function InstallButton({
                 </li>
                 <li className="flex gap-3">
                   <span className="w-7 h-7 rounded-full bg-ball text-courtdark font-black flex items-center justify-center shrink-0">2</span>
-                  <span>Si no lo ves: menú <b>⋮</b> arriba a la derecha → <b>“Instalar Narvoq”</b>.</span>
+                  <span>Si no lo ves: menú <b>⋮</b> arriba a la derecha → <b>“Instalar NarvoQ”</b>.</span>
                 </li>
               </ol>
             )}

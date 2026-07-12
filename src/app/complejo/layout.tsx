@@ -17,10 +17,10 @@ const items = [
 export default function ComplejoLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const isAuth = path === '/complejo/login' || path === '/complejo/registro';
-  if (isAuth) return <div className="min-h-dvh bg-courtdark text-white"><div className="max-w-lg mx-auto">{children}</div></div>;
+  if (isAuth) return <div className="min-h-dvh bg-[#0B0F16] text-white"><div className="max-w-lg mx-auto">{children}</div></div>;
 
   return (
-    <div className="min-h-dvh bg-courtdark text-white pb-24">
+    <div className="min-h-dvh bg-[#0B0F16] text-white pb-24">
       <Banner />
       <header className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <Link href="/complejo/dashboard" className="flex items-center gap-2">
@@ -33,15 +33,16 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
         </div>
       </header>
       <div className="max-w-lg mx-auto">{children}</div>
-      <nav className="fixed bottom-0 inset-x-0 bg-[#060D1F] border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
+      <nav className="fixed bottom-0 inset-x-0 bg-[#0D1320]/95 backdrop-blur border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
         <div className="max-w-lg mx-auto grid grid-cols-5">
           {items.map(i => {
             const active = path.startsWith(i.href);
             return (
               <Link key={i.href} href={i.href}
-                className={`flex flex-col items-center py-2 text-[11px] font-semibold ${active ? 'text-ball' : 'text-white/50'}`}>
-                <span className="text-xl">{i.icon}</span>{i.label}
-                {active && <span className="mt-1 h-1 w-6 rounded-full bg-ball" />}
+                className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold ${active ? 'text-ball' : 'text-white/50'}`}>
+                <span className="text-2xl leading-none">{i.icon}</span>
+                <span className="leading-none">{i.label}</span>
+                {active && <span className="mt-0.5 h-1 w-6 rounded-full bg-ball" />}
               </Link>
             );
           })}
