@@ -35,9 +35,16 @@ const Icon = {
   )
 };
 
+const chatSvg = (
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
 const items = [
   { href: '/training/dashboard', label: 'Grupo', icon: Icon.group },
   { href: '/training/alumnos', label: 'Alumnos', icon: Icon.student },
+  { href: '/smash', label: 'Smashe@', icon: chatSvg },
   { href: '/training/amigos', label: 'Red', icon: Icon.network },
   { href: '/training/perfil', label: 'Perfil', icon: Icon.profile }
 ];
@@ -62,7 +69,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
       </header>
       <div className="max-w-md mx-auto">{children}</div>
       <nav className="fixed bottom-0 inset-x-0 bg-[#0D1320]/95 backdrop-blur border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
-        <div className="max-w-md mx-auto grid grid-cols-4">
+        <div className="max-w-md mx-auto grid grid-cols-5">
           {items.map(i => {
             const active = path.startsWith(i.href);
             return (

@@ -78,18 +78,22 @@ export default function Dashboard() {
 
       <div className="court-divider my-6" />
 
-      <section className="grid grid-cols-3 gap-2 mb-6">
-        <Link href="/jugador/reservar" className="card text-center !py-3">
+      <section className="grid grid-cols-4 gap-2 mb-6">
+        <Link href="/jugador/reservar" className="card text-center !py-3 !px-2">
           <p className="text-2xl">🎾</p>
-          <p className="text-xs font-bold mt-1">Reservar</p>
+          <p className="text-[11px] font-bold mt-1">Reservar</p>
         </Link>
-        <Link href="/marketplace" className="card text-center !py-3">
+        <Link href="/smash" className="card text-center !py-3 !px-2">
+          <p className="text-2xl">💬</p>
+          <p className="text-[11px] font-bold mt-1">Smashe@</p>
+        </Link>
+        <Link href="/marketplace" className="card text-center !py-3 !px-2">
           <p className="text-2xl">🛒</p>
-          <p className="text-xs font-bold mt-1">Marketplace</p>
+          <p className="text-[11px] font-bold mt-1">Market</p>
         </Link>
-        <Link href="/jugador/amigos" className="card text-center !py-3">
+        <Link href="/jugador/amigos" className="card text-center !py-3 !px-2">
           <p className="text-2xl">👥</p>
-          <p className="text-xs font-bold mt-1">Amigos</p>
+          <p className="text-[11px] font-bold mt-1">Amigos</p>
         </Link>
       </section>
 
