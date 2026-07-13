@@ -163,7 +163,7 @@ export default function Calendario() {
       <div className="mt-3 flex gap-2 overflow-x-auto px-2 pb-1">
         {days.map((d, i) => (
           <button key={i} onClick={() => setDayOffset(i)}
-            className={`shrink-0 rounded-xl px-3 py-2 text-center ${i === dayOffset ? 'bg-ball text-balldark' : 'bg-white/5 text-white/70'}`}>
+            className={`shrink-0 rounded-xl px-3 py-2 text-center ${i === dayOffset ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/70'}`}>
             <p className="text-[10px] font-bold uppercase">{d.toLocaleDateString('es-AR', { weekday: 'short' })}</p>
             <p className="font-display font-black text-lg leading-none">{d.getDate()}</p>
           </button>
@@ -276,7 +276,7 @@ export default function Calendario() {
                 )}
                 {sel.booking.type !== 'block' && sel.booking.payment_status !== 'pagado' && sel.booking.payment_proof_url && (
                   <button onClick={() => marcarPagado(sel.booking)}
-                    className="mt-3 w-full py-3 rounded-xl bg-ball text-balldark font-display font-black">
+                    className="mt-3 w-full py-3 rounded-xl bg-ball text-courtdark font-display font-black">
                     Marcar pagado y confirmar reserva
                   </button>
                 )}

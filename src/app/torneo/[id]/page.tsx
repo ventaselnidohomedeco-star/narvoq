@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import BackButton from '@/components/BackButton';
 
 type Pair = {
   id: string; tournament_id: string;
@@ -126,7 +127,7 @@ export default function TorneoDetalle() {
 
   return (
     <main className="min-h-dvh max-w-md mx-auto px-5 pt-6 pb-16">
-      <Link href="/jugador/torneos" className="text-white/60 text-sm font-bold">← Torneos</Link>
+      <BackButton fallbackHref="/jugador/torneos" label="Torneos" />
 
       <header className="mt-3">
         <div className="flex items-center gap-3">

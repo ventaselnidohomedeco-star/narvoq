@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
+import BackButton from '@/components/BackButton';
 
 const TYPES: Record<string, string> = {
   tecnica: 'Técnica',
@@ -127,8 +128,8 @@ export default function AlumnoDashboard() {
 
   return (
     <main className="px-5 py-6">
-      <Link href="/training/alumnos" className="text-ball text-xs font-bold">← Alumnos</Link>
-      <header className="mt-3 flex items-center gap-3">
+      <BackButton fallbackHref="/training/alumnos" label="Volver a alumnos" />
+      <header className="mt-4 flex items-center gap-3">
         {player.avatar_url
           ? <img src={player.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" />
           : <span className="w-14 h-14 rounded-full bg-court text-white font-display font-black flex items-center justify-center text-lg">{player.first_name?.[0]}</span>}

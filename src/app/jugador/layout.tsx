@@ -10,15 +10,21 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
   return (
     <ProfileGuard>
       <Banner />
-      <div className="min-h-dvh pb-24 max-w-md mx-auto">
-        <header className="px-5 pt-4 pb-2 flex items-center justify-between gap-2">
-          <Link href="/jugador/dashboard"><Brand variant="inline" size={24} /></Link>
-          <div className="flex items-center gap-2">
+      <div className="min-h-dvh pb-28 lg:pb-8 lg:pl-56">
+        <div className="max-w-3xl xl:max-w-5xl mx-auto">
+          <header className="px-5 pt-4 pb-2 flex items-center justify-between gap-2 lg:hidden">
+            <Link href="/jugador/dashboard"><Brand variant="inline" size={26} /></Link>
+            <div className="flex items-center gap-2">
+              <InstallButton variant="ghost" />
+              <Bell />
+            </div>
+          </header>
+          <header className="hidden lg:flex px-8 pt-6 pb-4 items-center justify-end gap-3">
             <InstallButton variant="ghost" />
             <Bell />
-          </div>
-        </header>
-        {children}
+          </header>
+          {children}
+        </div>
         <BottomNav />
       </div>
     </ProfileGuard>

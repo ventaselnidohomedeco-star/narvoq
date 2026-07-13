@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import PlacaButton from '@/components/PlacaButton';
 import CourtLayout from '@/components/CourtLayout';
+import BackButton from '@/components/BackButton';
 import { sharePlaca } from '@/lib/placas';
 
 export default function Partido() {
@@ -124,8 +125,8 @@ export default function Partido() {
   if (!match) return <main className="p-8 text-white/50">Cargando partido…</main>;
 
   return (
-    <main className="min-h-dvh max-w-md mx-auto px-5 pt-8 pb-16">
-      <Link href="/jugador/reservas" className="text-white/50 text-sm font-semibold">← Mis reservas</Link>
+    <main className="min-h-dvh max-w-md mx-auto px-5 pt-6 pb-16">
+      <BackButton fallbackHref="/jugador/reservas" label="Mis reservas" />
       <span className="block font-display font-black text-ball text-sm tracking-widest mt-3">
         {result ? (result.status === 'validado' ? 'PARTIDO JUGADO ✓' : 'RESULTADO EN REVISIÓN')
           : ended ? 'PARTIDO FINALIZADO' 

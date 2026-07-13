@@ -85,7 +85,7 @@ export default function PerfilPublico() {
           <div>
             <h1 className="font-display font-black text-2xl leading-tight">{p.first_name} {p.last_name}</h1>
             <p className="text-white/70 text-sm">@{p.username}{p.age ? ` · ${p.age} años` : ''} · {followers} seguidores</p>
-            <span className="inline-block mt-1 bg-ball font-display font-black text-sm rounded-lg px-2 py-0.5">
+            <span className="inline-block mt-1 bg-ball text-courtdark font-display font-black text-sm rounded-lg px-2.5 py-1">
               Categoría {p.category}
             </span>
           </div>
