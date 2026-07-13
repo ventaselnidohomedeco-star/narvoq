@@ -17,11 +17,19 @@ export default function Dashboard() {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(p);
 
-      const { data: pts } = await supabase.from('ranking_points').select('points,rule_key,ref_tournament_id').eq('player_id', user.id);
-      // El ranking suma SOLO puntos de torneos; los partidos de reserva van a estadísticas
+      const { data: pts } = await supabase.from('ranking_points').select('points, ref_tournament_id').eq('player_id', user.id);
+      // Puntos de ranking: solo de torneos.
       const points = (pts ?? []).filter(r => r.ref_tournament_id).reduce((a, r) => a + r.points, 0);
-      const won = (pts ?? []).filter(r => r.rule_key === 'match_won').length;
-      const lost = (pts ?? []).filter(r => r.rule_key === 'match_lost').length;
+      // Contamos partidos jugados desde los results (amistosos + torneos con resultado cargado)
+      const { data: myMatches } = await supabase.from('match_players')
+        .select('team, match:matches(result:results(winner_team, status))')
+        .eq('player_id', user.id);
+      let won = 0, lost = 0;
+      (myMatches ?? []).forEach((mp: any) => {
+        const r = mp.match?.result?.[0];
+        if (!r) return;
+        if (r.winner_team === mp.team) won++; else lost++;
+      });
       const { count: trainings } = await supabase.from('trainings')
         .select('*', { count: 'exact', head: true }).eq('player_id', user.id);
 
@@ -39,39 +47,37 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <main className="px-5 pt-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="font-display font-black text-lg leading-tight">
-            <span className="text-white/50 font-bold">Hola,</span> {profile?.first_name ?? '…'} 👋
-          </p>
-        </div>
+    <main className="px-5 pt-6 pb-8">
+      <header className="flex items-center gap-4">
         {profile && (
-          <span className="flex items-center gap-2">
-          <Link href="/jugador/amigos" className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-xl">👥</Link>
-          <Link href="/jugador/perfil" className="flex items-center gap-2">
+          <Link href="/jugador/perfil" className="shrink-0">
             {profile.avatar_url
-              ? <img src={profile.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover" />
-              : <span className="w-11 h-11 rounded-full bg-grafito text-white font-display font-black flex items-center justify-center">
+              ? <img src={profile.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-ball" />
+              : <span className="w-14 h-14 rounded-full bg-grafito text-ball font-display font-black text-xl flex items-center justify-center ring-2 ring-ball">
                   {profile.first_name?.[0]}
                 </span>}
-            <span className="bg-grafito text-white font-display font-black rounded-xl px-3 py-2 text-sm">
-              Cat. {profile.category}
-            </span>
           </Link>
-          </span>
         )}
+        <div className="flex-1 min-w-0">
+          <p className="text-white/60 text-sm">Hola,</p>
+          <h1 className="font-display font-black text-2xl leading-tight truncate">
+            {profile?.first_name ?? '…'} 👋
+          </h1>
+          {profile && (
+            <p className="text-ball text-sm font-bold mt-0.5">Categoría {profile.category}</p>
+          )}
+        </div>
       </header>
 
       <section className="mt-6 grid grid-cols-3 gap-3">
         {[
           { n: stats.played, l: 'Jugados' },
           { n: stats.won, l: 'Ganados' },
-          { n: stats.points, l: 'Pts. torneo' }
+          { n: stats.points, l: 'Pts. ranking' }
         ].map(s => (
-          <div key={s.l} className="card text-center">
+          <div key={s.l} className="card !p-4 text-center">
             <p className="font-display font-black text-3xl text-ball">{s.n}</p>
-            <p className="text-white/50 text-xs font-semibold">{s.l}</p>
+            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mt-1">{s.l}</p>
           </div>
         ))}
       </section>
@@ -79,60 +85,58 @@ export default function Dashboard() {
       <div className="court-divider my-6" />
 
       <section className="grid grid-cols-4 gap-2 mb-6">
-        <Link href="/jugador/reservar" className="card text-center !py-3 !px-2">
-          <p className="text-2xl">🎾</p>
-          <p className="text-[11px] font-bold mt-1">Reservar</p>
-        </Link>
-        <Link href="/smash" className="card text-center !py-3 !px-2">
-          <p className="text-2xl">💬</p>
-          <p className="text-[11px] font-bold mt-1">Smashe@</p>
-        </Link>
-        <Link href="/marketplace" className="card text-center !py-3 !px-2">
-          <p className="text-2xl">🛒</p>
-          <p className="text-[11px] font-bold mt-1">Market</p>
-        </Link>
-        <Link href="/jugador/amigos" className="card text-center !py-3 !px-2">
-          <p className="text-2xl">👥</p>
-          <p className="text-[11px] font-bold mt-1">Amigos</p>
-        </Link>
-      </section>
-
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg">Próximos partidos</h2>
-          <Link href="/jugador/reservar" className="text-ball text-sm font-semibold">Reservar +</Link>
-        </div>
-        {upcoming.length === 0 ? (
-          <div className="card mt-3 text-center py-8">
-            <p className="text-white/50">No tenés partidos agendados.</p>
-            <Link href="/jugador/reservar" className="btn-ball inline-block mt-3">Reservar cancha</Link>
-          </div>
-        ) : upcoming.map((m: any) => (
-          <Link key={m.id} href={`/partido/${m.id}`} className="card mt-3 flex justify-between items-center">
-            <div>
-              <p className="font-semibold">{m.booking.court.complex.name} · {m.booking.court.name}</p>
-              <p className="text-white/50 text-sm">
-                {new Date(m.booking.starts_at).toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })} hs
-              </p>
-            </div>
-            <span className="text-ball font-bold">→</span>
+        {[
+          { href: '/jugador/reservar', emoji: '🎾', label: 'Reservar' },
+          { href: '/smash', emoji: '💬', label: 'Smashe@' },
+          { href: '/marketplace', emoji: '🛒', label: 'Market' },
+          { href: '/jugador/amigos', emoji: '👥', label: 'Amigos' }
+        ].map(a => (
+          <Link key={a.href} href={a.href}
+            className="bg-grafito rounded-2xl py-4 px-2 text-center flex flex-col items-center gap-1 active:scale-95 transition">
+            <span className="text-3xl leading-none">{a.emoji}</span>
+            <span className="text-[13px] font-black text-white">{a.label}</span>
           </Link>
         ))}
       </section>
 
-      <section className="mt-6 flex gap-3">
-        <Link href="/jugador/entrenamientos" className="card flex-1 text-center">
-          <p className="font-display font-black text-2xl text-ball">{stats.trainings}</p>
-          <p className="text-white/50 text-xs font-semibold">Entrenamientos</p>
+      <section>
+        <div className="flex items-center justify-between">
+          <h2 className="h-section">Próximos partidos</h2>
+          <Link href="/jugador/reservar" className="text-ball text-sm font-black">Reservar +</Link>
+        </div>
+        {upcoming.length === 0 ? (
+          <div className="card mt-3 text-center py-8">
+            <p className="text-3xl">🎾</p>
+            <p className="text-white/70 mt-2">No tenés partidos agendados.</p>
+            <Link href="/jugador/reservar" className="btn-ball inline-flex mt-4">Reservar cancha</Link>
+          </div>
+        ) : upcoming.map((m: any) => (
+          <Link key={m.id} href={`/partido/${m.id}`} className="card mt-3 flex justify-between items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-bold text-base truncate">{m.booking.court.complex.name}</p>
+              <p className="text-white/60 text-sm truncate">{m.booking.court.name}</p>
+              <p className="text-ball text-sm font-bold mt-1">
+                {new Date(m.booking.starts_at).toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} hs
+              </p>
+            </div>
+            <span className="text-ball text-2xl font-black shrink-0">→</span>
+          </Link>
+        ))}
+      </section>
+
+      <section className="mt-6 grid grid-cols-2 gap-3">
+        <Link href="/jugador/entrenamientos" className="card text-center !p-4">
+          <p className="font-display font-black text-3xl text-ball">{stats.trainings}</p>
+          <p className="text-white/70 text-xs font-bold uppercase tracking-wider mt-1">Entrenamientos</p>
         </Link>
-        <div className="card flex-1 flex items-center justify-center">
+        <div className="card flex items-center justify-center !p-4">
           {profile && (
             <PlacaButton data={{
               kind: 'estadisticas',
               title: `${profile.first_name} ${profile.last_name}`,
               main: `${stats.won} ganados · ${stats.lost} perdidos`,
-              detail: `${stats.points} puntos de ranking · Categoría ${profile.category}`,
-              footer: `@${profile.username} vía NarvoQ`
+              detail: `${stats.points} puntos · Cat. ${profile.category}`,
+              footer: `@${profile.username} en NarvoQ`
             }} />
           )}
         </div>

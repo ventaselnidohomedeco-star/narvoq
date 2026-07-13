@@ -5,18 +5,20 @@ import { supabase } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
 
 export default function Reservas() {
-  const [tab, setTab] = useState<'proximas' | 'cargar'>('proximas');
+  const [tab, setTab] = useState<'proximas' | 'cargar' | 'historial'>('proximas');
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [toLoad, setToLoad] = useState<any[]>([]);
+  const [historial, setHistorial] = useState<any[]>([]);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data: mp } = await supabase.from('match_players')
-      .select(`match:matches(id, status,
+      .select(`match:matches(id, status, tournament_match_id,
         booking:bookings(id, court_id, starts_at, ends_at, price, status, payment_status, payment_proof_url,
           court:courts(name, photo_url, complex:complexes(name, address, cancel_hours))),
-        result:results(id, status))`)
+        result:results(id, status, sets, winner_team),
+        players:match_players(player_id, team, profile:profiles!player_id(username, first_name, last_name, avatar_url)))`)
       .eq('player_id', user.id).limit(100);
 
     const matches = (mp ?? []).map((r: any) => r.match).filter((m: any) => m?.booking);
@@ -27,8 +29,10 @@ export default function Reservas() {
     setToLoad(matches
       .filter((m: any) => new Date(m.booking.ends_at ?? m.booking.starts_at) < now
         && m.booking.status !== 'cancelada'
-        && m.booking.payment_status === 'pagado'
         && (!m.result || m.result.length === 0))
+      .sort((a: any, b: any) => b.booking.starts_at.localeCompare(a.booking.starts_at)));
+    setHistorial(matches
+      .filter((m: any) => m.result && m.result.length > 0)
       .sort((a: any, b: any) => b.booking.starts_at.localeCompare(a.booking.starts_at)));
   }
   useEffect(() => { load(); }, []);
@@ -71,6 +75,57 @@ export default function Reservas() {
     ? 'Pago confirmado'
     : b.payment_proof_url ? 'Comprobante en revision' : 'Pago pendiente';
 
+  const Avatar = ({ url, name }: any) => url
+    ? <img src={url} alt="" className="w-8 h-8 rounded-full object-cover" />
+    : <span className="w-8 h-8 rounded-full bg-grafito text-ball text-xs font-display font-black flex items-center justify-center">
+        {name?.[0]?.toUpperCase() ?? '?'}
+      </span>;
+
+  const HistorialCard = ({ m }: any) => {
+    const result = m.result?.[0];
+    const players = m.players ?? [];
+    const team1 = players.filter((p: any) => p.team === 1);
+    const team2 = players.filter((p: any) => p.team === 2);
+    const isTorneo = !!m.tournament_match_id;
+    const validado = result?.status === 'validado';
+    const score = result?.sets?.map((s: any) => `${s.t1}-${s.t2}`).join(' / ');
+    return (
+      <Link href={`/partido/${m.id}`} className="card flex flex-col gap-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="font-display font-bold">{m.booking.court.complex.name}</p>
+            <p className="text-white/60 text-sm">{fmt(m.booking.starts_at)} hs</p>
+          </div>
+          <span className={`text-[10px] font-black px-2 py-1 rounded ${isTorneo ? 'bg-ball/20 text-ball' : 'bg-white/10 text-white/60'}`}>
+            {isTorneo ? 'TORNEO' : 'AMISTOSO'}
+          </span>
+        </div>
+        <div className="grid grid-cols-3 items-center gap-2">
+          <div className="flex flex-col gap-1 items-start">
+            {team1.map((p: any) => (
+              <span key={p.player_id} className="flex items-center gap-1.5">
+                <Avatar url={p.profile?.avatar_url} name={p.profile?.first_name} />
+                <span className="text-xs font-bold truncate">{p.profile?.first_name} {p.profile?.last_name?.[0] ?? ''}.</span>
+              </span>
+            ))}
+          </div>
+          <p className="text-ball font-display font-black text-lg text-center">{score ?? '—'}</p>
+          <div className="flex flex-col gap-1 items-end">
+            {team2.map((p: any) => (
+              <span key={p.player_id} className="flex items-center gap-1.5">
+                <span className="text-xs font-bold truncate">{p.profile?.first_name} {p.profile?.last_name?.[0] ?? ''}.</span>
+                <Avatar url={p.profile?.avatar_url} name={p.profile?.first_name} />
+              </span>
+            ))}
+          </div>
+        </div>
+        <p className="text-white/40 text-[10px] text-center">
+          {isTorneo ? (validado ? 'Puntos sumados al ranking' : 'Pendiente de validación') : 'Amistoso · no suma al ranking'}
+        </p>
+      </Link>
+    );
+  };
+
   const Card = ({ m, cta, cancelable }: any) => (
     <Link href={`/partido/${m.id}`} className="card !p-0 overflow-hidden flex">
       {m.booking.court.photo_url
@@ -98,17 +153,18 @@ export default function Reservas() {
         <Link href="/jugador/reservar" className="btn-ball text-sm">+ Nueva reserva</Link>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
         {[
-          { k: 'proximas', l: `Próximas (${upcoming.length})` },
-          { k: 'cargar', l: `Cargar resultado (${toLoad.length})` }
+          { k: 'proximas', l: `Próximas`, n: upcoming.length },
+          { k: 'cargar', l: `Cargar resultado`, n: toLoad.length },
+          { k: 'historial', l: `Historial`, n: historial.length }
         ].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 py-2 rounded-xl text-sm font-black transition
+            className={`shrink-0 px-4 py-3 rounded-xl text-sm font-black transition min-h-[44px]
               ${tab === t.k
-                ? 'bg-[#2A2E36] text-ball ring-1 ring-ball/40'
-                : 'bg-[#1A1D24] text-white/50 border border-white/10'}`}>
-            {t.l}
+                ? 'bg-grafito text-ball ring-1 ring-ball/40'
+                : 'bg-[#1A1D24] text-white/60 border border-white/10'}`}>
+            {t.l} <span className="opacity-70">({t.n})</span>
           </button>
         ))}
       </div>
@@ -119,6 +175,11 @@ export default function Reservas() {
           : <div className="card text-center py-10">
               <p className="text-white/50 mt-2">No tenes reservas proximas.</p>
               <Link href="/jugador/reservar" className="btn-ball inline-block mt-3">Reservar cancha</Link>
+            </div>)}
+        {tab === 'historial' && (historial.length
+          ? historial.map(m => <HistorialCard key={m.id} m={m} />)
+          : <div className="card text-center py-10">
+              <p className="text-white/50 mt-2">Todavía no tenés partidos con resultado cargado.</p>
             </div>)}
         {tab === 'cargar' && (toLoad.length
           ? toLoad.map(m => <Card key={m.id} m={m} cta="Cargar resultado" />)

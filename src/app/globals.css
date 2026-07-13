@@ -2,14 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Tema oscuro carbón + lima (identidad Narvoq) ===== */
+/* ===== Tema oscuro carbón + lima (identidad NarvoQ) ===== */
 :root {
-  --bg: #0B0F16;          /* carbón azulado */
-  --surface: #141A24;     /* tarjetas */
-  --surface-2: #0F141D;   /* inputs */
+  --bg: #0B0F16;
+  --surface: #141A24;
+  --surface-2: #0F141D;
 }
 
-body { background: var(--bg); @apply text-white font-body antialiased; }
+html { font-size: 17px; }        /* base más grande para 14-70 años */
+@media (min-width: 768px) { html { font-size: 16px; } }
+
+body {
+  background: var(--bg);
+  @apply text-white font-body antialiased;
+  min-height: 100dvh;
+}
 
 /* Firma visual: doble línea de saque, ahora en lima */
 .court-divider {
@@ -18,10 +25,39 @@ body { background: var(--bg); @apply text-white font-body antialiased; }
   border-bottom: 3px solid rgba(216, 246, 70, 0.25);
 }
 
-.btn-ball { @apply bg-ball text-courtdark font-display font-black rounded-xl px-5 py-3 active:scale-95 transition; }
-.btn-court { @apply bg-grafito text-ball font-display font-black rounded-xl px-5 py-3 active:scale-95 transition; }
-.card { background: var(--surface); @apply rounded-2xl border border-white/5 p-4 text-white; }
-.input { background: var(--surface-2); @apply w-full rounded-xl border border-white/10 px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-ball/70; }
-.label { @apply block text-sm font-semibold text-white/50 mb-1; }
+/* ===== Componentes de botones y cards ===== */
+.btn-ball {
+  @apply bg-ball text-courtdark font-display font-black rounded-2xl px-6 py-4 text-base
+         active:scale-95 transition min-h-[52px] inline-flex items-center justify-center gap-2;
+}
+.btn-court {
+  @apply bg-grafito text-ball font-display font-black rounded-2xl px-6 py-4 text-base
+         active:scale-95 transition min-h-[52px] inline-flex items-center justify-center gap-2;
+}
+.btn-ghost {
+  @apply bg-white/10 text-white font-display font-bold rounded-2xl px-6 py-4 text-base
+         active:scale-95 transition min-h-[52px] inline-flex items-center justify-center gap-2;
+}
+
+.card {
+  background: var(--surface);
+  @apply rounded-2xl border border-white/5 p-5 text-white;
+}
+
+.input {
+  background: var(--surface-2);
+  @apply w-full rounded-2xl border border-white/10 px-4 py-3.5 text-base text-white
+         placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-ball/70 min-h-[52px];
+}
+.label {
+  @apply block text-sm font-semibold text-white/70 mb-1.5;
+}
+
 select.input option { color: #0B0F16; background: #F7F9FC; }
 select.input option:checked { color: #0B0F16; background: #D8F646; }
+
+/* ===== Tipografía dashboards ===== */
+.h-hero { @apply font-display font-black text-3xl leading-tight; }
+.h-section { @apply font-display font-black text-xl; }
+.h-card { @apply font-display font-bold text-base; }
+.text-lead { @apply text-white/70 text-base; }

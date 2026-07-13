@@ -67,16 +67,17 @@ export function drawPlaca(data: PlacaData): HTMLCanvasElement {
   g.fillStyle = LIME; g.fillRect(-100, -14, W * 1.4, 14);
   g.restore();
 
-  // ---- Marca ----
-  g.font = '900 44px system-ui, sans-serif';
+  // ---- Marca: isotipo (paleta) + wordmark NARVOQ + tagline ----
+  drawIsotipo(g, 90, 90, 78);            // paleta dibujada en canvas
+  g.font = '900 60px system-ui, sans-serif';
   g.fillStyle = '#FFFFFF';
   g.textAlign = 'left';
-  g.fillText('PADEL', 90, 140);
+  g.fillText('NARVO', 200, 148);
   g.fillStyle = LIME;
-  g.fillText('APP', 90 + g.measureText('PADEL').width, 140);
-  g.fillStyle = 'rgba(255,255,255,0.4)';
-  g.font = '700 26px system-ui, sans-serif';
-  g.fillText('SAN MIGUEL DEL MONTE', 90, 178);
+  g.fillText('Q', 200 + g.measureText('NARVO').width, 148);
+  g.fillStyle = 'rgba(255,255,255,0.55)';
+  g.font = '700 24px system-ui, sans-serif';
+  g.fillText('ELEVÁ TU JUEGO · ELEVÁ TU NIVEL', 200, 182);
 
   // ---- Etiqueta del tipo (banda lima inclinada) ----
   const label = KIND_LABEL[data.kind] ?? data.kind.toUpperCase();
@@ -129,13 +130,49 @@ export function drawPlaca(data: PlacaData): HTMLCanvasElement {
   // ---- Pelota realista ----
   drawBall(g, W - 200, data.score ? 420 : 950, 130);
 
-  // ---- Pie ----
+  // ---- Pie con banda lima + isotipo chico ----
   g.fillStyle = LIME; g.fillRect(0, H - 96, W, 96);
+  drawIsotipo(g, 90, H - 84, 60, CARBON);
   g.fillStyle = CARBON;
-  g.font = '900 36px system-ui, sans-serif';
-  g.fillText((data.footer ?? 'NARVOQ · RESERVÁ · JUGÁ · SUMÁ').toUpperCase(), 90, H - 36);
+  g.font = '900 34px system-ui, sans-serif';
+  g.fillText((data.footer ?? 'NARVOQ · RESERVÁ · JUGÁ · SUMÁ').toUpperCase(), 190, H - 36);
 
   return c;
+}
+
+// Dibuja el isotipo (paleta) en el canvas.
+// x,y = esquina sup-izq del bounding box. size = altura aproximada.
+// tint = color del contorno (por defecto blanco).
+function drawIsotipo(g: CanvasRenderingContext2D, x: number, y: number, size: number, tint = '#FFFFFF') {
+  const w = size, h = size * 1.5;
+  // Cabeza redonda
+  const cx = x + w / 2, cy = y + w / 2, r = w / 2 - 4;
+  g.save();
+  g.lineWidth = Math.max(4, size * 0.09);
+  g.strokeStyle = tint;
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+  // 4 puntos lima
+  g.fillStyle = LIME;
+  const dr = size * 0.06;
+  g.beginPath(); g.arc(cx - w * 0.10, cy - w * 0.10, dr, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(cx + w * 0.10, cy - w * 0.10, dr, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(cx - w * 0.10, cy + w * 0.10, dr, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(cx + w * 0.10, cy + w * 0.10, dr, 0, Math.PI * 2); g.fill();
+  // V de garganta
+  g.fillStyle = tint;
+  g.beginPath();
+  g.moveTo(cx - w * 0.12, y + w * 0.85);
+  g.lineTo(cx, y + w * 1.03);
+  g.lineTo(cx + w * 0.12, y + w * 0.85);
+  g.closePath(); g.fill();
+  // Mango (3 rayas)
+  const barW = w * 0.22, barH = size * 0.09, barX = cx - barW / 2;
+  let yy = y + w * 1.05;
+  for (let i = 0; i < 3; i++) {
+    g.fillRect(barX, yy, barW, barH);
+    yy += barH + Math.max(2, size * 0.03);
+  }
+  g.restore();
 }
 
 /** Pelota de pádel con volumen: degradé radial, sombra y costura curva. */
@@ -187,7 +224,7 @@ function wrapText(g: CanvasRenderingContext2D, text: string, x: number, y: numbe
 }
 
 /** Comparte o descarga la placa como JPG. */
-export async function sharePlaca(data: PlacaData, fileName = 'placa.jpg') {
+export async function sharePlaca(data: PlacaData, fileName = 'narvoq-placa.jpg') {
   const canvas = drawPlaca(data);
   const blob: Blob = await new Promise(res => canvas.toBlob(b => res(b!), 'image/jpeg', 0.92));
   const file = new File([blob], fileName, { type: 'image/jpeg' });

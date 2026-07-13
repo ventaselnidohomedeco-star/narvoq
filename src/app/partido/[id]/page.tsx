@@ -103,10 +103,17 @@ export default function Partido() {
     let w1 = 0, w2 = 0;
     played.forEach(s => s.t1 > s.t2 ? w1++ : w2++);
     if (w1 === w2) return setError('Los sets están empatados: revisá el resultado.');
+    // Los amistosos (sin tournament_match_id) se autovalidan y NO suman puntos
+    // al ranking. Solo los torneos requieren validación del complejo y dan puntos.
+    const esAmistoso = !match.tournament_match_id;
     const { error: err } = await supabase.from('results').insert({
-      match_id: id, reported_by: me, sets: played, winner_team: w1 > w2 ? 1 : 2
+      match_id: id, reported_by: me, sets: played, winner_team: w1 > w2 ? 1 : 2,
+      status: esAmistoso ? 'validado' : 'pendiente'
     });
     if (err) return setError(`No se pudo guardar: ${err.message}`);
+    if (esAmistoso) {
+      await supabase.from('matches').update({ status: 'jugada' }).eq('id', id);
+    }
     await supabase.from('posts').insert({
       author_profile_id: me, kind: 'resultado', ref_match_id: id,
       text_content: `🎾 Resultado en ${match.booking.court.complex.name}: ${played.map(s => `${s.t1}-${s.t2}`).join(' / ')}`

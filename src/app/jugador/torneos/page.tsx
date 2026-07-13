@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { validatePair } from '@/lib/torneos/plantillas';
 import PhotoPicker from '@/components/PhotoPicker';
@@ -10,6 +11,7 @@ export default function TorneosJugador() {
   const [partnerUser, setPartnerUser] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [myPair, setMyPair] = useState<any>(null);
+  const [filtro, setFiltro] = useState<'abiertos' | 'finalizados'>('abiertos');
 
   useEffect(() => {
     (async () => {
@@ -24,12 +26,15 @@ export default function TorneosJugador() {
   }, [sel]);
 
   useEffect(() => {
+    const statuses = filtro === 'abiertos'
+      ? ['inscripcion', 'completo', 'en_juego']
+      : ['finalizado'];
     supabase.from('tournaments')
       .select('*, complex:complexes(name, city:cities(name)), pairs:tournament_pairs(id)')
-      .in('status', ['inscripcion', 'completo', 'en_juego'])
-      .order('created_at', { ascending: false })
+      .in('status', statuses)
+      .order('starts_on', { ascending: false })
       .then(({ data }) => setTorneos(data ?? []));
-  }, []);
+  }, [filtro]);
 
   async function inscribirse() {
     setMsg(null);
@@ -59,26 +64,59 @@ export default function TorneosJugador() {
   }
 
   return (
-    <main className="px-5 pt-8">
-      <h1 className="font-display font-black text-2xl">Torneos</h1>
-      <div className="mt-4 space-y-3">
-        {torneos.map(t => (
-          <button key={t.id} onClick={() => { setSel(t); setMsg(null); }}
-            className={`card w-full text-left ${sel?.id === t.id ? 'ring-2 ring-court' : ''}`}>
-            <div className="flex justify-between">
-              <p className="font-display font-black">{t.name}</p>
-              <span className="text-xs font-bold text-court uppercase">{t.status}</span>
-            </div>
-            <p className="text-white/50 text-sm">{t.complex.name} · {t.complex.city.name}</p>
-            <p className="text-white/50 text-sm">
-              {t.pairs.length}/{t.max_pairs} parejas
-              {t.sum_target ? ` · Suma ${t.sum_target}` : ''}
-              {t.sex === 'X' ? ' · Mixto' : t.sex === 'F' ? ' · Femenino' : t.sex === 'M' ? ' · Masculino' : ''}
-              {Number(t.price) > 0 ? ` · 💵 $${Number(t.price).toLocaleString('es-AR')} por pareja` : ' · Gratis'}
-            </p>
+    <main className="px-5 pt-6">
+      <h1 className="h-hero">Torneos</h1>
+
+      <div className="mt-4 flex gap-2">
+        {(['abiertos', 'finalizados'] as const).map(k => (
+          <button key={k} onClick={() => { setFiltro(k); setSel(null); }}
+            className={`px-4 py-3 rounded-xl text-sm font-black min-h-[44px]
+              ${filtro === k ? 'bg-grafito text-ball ring-1 ring-ball/40' : 'bg-[#1A1D24] text-white/60 border border-white/10'}`}>
+            {k === 'abiertos' ? 'Abiertos ahora' : 'Finalizados'}
           </button>
         ))}
-        {torneos.length === 0 && <p className="text-white/50">No hay torneos abiertos por ahora.</p>}
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {torneos.map(t => (
+          <div key={t.id} className={`card ${sel?.id === t.id ? 'ring-2 ring-ball' : ''}`}>
+            <button onClick={() => { setSel(t); setMsg(null); }} className="w-full text-left">
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <p className="font-display font-black text-lg leading-tight truncate">{t.name}</p>
+                  <p className="text-white/60 text-sm truncate">{t.complex.name} · {t.complex.city.name}</p>
+                </div>
+                <span className={`shrink-0 text-[10px] font-black uppercase px-2 py-1 rounded ${
+                  t.status === 'finalizado' ? 'bg-white/10 text-white/60'
+                  : t.status === 'inscripcion' ? 'bg-ball/20 text-ball'
+                  : 'bg-yellow-300/20 text-yellow-200'}`}>
+                  {t.status === 'inscripcion' ? 'Inscripción'
+                    : t.status === 'en_juego' ? 'En juego'
+                    : t.status === 'finalizado' ? 'Finalizado'
+                    : 'Completo'}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {t.sum_target && <Chip>Suma {t.sum_target}</Chip>}
+                {t.sex && <Chip>{t.sex === 'X' ? 'Mixto' : t.sex === 'F' ? 'Femenino' : 'Masculino'}</Chip>}
+                <Chip>{t.pairs.length}/{t.max_pairs} parejas</Chip>
+                {Number(t.price) > 0 && <Chip>${Number(t.price).toLocaleString('es-AR')}</Chip>}
+                {Number(t.price) === 0 && <Chip>Gratis</Chip>}
+              </div>
+            </button>
+            <Link href={`/torneo/${t.id}`} className="mt-3 inline-block text-ball font-black text-sm">
+              Ver fixture y resultados →
+            </Link>
+          </div>
+        ))}
+        {torneos.length === 0 && (
+          <div className="card text-center py-8">
+            <p className="text-3xl">🏆</p>
+            <p className="text-white/60 mt-2">
+              {filtro === 'abiertos' ? 'No hay torneos abiertos ahora.' : 'Aún no hay torneos finalizados.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {sel && myPair && (
@@ -105,6 +143,7 @@ export default function TorneosJugador() {
         </div>
       )}
 
+      {/* Helper Chip inline via JSX return */}
       {sel?.status === 'inscripcion' && !myPair && (
         <div className="card mt-5">
           <h2 className="font-display font-bold">Anotarme en {sel.name}</h2>
@@ -116,5 +155,13 @@ export default function TorneosJugador() {
         </div>
       )}
     </main>
+  );
+}
+
+function Chip({ children }: any) {
+  return (
+    <span className="inline-block bg-white/10 text-white/80 text-[11px] font-black uppercase rounded-full px-2.5 py-1">
+      {children}
+    </span>
   );
 }

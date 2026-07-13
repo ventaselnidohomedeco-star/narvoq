@@ -68,16 +68,15 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
         </div>
       </header>
       <div className="max-w-md mx-auto">{children}</div>
-      <nav className="fixed bottom-0 inset-x-0 bg-[#0D1320]/95 backdrop-blur border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
-        <div className="max-w-md mx-auto grid grid-cols-5">
+      <nav className="fixed bottom-0 inset-x-0 bg-[#0D1320] border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
+        <div className="max-w-md mx-auto grid grid-cols-5 h-[72px]">
           {items.map(i => {
             const active = path.startsWith(i.href);
             return (
               <Link key={i.href} href={i.href}
-                className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold ${active ? 'text-ball' : 'text-white/50'}`}>
-                <span className="w-6 h-6 flex items-center justify-center">{i.icon}</span>
+                className={`flex flex-col items-center justify-center gap-1 text-[11px] font-black ${active ? 'text-ball' : 'text-white/60'}`}>
+                <span className="w-7 h-7 flex items-center justify-center">{i.icon}</span>
                 <span className="leading-none">{i.label}</span>
-                {active && <span className="mt-0.5 h-1 w-6 rounded-full bg-ball" />}
               </Link>
             );
           })}
