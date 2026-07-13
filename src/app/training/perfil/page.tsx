@@ -22,7 +22,8 @@ export default function PerfilProfe() {
     first_name: '', last_name: '', phone: '', bio: '', zone: '',
     years_experience: '', specialty: '', level_min: '1', level_max: '8',
     price_individual: '', price_group: '',
-    coach_complexes: '' // csv en UI
+    coach_complexes: '', // csv en UI
+    academy_name: ''
   });
   const [availability, setAvailability] = useState<Record<string, { from: string; to: string }>>({});
   const [saving, setSaving] = useState(false);
@@ -45,7 +46,8 @@ export default function PerfilProfe() {
       level_max: data?.level_max?.toString() ?? '8',
       price_individual: data?.price_individual?.toString() ?? '',
       price_group: data?.price_group?.toString() ?? '',
-      coach_complexes: Array.isArray(data?.coach_complexes) ? data.coach_complexes.join(', ') : ''
+      coach_complexes: Array.isArray(data?.coach_complexes) ? data.coach_complexes.join(', ') : '',
+      academy_name: data?.academy_name ?? ''
     });
     const av = Array.isArray(data?.availability) ? data.availability : [];
     const map: any = {};
@@ -69,7 +71,8 @@ export default function PerfilProfe() {
       price_individual: f.price_individual ? Number(f.price_individual) : null,
       price_group: f.price_group ? Number(f.price_group) : null,
       coach_complexes: f.coach_complexes.split(',').map(s => s.trim()).filter(Boolean),
-      availability: availabilityArr
+      availability: availabilityArr,
+      academy_name: f.academy_name.trim() || null
     }).eq('id', me.id);
     setSaving(false);
     if (error) return setMsg(`${error.message}. ¿Ejecutaste update-12-coach-profile.sql?`);
@@ -158,6 +161,11 @@ export default function PerfilProfe() {
           <input className="input" value={f.coach_complexes}
             onChange={e => setF({ ...f, coach_complexes: e.target.value })}
             placeholder="Ej: Padel Total, Club Náutico, Sport Center" /></div>
+        <div><label className="label">Academia (opcional)</label>
+          <input className="input" value={f.academy_name}
+            onChange={e => setF({ ...f, academy_name: e.target.value })}
+            placeholder="Ej: Palermo Padel Academy — vacío si sos independiente" />
+          <p className="text-white/40 text-xs mt-1">Cuando 2+ profes tienen la misma academia, sus alumnos las ven agrupadas.</p></div>
       </section>
 
       <section className="card mt-4 space-y-3">

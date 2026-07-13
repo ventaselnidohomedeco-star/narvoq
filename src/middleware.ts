@@ -54,8 +54,14 @@ export async function middleware(req: NextRequest) {
     if (!user) return NextResponse.redirect(new URL('/complejo/login', req.url));
     const { data: profile } = await supabase
       .from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'complex_admin' && profile?.role !== 'super_admin')
-      return NextResponse.redirect(new URL('/jugador/dashboard', req.url));
+    const isAdmin = profile?.role === 'complex_admin' || profile?.role === 'super_admin';
+    if (!isAdmin) {
+      // Empleados activos del complejo también pueden entrar (rol player + fila en complex_employees)
+      const { data: emp } = await supabase.from('complex_employees')
+        .select('complex_id').eq('user_id', user.id).eq('active', true).limit(1);
+      if (!emp || emp.length === 0)
+        return NextResponse.redirect(new URL('/jugador/dashboard', req.url));
+    }
   }
   return res;
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 const items = [
   { href: '/complejo/perfil', icon: 'CFG', title: 'Perfil del complejo', desc: 'Logo, fotos, redes, pagos, horarios y servicios' },
+  { href: '/complejo/empleados', icon: '👥', title: 'Equipo', desc: 'Sumá empleados para gestionar calendario y aprobaciones' },
   { href: '/complejo/rentabilidad', icon: '$', title: 'Rentabilidad', desc: 'Ocupación y facturación por cancha + descuentos por baja demanda' },
   { href: '/smash', icon: '💬', title: 'Smashe@', desc: 'Chat efímero (24hs) con jugadores y otros complejos' },
   { href: '/complejo/amigos', icon: 'RED', title: 'Comunidad', desc: 'Buscá y seguí jugadores, profes u otros complejos' },

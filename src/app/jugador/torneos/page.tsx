@@ -7,11 +7,18 @@ import PhotoPicker from '@/components/PhotoPicker';
 
 export default function TorneosJugador() {
   const [torneos, setTorneos] = useState<any[]>([]);
+  const [circuitos, setCircuitos] = useState<any[]>([]);
   const [sel, setSel] = useState<any>(null);
   const [partnerUser, setPartnerUser] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [myPair, setMyPair] = useState<any>(null);
   const [filtro, setFiltro] = useState<'abiertos' | 'finalizados'>('abiertos');
+
+  useEffect(() => {
+    supabase.from('circuits').select('*, complex:complexes(name, logo_url), tournaments:tournaments(id, status)')
+      .order('year', { ascending: false })
+      .then(({ data }) => setCircuitos(data ?? []));
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -66,6 +73,28 @@ export default function TorneosJugador() {
   return (
     <main className="px-5 pt-6">
       <h1 className="h-hero">Torneos</h1>
+
+      {/* Circuitos / ligas anuales */}
+      {circuitos.length > 0 && (
+        <section className="mt-4">
+          <p className="font-display font-black text-ball text-xs tracking-widest mb-2">CIRCUITOS ANUALES</p>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {circuitos.map(c => (
+              <Link key={c.id} href={`/circuito/${c.id}`}
+                className="shrink-0 card !p-4 min-w-[220px] flex items-center gap-3">
+                {c.complex?.logo_url
+                  ? <img src={c.complex.logo_url} alt="" className="w-11 h-11 rounded-full object-cover" />
+                  : <span className="w-11 h-11 rounded-full bg-grafito flex items-center justify-center text-ball">🏆</span>}
+                <div className="min-w-0">
+                  <p className="font-display font-black truncate">{c.name}</p>
+                  <p className="text-white/60 text-xs truncate">{c.complex?.name} · {c.year}</p>
+                  <p className="text-ball text-xs font-bold">{c.tournaments?.length ?? 0} torneos →</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mt-4 flex gap-2">
         {(['abiertos', 'finalizados'] as const).map(k => (

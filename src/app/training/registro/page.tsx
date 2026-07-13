@@ -10,7 +10,8 @@ export default function TrainingRegistro() {
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
   const [f, setF] = useState({
     first_name: '', last_name: '', phone: '', age: '30', sex: 'M',
-    city_id: '', zone: '', username: '', email: '', password: '', bio: ''
+    city_id: '', zone: '', username: '', email: '', password: '', bio: '',
+    academy_name: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,8 @@ export default function TrainingRegistro() {
       id: data.user.id, role: 'coach', username: f.username.toLowerCase(),
       first_name: f.first_name, last_name: f.last_name, phone: f.phone,
       age: Number(f.age), sex: f.sex, city_id: f.city_id || null,
-      zone: f.zone, category: 4, bio: f.bio || null
+      zone: f.zone, category: 4, bio: f.bio || null,
+      academy_name: f.academy_name.trim() || null
     });
     if (pErr) {
       setError(pErr.code === '23505' ? 'Ese usuario ya está en uso.' : pErr.message);
@@ -58,6 +60,9 @@ export default function TrainingRegistro() {
           </select></div>
         <div><label className="label">Zona / club donde entrenás</label>
           <input className="input" value={f.zone} onChange={set('zone')} placeholder="Ej: Club Náutico, Sport Club, etc." /></div>
+        <div><label className="label">Academia (opcional)</label>
+          <input className="input" value={f.academy_name} onChange={set('academy_name')}
+            placeholder="Ej: Palermo Padel Academy — dejalo vacío si sos independiente" /></div>
         <div><label className="label">Bio corta</label>
           <input className="input" value={f.bio} onChange={set('bio')} placeholder="Especialidad, categoría, años de experiencia…" /></div>
         <div className="court-divider my-2" />
