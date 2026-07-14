@@ -104,21 +104,48 @@ export default function Partido() {
     let w1 = 0, w2 = 0;
     played.forEach(s => s.t1 > s.t2 ? w1++ : w2++);
     if (w1 === w2) return setError('Los sets están empatados: revisá el resultado.');
+    if (!me) return setError('Iniciá sesión de nuevo para cargar el resultado.');
+    if (players.length < 2) return setError('El partido no tiene jugadores cargados.');
+
     // Los amistosos (sin tournament_match_id) se autovalidan y NO suman puntos
     // al ranking. Solo los torneos requieren validación del complejo y dan puntos.
     const esAmistoso = !match.tournament_match_id;
-    const { error: err } = await supabase.from('results').insert({
-      match_id: id, reported_by: me, sets: played, winner_team: w1 > w2 ? 1 : 2,
+    const winnerTeam = w1 > w2 ? 1 : 2;
+
+    // Verificamos primero que no exista un resultado previo (para evitar duplicados)
+    const { data: prev } = await supabase.from('results').select('id').eq('match_id', id).maybeSingle();
+    if (prev) return setError('Ya hay un resultado cargado para este partido.');
+
+    const { data: newResult, error: err } = await supabase.from('results').insert({
+      match_id: id, reported_by: me, sets: played, winner_team: winnerTeam,
       status: esAmistoso ? 'validado' : 'pendiente'
-    });
+    }).select().single();
+
     if (err) return setError(`No se pudo guardar: ${err.message}`);
+    if (!newResult) return setError('El resultado no se guardó. Revisá tu conexión y probá de nuevo.');
+
     if (esAmistoso) {
       await supabase.from('matches').update({ status: 'jugada' }).eq('id', id);
     }
+
+    // Armar mensaje del feed con nombres de los 4 jugadores y tags.
+    const team1 = players.filter(p => p.team === 1);
+    const team2 = players.filter(p => p.team === 2);
+    const ganadores = winnerTeam === 1 ? team1 : team2;
+    const perdedores = winnerTeam === 1 ? team2 : team1;
+    const namesG = ganadores.map(p => `${p.profile.first_name} ${p.profile.last_name ?? ''}`.trim()).join(' y ');
+    const namesP = perdedores.map(p => `${p.profile.first_name} ${p.profile.last_name ?? ''}`.trim()).join(' y ');
+    const score = played.map(s => `${s.t1}-${s.t2}`).join(' ');
+    const taggedIds = players.map(p => p.player_id);
+
     await supabase.from('posts').insert({
-      author_profile_id: me, kind: 'resultado', ref_match_id: id,
-      text_content: `🎾 Resultado en ${match.booking.court.complex.name}: ${played.map(s => `${s.t1}-${s.t2}`).join(' / ')}`
+      author_profile_id: me,
+      kind: 'resultado',
+      ref_match_id: id,
+      tagged_players: taggedIds,
+      text_content: `🎾 ${namesG} le ganaron ${score} a ${namesP} · ${match.booking.court.complex.name}`
     });
+
     load();
   }
 

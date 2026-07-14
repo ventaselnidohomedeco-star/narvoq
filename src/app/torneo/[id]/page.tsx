@@ -239,7 +239,7 @@ export default function TorneoDetalle() {
         </section>
       )}
 
-      {/* Etapa Eliminatoria */}
+      {/* Etapa Eliminatoria — bracket estilo mundial */}
       {knockRounds.length > 0 && (
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-4">
@@ -247,17 +247,11 @@ export default function TorneoDetalle() {
             <div>
               <p className="text-ball text-[11px] font-black tracking-widest">ETAPA 2</p>
               <h2 className="font-display font-black text-2xl leading-tight">Eliminatoria</h2>
-              <p className="text-white/50 text-xs">El que pierde queda afuera. Ganás y avanzás a la próxima ronda.</p>
+              <p className="text-white/50 text-xs">Cuadro completo. Deslizá horizontal para ver todas las rondas.</p>
             </div>
           </div>
-          {knockRounds.map(({ round, ms }) => (
-            <div key={round} className="mt-3 card !p-4">
-              <p className="font-display font-black text-ball text-sm">{round}</p>
-              <div className="mt-3 space-y-2">
-                {ms.map(m => <MatchRow key={m.id} m={m} pairsById={pairsById} highlight />)}
-              </div>
-            </div>
-          ))}
+
+          <Bracket knockRounds={knockRounds} pairsById={pairsById} />
         </section>
       )}
     </main>
@@ -287,6 +281,95 @@ function MatchRow({ m, pairsById, highlight = false }: any) {
           : <p className="text-white/40 text-xs">vs</p>}
       </div>
       <PairView pair={p2} right winner={w2} dim={played && !w2} />
+    </div>
+  );
+}
+
+// ==================== BRACKET WORLD-CUP STYLE ====================
+// Rondas en columnas horizontales. Cada partido: 2 filas (team1 arriba,
+// team2 abajo). Ganador destacado. Scroll horizontal en mobile.
+function Bracket({ knockRounds, pairsById }: any) {
+  const sorted = [...knockRounds].sort((a: any, b: any) => rank(a.round) - rank(b.round));
+  // Espaciado creciente entre rondas para efecto "árbol" (cada ronda tiene la mitad de matches)
+  const gapForCol = (idx: number) => {
+    // idx 0: menor gap; a más ronda, más gap para alinear
+    return Math.pow(2, idx) * 12;
+  };
+
+  return (
+    <div className="rounded-2xl bg-[#0F141D] border border-white/10 p-4 overflow-x-auto">
+      <div className="flex gap-6 min-w-max">
+        {sorted.map(({ round, ms }: any, idx: number) => {
+          const gap = gapForCol(idx);
+          return (
+            <div key={round} className="flex flex-col" style={{ minWidth: 260 }}>
+              <p className="text-ball font-display font-black text-[11px] text-center mb-4 tracking-widest uppercase">
+                {round}
+              </p>
+              <div className="flex-1 flex flex-col justify-around" style={{ gap: `${gap}px` }}>
+                {ms.map((m: any) => <BracketMatch key={m.id} m={m} pairsById={pairsById} isFinal={/final(?!.*semi)/i.test(round)} />)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BracketMatch({ m, pairsById, isFinal }: any) {
+  const p1 = pairsById[m.pair1_id];
+  const p2 = pairsById[m.pair2_id];
+  const w1 = m.winner_pair_id === m.pair1_id;
+  const w2 = m.winner_pair_id === m.pair2_id;
+  // Parseamos "6-4 3-6 6-4" en sets por team
+  const setsRaw = (m.score ?? '').split(/\s+/).filter(Boolean);
+  const setsT1: string[] = [];
+  const setsT2: string[] = [];
+  setsRaw.forEach((s: string) => {
+    const [a, b] = s.split('-');
+    setsT1.push(a ?? '');
+    setsT2.push(b ?? '');
+  });
+
+  return (
+    <div className={`rounded-xl overflow-hidden border-2 ${isFinal ? 'border-ball' : 'border-white/10'} bg-[#141A24]`}>
+      <BracketRow pair={p1} winner={w1} loser={!!m.winner_pair_id && !w1} sets={setsT1} />
+      <div className="h-px bg-white/10" />
+      <BracketRow pair={p2} winner={w2} loser={!!m.winner_pair_id && !w2} sets={setsT2} />
+    </div>
+  );
+}
+
+function BracketRow({ pair, winner, loser, sets }: { pair?: any; winner: boolean; loser: boolean; sets: string[] }) {
+  const bg = winner ? 'bg-ball/10 border-l-4 border-ball' : loser ? 'bg-white/[0.02]' : '';
+  const nameCls = winner ? 'text-ball font-black' : loser ? 'text-white/50' : 'text-white/70';
+  return (
+    <div className={`flex items-center gap-2 px-3 py-2.5 ${bg}`}>
+      {pair ? (
+        <>
+          <div className="flex -space-x-2 shrink-0">
+            {pair.p1?.avatar_url
+              ? <img src={pair.p1.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border border-[#141A24]" />
+              : <span className="w-7 h-7 rounded-full bg-grafito text-ball text-[10px] font-black flex items-center justify-center border border-[#141A24]">{pair.p1?.first_name?.[0]}</span>}
+            {pair.p2?.avatar_url
+              ? <img src={pair.p2.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border border-[#141A24]" />
+              : <span className="w-7 h-7 rounded-full bg-grafito text-ball text-[10px] font-black flex items-center justify-center border border-[#141A24]">{pair.p2?.first_name?.[0]}</span>}
+          </div>
+          <span className={`flex-1 min-w-0 text-xs truncate ${nameCls}`}>
+            {pair.p1?.first_name} {pair.p1?.last_name?.[0] ?? ''}. &amp; {pair.p2?.first_name} {pair.p2?.last_name?.[0] ?? ''}.
+          </span>
+          <span className="flex gap-1 shrink-0">
+            {sets.map((s, i) => (
+              <span key={i} className={`w-6 text-center font-display font-black text-sm ${winner ? 'text-ball' : loser ? 'text-white/40' : 'text-white/60'}`}>
+                {s || '-'}
+              </span>
+            ))}
+          </span>
+        </>
+      ) : (
+        <span className="flex-1 text-white/30 text-xs italic px-2 py-2">— A definir —</span>
+      )}
     </div>
   );
 }
