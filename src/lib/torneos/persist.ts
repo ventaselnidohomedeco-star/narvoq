@@ -15,7 +15,8 @@ export async function generateFullTournament(tournamentId: string, opts?: { seed
   const { data: pairs } = await supabase.from('tournament_pairs')
     .select('id, seed, player1_id, player2_id, provisional_p1_name, provisional_p2_name')
     .eq('tournament_id', tournamentId).eq('status', 'aprobada');
-  if (!pairs || pairs.length < 3) throw new Error('Se necesitan al menos 3 parejas aprobadas.');
+  if (!pairs || pairs.length < 8)
+    throw new Error(`Se necesitan al menos 8 parejas aprobadas para un torneo oficial. Hay ${pairs?.length ?? 0}.`);
 
   // 2) Borrar grupos y matches previos (regenerar limpio)
   await supabase.from('tournament_matches').delete().eq('tournament_id', tournamentId);
@@ -103,13 +104,20 @@ export async function generateKnockoutStage(tournamentId: string) {
       }));
     const standings = computeStandings(memberIds, zoneMs);
 
-    // Persistir final_position
+    // Persistir final_position + qualification_path
     for (const s of standings) {
-      await supabase.from('group_memberships').update({ final_position: s.final_position ?? null })
-        .eq('group_id', g.id).eq('pair_id', s.pair_id);
+      const pos = s.final_position ?? 0;
+      const path = pos === 1 ? 'direct_from_1st'
+        : pos === 2 ? 'direct_from_2nd'
+        : pos === 3 ? 'preliminary_from_3rd'
+        : pos === 4 ? 'preliminary_from_4th'
+        : null;
+      await supabase.from('group_memberships').update({
+        final_position: s.final_position ?? null,
+        qualification_path: path
+      }).eq('group_id', g.id).eq('pair_id', s.pair_id);
     }
-    // Extraer clasificados: TODOS los que quedaron 1º, 2º, 3º y 4º
-    // (los 3º y 4º juegan preliminar; los 1º y 2º van directo)
+    // Extraer clasificados
     standings.forEach(s => {
       qualifiers.push({
         pair_id: s.pair_id,
