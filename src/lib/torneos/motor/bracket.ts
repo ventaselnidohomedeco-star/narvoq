@@ -1,25 +1,17 @@
 import type { Round, PairRef } from './types';
 
-// Genera la fase eliminatoria estilo SMM (San Miguel del Monte):
-//  - 1º y 2º de cada grupo pasan directo a 8vos.
-//  - 3º y 4º juegan 16avos (preliminar). El ganador entra a 8vos manteniendo
-//    su posición de grupo.
-//  - En 8vos:
-//     * ganador-de-16avos-que-fue-4º  vs  1º de otro grupo
-//     * ganador-de-16avos-que-fue-3º  vs  2º de otro grupo
-//  - Evitamos siempre que sea posible:
-//     * Cruce entre parejas del mismo grupo
-//     * 1º vs 1º
-//     * 2º vs 2º
-//     * Repetir un partido ya jugado en fase de grupos
-//
-// La función NO consulta la DB; recibe la lista de clasificados por grupo
-// (con posición 1..N y group label) y devuelve los partidos por ronda.
+// Genera la fase eliminatoria adaptándose a cualquier cantidad de parejas.
+// Regla base San Miguel del Monte:
+//   - 1º y 2º de cada grupo van al bracket principal.
+//   - 3º y 4º juegan preliminar (16avos) SOLO si hacen falta para
+//     completar un bracket redondo (potencia de 2).
+//   - Si los directos (2 * grupos) ya son potencia de 2, no hay preliminar.
+//   - Cruces evitan mismo grupo, 1º vs 1º, 2º vs 2º cuando es posible.
 
 export interface Qualifier {
   pair_id: string;
-  group_label: string;    // 'A','B','C',...
-  group_position: number; // 1..N
+  group_label: string;
+  group_position: number;
 }
 
 export interface BracketMatchSpec {
@@ -27,125 +19,135 @@ export interface BracketMatchSpec {
   order_index: number;
   pair1_id: string | null;
   pair2_id: string | null;
-  // Placeholder cuando el rival sale de una ronda previa
-  pair1_from?: string;    // ej: '16avos:0' → ganador del partido 0 de 16avos
+  pair1_from?: string;
   pair2_from?: string;
 }
 
 export function buildBracket(qualifiers: Qualifier[]): BracketMatchSpec[] {
-  const q = [...qualifiers];
-  const byPos = (n: number) => q.filter(x => x.group_position === n);
-  const firsts = byPos(1);
-  const seconds = byPos(2);
-  const thirds = byPos(3);
-  const fourths = byPos(4);
+  const firsts = qualifiers.filter(q => q.group_position === 1);
+  const seconds = qualifiers.filter(q => q.group_position === 2);
+  const thirds = qualifiers.filter(q => q.group_position === 3);
+  const fourths = qualifiers.filter(q => q.group_position === 4);
+
+  const direct = [...firsts, ...seconds];
+  const potentialPrelim = Math.min(thirds.length, fourths.length);
+
+  // Bracket target: potencia de 2 que:
+  //  1) NO sea menor que direct.length (nadie clasificado pierde su lugar)
+  //  2) preferimos la mayor entre direct y direct+prelim que sea potencia de 2
+  //  3) si ninguna encaja, tomamos la potencia de 2 HACIA ARRIBA de direct
+  let bracketSize = 0;
+  if (isPow2(direct.length)) {
+    bracketSize = direct.length; // No hace falta preliminar
+  } else if (isPow2(direct.length + potentialPrelim)) {
+    bracketSize = direct.length + potentialPrelim;
+  } else {
+    bracketSize = nextPow2Up(direct.length);
+  }
+  bracketSize = Math.max(2, bracketSize);
+
+  // Cuántas preliminares necesitamos
+  const prelimNeeded = Math.max(0, bracketSize - direct.length);
+  const prelimUsed = Math.min(prelimNeeded, potentialPrelim);
+
+  // Ronda de arranque según bracketSize
+  const startingRound = nameForSize(bracketSize);
+  const allRounds = roundsCascade(bracketSize);
 
   const matches: BracketMatchSpec[] = [];
   let order = 0;
 
-  // 1) Preliminar (16avos) — 3ºs y 4ºs juegan entre sí, cruzando grupos
-  // Cada 4º juega contra un 3º de OTRO grupo. Emparejamos evitando mismo grupo.
-  const preliminaries: { fourth: Qualifier; third: Qualifier }[] = [];
-  const fourthsCopy = [...fourths];
-  const thirdsCopy = [...thirds];
-  while (fourthsCopy.length && thirdsCopy.length) {
-    const f = fourthsCopy.shift()!;
-    // buscar tercer de OTRO grupo
-    const tIdx = thirdsCopy.findIndex(t => t.group_label !== f.group_label);
-    const t = tIdx >= 0 ? thirdsCopy.splice(tIdx, 1)[0] : thirdsCopy.shift()!;
-    preliminaries.push({ fourth: f, third: t });
+  // ==== 1) PRELIMINARES (opcional) ====
+  const prelimPairs: { fourth: Qualifier; third: Qualifier }[] = [];
+  const fs = [...fourths].sort(() => 0);
+  const ts = [...thirds].sort(() => 0);
+  for (let i = 0; i < prelimUsed; i++) {
+    const f = fs.shift()!;
+    const tIdx = ts.findIndex(t => t.group_label !== f.group_label);
+    const t = tIdx >= 0 ? ts.splice(tIdx, 1)[0] : ts.shift()!;
+    prelimPairs.push({ fourth: f, third: t });
   }
-  preliminaries.forEach(({ fourth, third }, i) => {
+  prelimPairs.forEach(pr => {
     matches.push({
       round: '16avos', order_index: order++,
-      pair1_id: fourth.pair_id, pair2_id: third.pair_id
+      pair1_id: pr.fourth.pair_id, pair2_id: pr.third.pair_id
     });
   });
 
-  // 2) 8vos (si aplica). Sino, se puede pasar directo a cuartos/semi/final.
-  const totalClasificados = firsts.length + seconds.length + preliminaries.length;
-  const nextPower = nextPowerOf2(totalClasificados);
-
-  // Construcción de 8vos:
-  //  slot 1º-vs-ganador-de-16avos-que-era-4º
-  //  slot 2º-vs-ganador-de-16avos-que-era-3º
-  //  1º vs 2º (de grupos distintos) para completar
-  const octavos: BracketMatchSpec[] = [];
-  const orderStart = order;
-
-  // pairing helper: evita mismo grupo
-  const pickFrom = (pool: Qualifier[], avoidGroup: string): Qualifier | null => {
-    const iOther = pool.findIndex(x => x.group_label !== avoidGroup);
-    if (iOther >= 0) return pool.splice(iOther, 1)[0];
+  // ==== 2) BRACKET PRINCIPAL ====
+  // Slots: directQualifiers + prelim winners
+  // Pareamos siguiendo la regla: 4º-preliminar vs 1º (de otro grupo)
+  //                              3º-preliminar vs 2º (de otro grupo)
+  //                              1º vs 2º (de otros grupos)
+  const firstsPool = [...firsts];
+  const secondsPool = [...seconds];
+  const pickAvoiding = (pool: Qualifier[], avoidGroup: string) => {
+    const idx = pool.findIndex(q => q.group_label !== avoidGroup);
+    if (idx >= 0) return pool.splice(idx, 1)[0];
     return pool.length ? pool.shift()! : null;
   };
 
-  const firstsPool = [...firsts];
-  const secondsPool = [...seconds];
+  const bracketMatches: BracketMatchSpec[] = [];
 
-  // 8vos con ganadores de preliminares
-  preliminaries.forEach((prel, prelIdx) => {
-    // ganador venía como 4º → juega contra 1º de otro grupo
-    // ganador venía como 3º → juega contra 2º de otro grupo
-    // Nota: no sabemos aún quién ganó el prel, por eso guardamos placeholders.
-    // Al crear el bracket asumimos que si el 4º avanza, va contra un 1º.
-    // Al persistir, cuando se cargue el resultado del preliminar, el sistema
-    // llenará el slot correspondiente.
-    const rival1 = pickFrom(firstsPool, prel.fourth.group_label);
-    if (rival1) {
-      octavos.push({
-        round: '8vos', order_index: order++,
-        pair1_id: null, pair2_id: rival1.pair_id,
+  // Slots para ganadores de preliminares
+  prelimPairs.forEach((pr, prelIdx) => {
+    // Ganador viene del 4º → cruza con 1º de otro grupo
+    const rival = pickAvoiding(firstsPool, pr.fourth.group_label);
+    if (rival) {
+      bracketMatches.push({
+        round: startingRound, order_index: order++,
+        pair1_id: null, pair2_id: rival.pair_id,
         pair1_from: `16avos:${prelIdx}`
       });
     }
   });
 
-  // Emparejar 1ºs y 2ºs restantes: 1º vs 2º evitando mismo grupo
+  // 1ºs restantes vs 2ºs (de otros grupos)
   while (firstsPool.length && secondsPool.length) {
     const f = firstsPool.shift()!;
-    const s = pickFrom(secondsPool, f.group_label);
+    const s = pickAvoiding(secondsPool, f.group_label);
     if (!s) break;
-    octavos.push({
-      round: '8vos', order_index: order++,
+    bracketMatches.push({
+      round: startingRound, order_index: order++,
       pair1_id: f.pair_id, pair2_id: s.pair_id
     });
   }
-  // Sobrantes (raro, pero por seguridad): pasan por bye o se enfrentan entre sí
+
+  // Sobrantes (si quedaron 1ºs o 2ºs sueltos): parear entre sí
   const rest = [...firstsPool, ...secondsPool];
   while (rest.length >= 2) {
-    octavos.push({
-      round: '8vos', order_index: order++,
-      pair1_id: rest.shift()!.pair_id,
-      pair2_id: rest.shift()!.pair_id
+    bracketMatches.push({
+      round: startingRound, order_index: order++,
+      pair1_id: rest.shift()!.pair_id, pair2_id: rest.shift()!.pair_id
     });
   }
 
-  matches.push(...octavos);
+  // Emparejar potencial déficit con BYE si por alguna razón faltan
+  while (bracketMatches.length < bracketSize / 2) {
+    bracketMatches.push({
+      round: startingRound, order_index: order++,
+      pair1_id: null, pair2_id: null
+    });
+  }
 
-  // 3) Rondas siguientes con placeholders
-  const rounds: Round[] = ['cuartos', 'semi', 'final'];
-  let currentCount = octavos.length;
-  const startingRound: Round = currentCount >= 8 ? '8vos' : currentCount >= 4 ? 'cuartos' : currentCount >= 2 ? 'semi' : 'final';
+  matches.push(...bracketMatches);
 
-  // Determinar próximas rondas
+  // ==== 3) RONDAS SIGUIENTES CON PLACEHOLDERS ====
+  const idxOfStart = allRounds.indexOf(startingRound);
+  const nextRounds = allRounds.slice(idxOfStart + 1);
   let prevRound: Round = startingRound;
-  let prevMatches = octavos;
-  const nextRounds = rounds.slice(rounds.indexOf(prevRound === '8vos' ? 'cuartos' : prevRound));
+  let prevMatches = bracketMatches;
   for (const nr of nextRounds) {
-    if (nr === prevRound) continue;
     const nextCount = Math.max(1, Math.floor(prevMatches.length / 2));
     const created: BracketMatchSpec[] = [];
     for (let i = 0; i < nextCount; i++) {
-      const idxA = i * 2;
-      const idxB = i * 2 + 1;
+      const a = prevMatches[i * 2];
+      const b = prevMatches[i * 2 + 1];
       created.push({
-        round: nr,
-        order_index: order++,
-        pair1_id: null,
-        pair2_id: null,
-        pair1_from: prevMatches[idxA] ? `${prevRound}:${prevMatches[idxA].order_index}` : undefined,
-        pair2_from: prevMatches[idxB] ? `${prevRound}:${prevMatches[idxB].order_index}` : undefined
+        round: nr, order_index: order++,
+        pair1_id: null, pair2_id: null,
+        pair1_from: a ? `${prevRound}:${a.order_index}` : undefined,
+        pair2_from: b ? `${prevRound}:${b.order_index}` : undefined
       });
     }
     matches.push(...created);
@@ -157,8 +159,35 @@ export function buildBracket(qualifiers: Qualifier[]): BracketMatchSpec[] {
   return matches;
 }
 
-function nextPowerOf2(n: number): number {
+// Helpers matemáticos.
+function isPow2(n: number): boolean {
+  return n >= 2 && (n & (n - 1)) === 0;
+}
+function prevPow2(n: number): number {
+  if (n < 2) return 2;
   let p = 1;
+  while (p * 2 <= n) p *= 2;
+  return p;
+}
+function nextPow2Up(n: number): number {
+  if (n <= 2) return 2;
+  let p = 2;
   while (p < n) p *= 2;
   return p;
+}
+function nameForSize(size: number): Round {
+  // size = número de parejas en el bracket → nombre de la ronda de arranque
+  if (size >= 16) return '8vos';  // 16 pairs → octavos
+  if (size >= 8) return 'cuartos'; // 8 pairs → cuartos
+  if (size >= 4) return 'semi';    // 4 pairs → semi
+  return 'final';                  // 2 pairs → final
+}
+function roundsCascade(size: number): Round[] {
+  const out: Round[] = [];
+  let n = size;
+  while (n >= 2) {
+    out.push(nameForSize(n));
+    n = n / 2;
+  }
+  return out;
 }
