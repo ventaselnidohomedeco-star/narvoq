@@ -185,10 +185,17 @@ export default function TorneoDetalle() {
         </section>
       )}
 
-      {/* Fase de grupos */}
+      {/* Etapa de Clasificación */}
       {zoneRounds.length > 0 && (
-        <section className="mt-6">
-          <h2 className="h-section">Fase de grupos</h2>
+        <section className="mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-10 h-10 rounded-full bg-ball text-courtdark font-display font-black flex items-center justify-center text-lg">1</span>
+            <div>
+              <p className="text-ball text-[11px] font-black tracking-widest">ETAPA 1</p>
+              <h2 className="font-display font-black text-2xl leading-tight">Clasificación</h2>
+              <p className="text-white/50 text-xs">Los 2 primeros de cada zona pasan a la etapa eliminatoria.</p>
+            </div>
+          </div>
           {zoneRounds.map(({ round, ms }) => {
             const tabla = tablaZona(ms);
             return (
@@ -232,10 +239,17 @@ export default function TorneoDetalle() {
         </section>
       )}
 
-      {/* Eliminatorias */}
+      {/* Etapa Eliminatoria */}
       {knockRounds.length > 0 && (
-        <section className="mt-6">
-          <h2 className="h-section">Eliminatorias</h2>
+        <section className="mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-10 h-10 rounded-full bg-ball text-courtdark font-display font-black flex items-center justify-center text-lg">2</span>
+            <div>
+              <p className="text-ball text-[11px] font-black tracking-widest">ETAPA 2</p>
+              <h2 className="font-display font-black text-2xl leading-tight">Eliminatoria</h2>
+              <p className="text-white/50 text-xs">El que pierde queda afuera. Ganás y avanzás a la próxima ronda.</p>
+            </div>
+          </div>
           {knockRounds.map(({ round, ms }) => (
             <div key={round} className="mt-3 card !p-4">
               <p className="font-display font-black text-ball text-sm">{round}</p>

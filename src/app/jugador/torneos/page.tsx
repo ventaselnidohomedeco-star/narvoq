@@ -99,8 +99,8 @@ export default function TorneosJugador() {
       <div className="mt-4 flex gap-2">
         {(['abiertos', 'finalizados'] as const).map(k => (
           <button key={k} onClick={() => { setFiltro(k); setSel(null); }}
-            className={`px-4 py-3 rounded-xl text-sm font-black min-h-[44px]
-              ${filtro === k ? 'bg-grafito text-ball ring-1 ring-ball/40' : 'bg-[#1A1D24] text-white/60 border border-white/10'}`}>
+            className={`rounded-full px-5 py-3 text-sm font-black min-h-[48px]
+              ${filtro === k ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/70 border border-white/10'}`}>
             {k === 'abiertos' ? 'Abiertos ahora' : 'Finalizados'}
           </button>
         ))}

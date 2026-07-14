@@ -153,18 +153,18 @@ export default function Reservas() {
         <Link href="/jugador/reservar" className="btn-ball text-sm">+ Nueva reserva</Link>
       </div>
 
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+      <div className="mt-5 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         {[
           { k: 'proximas', l: `Próximas`, n: upcoming.length },
           { k: 'cargar', l: `Cargar resultado`, n: toLoad.length },
           { k: 'historial', l: `Historial`, n: historial.length }
         ].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`shrink-0 px-4 py-3 rounded-xl text-sm font-black transition min-h-[44px]
+            className={`shrink-0 rounded-full px-5 py-3 text-sm font-black transition min-h-[48px]
               ${tab === t.k
-                ? 'bg-grafito text-ball ring-1 ring-ball/40'
-                : 'bg-[#1A1D24] text-white/60 border border-white/10'}`}>
-            {t.l} <span className="opacity-70">({t.n})</span>
+                ? 'bg-ball text-courtdark'
+                : 'bg-white/5 text-white/70 border border-white/10'}`}>
+            {t.l} <span className="opacity-70 font-bold">· {t.n}</span>
           </button>
         ))}
       </div>
