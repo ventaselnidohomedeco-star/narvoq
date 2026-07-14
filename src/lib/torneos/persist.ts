@@ -154,42 +154,48 @@ export async function recordMatchResult(
   sets: SetScore[] | null,
   special?: { type: SpecialResult; winnerPairId: string }
 ) {
-  const { data: match } = await supabase.from('tournament_matches')
+  const { data: match, error: mErr } = await supabase.from('tournament_matches')
     .select('id, tournament_id, round, pair1_id, pair2_id, order_index, notes')
     .eq('id', matchId).single();
+  if (mErr) throw new Error(`No pude leer el partido: ${mErr.message}`);
   if (!match) throw new Error('Partido no encontrado.');
 
   // Borrar sets previos (para poder corregir)
-  await supabase.from('match_sets').delete().eq('match_id', matchId);
+  const { error: dErr } = await supabase.from('match_sets').delete().eq('match_id', matchId);
+  if (dErr) throw new Error(`No pude limpiar sets viejos: ${dErr.message}. ¿Corriste update-17-tournaments-pro.sql?`);
 
   let winnerPairId: string | null = null;
 
   if (special?.type) {
     winnerPairId = special.winnerPairId;
-    await supabase.from('tournament_matches').update({
+    const { error: uErr } = await supabase.from('tournament_matches').update({
       special_result: special.type,
       special_winner_pair_id: special.winnerPairId,
       winner_pair_id: special.winnerPairId,
       score: special.type.toUpperCase()
     }).eq('id', matchId);
+    if (uErr) throw new Error(`No pude guardar el walkover: ${uErr.message}`);
   } else if (sets && sets.length) {
     const w = determineWinner({
       pair1_id: match.pair1_id, pair2_id: match.pair2_id, sets, special_result: null, special_winner_pair_id: null
     });
+    if (!w) throw new Error('El resultado no tiene un ganador claro. Revisá los sets.');
     winnerPairId = w;
     // Insertar sets
-    await supabase.from('match_sets').insert(sets.map((s, i) => ({
+    const { error: iErr } = await supabase.from('match_sets').insert(sets.map((s, i) => ({
       match_id: matchId, set_number: i + 1,
       t1_games: s.t1, t2_games: s.t2,
       t1_tiebreak: s.t1TieBreak ?? null, t2_tiebreak: s.t2TieBreak ?? null,
       is_super_tiebreak: !!s.isSuperTB
     })));
-    await supabase.from('tournament_matches').update({
+    if (iErr) throw new Error(`No pude guardar los sets: ${iErr.message}. ¿Corriste update-17-tournaments-pro.sql?`);
+    const { error: uErr } = await supabase.from('tournament_matches').update({
       winner_pair_id: w,
       special_result: null,
       special_winner_pair_id: null,
       score: sets.map(s => `${s.t1}-${s.t2}`).join(' ')
     }).eq('id', matchId);
+    if (uErr) throw new Error(`No pude guardar el ganador: ${uErr.message}. Revisá permisos.`);
   }
 
   // Avance de ganador: buscar en la próxima ronda un match con notes "from:X|Y"

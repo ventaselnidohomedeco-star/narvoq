@@ -369,17 +369,8 @@ function Gestionar({ torneo, onVolver }: any) {
         {msg && <p className="text-sm text-ball">{msg}</p>}
       </div>
 
-      {/* Cargar resultados */}
-      {matches.length > 0 && (
-        <div className="card">
-          <p className="font-display font-black text-ball text-sm mb-3">CARGAR RESULTADOS</p>
-          <ul className="space-y-3">
-            {matches.map(m => (
-              <MatchRow key={m.id} m={m} pairs={pairs} onSave={guardarResultado} />
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Cargar resultados agrupados por Ronda */}
+      {matches.length > 0 && <MatchesByRound matches={matches} pairs={pairs} onSave={guardarResultado} />}
     </section>
   );
 }
@@ -537,6 +528,90 @@ function UserPicker({ selected, onSelect, otherId }: {
   );
 }
 
+// Agrupa los partidos por ronda y los muestra en cards por sección.
+// Zona A → tabla + partidos; Zona B → …; Octavos, Cuartos, Semi, Final.
+function MatchesByRound({ matches, pairs, onSave }: any) {
+  const groups: Record<string, any[]> = {};
+  matches.forEach((m: any) => {
+    const key = m.round;
+    (groups[key] ||= []).push(m);
+  });
+  const rounds = Object.keys(groups).sort((a, b) => {
+    const rr = (r: string) => {
+      if (/^Zona/i.test(r)) return 0;
+      if (/16avos|preliminar/i.test(r)) return 1;
+      if (/octavos/i.test(r)) return 2;
+      if (/cuartos/i.test(r)) return 3;
+      if (/semifinal|semi/i.test(r)) return 4;
+      if (/final/i.test(r)) return 5;
+      return 99;
+    };
+    if (rr(a) !== rr(b)) return rr(a) - rr(b);
+    return a.localeCompare(b);
+  });
+
+  return (
+    <div className="space-y-4">
+      {rounds.map(round => {
+        const ms = groups[round];
+        const isZona = /^Zona/i.test(round);
+        const letra = isZona ? round.replace(/^Zona\s*/i, '').toUpperCase() : '';
+        const pending = ms.filter(m => !m.winner_pair_id && !m.special_winner_pair_id).length;
+        return (
+          <div key={round} className="rounded-2xl overflow-hidden border-2 border-ball/30 bg-[#0F141D]">
+            <div className="flex items-center gap-3 bg-ball/10 px-4 py-3 border-b border-ball/20">
+              {isZona ? (
+                <span className="w-11 h-11 rounded-lg bg-ball text-courtdark font-display font-black text-xl flex items-center justify-center">
+                  {letra}
+                </span>
+              ) : (
+                <span className="w-11 h-11 rounded-lg bg-ball text-courtdark flex items-center justify-center text-xl">🏆</span>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-white/60 text-[10px] font-black tracking-widest">
+                  {isZona ? 'GRUPO' : 'ELIMINATORIA'}
+                </p>
+                <p className="font-display font-black text-lg leading-none truncate">{round}</p>
+                <p className="text-white/50 text-xs mt-0.5">
+                  {ms.length} partido{ms.length > 1 ? 's' : ''}
+                  {pending > 0 ? ` · ${pending} pendiente${pending > 1 ? 's' : ''}` : ' · ✓ Terminada'}
+                </p>
+              </div>
+            </div>
+            <ul className="px-3 py-3 space-y-3">
+              {ms.map((m: any) => (
+                <MatchRow key={m.id} m={m} pairs={pairs} onSave={onSave} />
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PairChip({ p, big = false }: any) {
+  const Avatar = ({ url, name }: any) => url
+    ? <img src={url} alt="" className={`${big ? 'w-9 h-9' : 'w-8 h-8'} rounded-full object-cover shrink-0`} />
+    : <span className={`${big ? 'w-9 h-9' : 'w-8 h-8'} rounded-full bg-grafito text-ball text-xs font-black flex items-center justify-center shrink-0`}>
+        {name?.[0]?.toUpperCase() ?? '?'}
+      </span>;
+  if (!p) return <span className="text-white/30 text-xs italic">A definir</span>;
+  const name1 = p.p1 ? `${p.p1.first_name} ${p.p1.last_name?.[0] ?? ''}.` : p.provisional_p1_name ?? '?';
+  const name2 = p.p2 ? `${p.p2.first_name} ${p.p2.last_name?.[0] ?? ''}.` : p.provisional_p2_name ?? '?';
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <div className="flex -space-x-2 shrink-0">
+        <Avatar url={p.p1?.avatar_url} name={p.p1?.first_name ?? p.provisional_p1_name} />
+        <Avatar url={p.p2?.avatar_url} name={p.p2?.first_name ?? p.provisional_p2_name} />
+      </div>
+      <span className={`min-w-0 truncate ${big ? 'text-sm font-black' : 'text-xs font-bold'}`}>
+        {name1} &amp; {name2}
+      </span>
+    </div>
+  );
+}
+
 function MatchRow({ m, pairs, onSave }: any) {
   const p1 = pairs.find((p: any) => p.id === m.pair1_id);
   const p2 = pairs.find((p: any) => p.id === m.pair2_id);
@@ -559,13 +634,17 @@ function MatchRow({ m, pairs, onSave }: any) {
   };
 
   return (
-    <li className={`rounded-xl p-3 ${played ? 'bg-ball/10 border border-ball/30' : 'bg-white/5'}`}>
-      <p className="text-white/50 text-[10px] font-black uppercase tracking-widest">{m.round}</p>
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center mt-2 text-sm">
-        <span className={m.winner_pair_id === m.pair1_id ? 'text-ball font-black' : 'text-white/70'}>{shortName(p1)}</span>
-        <span className="text-white/40 text-xs">vs</span>
-        <span className={`text-right ${m.winner_pair_id === m.pair2_id ? 'text-ball font-black' : 'text-white/70'}`}>{shortName(p2)}</span>
+    <li className={`rounded-xl p-3 ${played ? 'bg-ball/10 border border-ball/30' : 'bg-white/5 border border-white/5'}`}>
+      <div className={`flex items-center gap-2 ${m.winner_pair_id === m.pair1_id ? 'text-ball' : played && m.winner_pair_id === m.pair2_id ? 'text-white/40' : 'text-white/85'}`}>
+        <PairChip p={p1} big />
+        {m.winner_pair_id === m.pair1_id && <span className="ml-auto text-ball font-black text-xs">GANÓ ✓</span>}
       </div>
+      <div className="text-center text-white/40 text-[10px] font-black tracking-widest my-1">— VS —</div>
+      <div className={`flex items-center gap-2 ${m.winner_pair_id === m.pair2_id ? 'text-ball' : played && m.winner_pair_id === m.pair1_id ? 'text-white/40' : 'text-white/85'}`}>
+        <PairChip p={p2} big />
+        {m.winner_pair_id === m.pair2_id && <span className="ml-auto text-ball font-black text-xs">GANÓ ✓</span>}
+      </div>
+      {m.score && <p className="text-ball font-display font-black text-center text-lg mt-2">{m.score}</p>}
 
       {p1 && p2 && !played && !woMenu && !pendingWo && (
         <>
