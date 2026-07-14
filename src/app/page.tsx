@@ -39,12 +39,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* JUGADOR */}
-      <section className="max-w-md mx-auto px-6 py-10">
-        <p className="text-ball text-xs font-black tracking-widest">PARA VOS QUE JUGÁS</p>
-        <h2 className="font-display font-black text-3xl mt-1 leading-tight">Tu pádel, ordenado en un solo lugar.</h2>
+      {/* SEPARADOR TIPO REVISTA — PARA PLAYERS */}
+      <SectionDivider tag="01 · Para vos" title="PARA PLAYERS" subtitle="Reservás. Jugás. Subís." accent="left" />
 
-        <div className="mt-6 space-y-4">
+      {/* JUGADOR */}
+      <section className="max-w-md mx-auto px-6 pt-4 pb-10">
+        <div className="mt-2 space-y-4">
           <Beneficio emoji="🎾" title="Reservá tu cancha en 3 toques" text="Buscá por ciudad y complejo, ves qué horarios están libres y reservás sin llamar ni escribir." />
           <Beneficio emoji="🤝" title="Armá el partido con tus amigos" text="Compartís un link, tus amigos se suman y quedan avisados del turno. Lista de espera automática." />
           <Beneficio emoji="🥇" title="Torneos con fixture automático" text="Anotate en cualquier torneo de tu zona. La app arma zonas y cruces sola." />
@@ -53,7 +53,13 @@ export default function Landing() {
           <Beneficio emoji="🛒" title="Marketplace de la comunidad" text="Vendé o comprá paletas, ropa y accesorios directo entre jugadores." />
         </div>
 
-        {/* Mocks visuales */}
+        {/* Stats headline visual */}
+        <div className="mt-8 grid grid-cols-3 gap-2">
+          <StatBox n="+2.000" l="Reservas" />
+          <StatBox n="+150" l="Torneos" />
+          <StatBox n="+50" l="Clubes" />
+        </div>
+
         <div className="mt-8 space-y-3">
           <MockTitle>Ejemplos de lo que vas a ver:</MockTitle>
           <MockReserva />
@@ -63,8 +69,11 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* SEPARADOR — PARA COMPLEJOS */}
+      <SectionDivider tag="02 · Para tu club" title="PARA COMPLEJOS" subtitle="Menos WhatsApp. Más ocupación." accent="right" />
+
       {/* COMPLEJO — hero section grande e ilustrada */}
-      <section className="max-w-md mx-auto px-6 pt-14 pb-10 border-t border-white/5">
+      <section className="max-w-md mx-auto px-6 pt-4 pb-10">
         <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-ball/20 via-ball/5 to-transparent border border-ball/30 p-6">
           <div className="flex justify-center">
             <ComplexIllustration />
@@ -77,6 +86,13 @@ export default function Landing() {
           <p className="text-white/70 text-center mt-3 text-base">
             El portal de gestión que tu complejo estaba esperando.
           </p>
+        </div>
+
+        {/* Stats visuales complejo */}
+        <div className="mt-8 grid grid-cols-3 gap-2">
+          <StatBox n="+68%" l="Ocupación media" />
+          <StatBox n="-4h" l="Menos WhatsApps/día" />
+          <StatBox n="24/7" l="Reservas online" />
         </div>
 
         <div className="mt-6 space-y-4">
@@ -93,8 +109,11 @@ export default function Landing() {
         </Link>
       </section>
 
+      {/* SEPARADOR — PARA ENTRENADORES */}
+      <SectionDivider tag="03 · Para el que enseña" title="PARA ENTRENADORES" subtitle="Un dashboard por alumno." accent="left" />
+
       {/* PROFE — hero section grande e ilustrada */}
-      <section className="max-w-md mx-auto px-6 pt-14 pb-10 border-t border-white/5">
+      <section className="max-w-md mx-auto px-6 pt-4 pb-10">
         <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-ball/20 via-ball/5 to-transparent border border-ball/30 p-6">
           <div className="flex justify-center">
             <CoachIllustration />
@@ -107,6 +126,13 @@ export default function Landing() {
           <p className="text-white/70 text-center mt-3 text-base">
             Tus clases, tu progreso, tus alumnos. Todo ordenado.
           </p>
+        </div>
+
+        {/* Stats visuales profe */}
+        <div className="mt-8 grid grid-cols-3 gap-2">
+          <StatBox n="+30" l="Alumnos activos" />
+          <StatBox n="90%" l="Retención" />
+          <StatBox n="+10hs" l="Ganás por semana" />
         </div>
 
         <div className="mt-6 space-y-4">
@@ -136,6 +162,34 @@ export default function Landing() {
         © {new Date().getFullYear()} NarvoQ · Elevá tu juego. Elevá tu nivel.
       </footer>
     </main>
+  );
+}
+
+// Divider tipo revista con número de sección, título grande y línea lima.
+function SectionDivider({ tag, title, subtitle, accent = 'left' }: { tag: string; title: string; subtitle: string; accent?: 'left' | 'right' }) {
+  return (
+    <section className="max-w-md mx-auto px-6 pt-16 pb-2">
+      <div className={`flex items-center gap-4 ${accent === 'right' ? 'flex-row-reverse text-right' : ''}`}>
+        <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-ball to-ball rounded-full" />
+        <div className={accent === 'right' ? 'text-right' : ''}>
+          <p className="text-ball text-[10px] font-black tracking-widest">{tag}</p>
+        </div>
+      </div>
+      <h2 className="font-display font-black text-5xl leading-[0.95] uppercase mt-4">
+        {title}
+      </h2>
+      <p className="text-white/60 text-lg mt-2 font-semibold">{subtitle}</p>
+    </section>
+  );
+}
+
+// Caja de estadística grande estilo revista.
+function StatBox({ n, l }: { n: string; l: string }) {
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+      <p className="font-display font-black text-2xl text-ball leading-none">{n}</p>
+      <p className="text-white/60 text-[10px] font-bold uppercase mt-1 tracking-wider">{l}</p>
+    </div>
   );
 }
 

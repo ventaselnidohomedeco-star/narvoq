@@ -151,23 +151,33 @@ export default function TorneoDetalle() {
         </div>
       </header>
 
-      {/* Campeón */}
+      {/* Campeón — con logo NarvoQ + copa */}
       {campeon && (
-        <section className="mt-6 rounded-2xl bg-gradient-to-br from-ball/20 via-ball/5 to-transparent border border-ball/30 p-5 text-center">
-          <p className="text-ball text-xs font-black tracking-widest">🏆 CAMPEONES</p>
-          <div className="mt-3 flex justify-center -space-x-3">
-            <Avatar url={campeon.p1?.avatar_url} name={campeon.p1?.first_name} size="w-16 h-16" />
-            <Avatar url={campeon.p2?.avatar_url} name={campeon.p2?.first_name} size="w-16 h-16" />
+        <section className="mt-6 rounded-2xl bg-gradient-to-br from-ball/25 via-ball/10 to-transparent border-2 border-ball/50 p-6 text-center shadow-[0_0_40px_rgba(216,246,70,0.25)]">
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-4xl">🏆</span>
+            <img src="/brand/logo.png?v=5" alt="NarvoQ" style={{ height: 34, mixBlendMode: 'screen' }} />
+            <span className="text-4xl">🏆</span>
           </div>
-          <p className="mt-3 font-display font-black text-xl">
-            {campeon.p1?.first_name} {campeon.p1?.last_name} &amp; {campeon.p2?.first_name} {campeon.p2?.last_name}
+          <p className="text-ball text-[11px] font-black tracking-widest mt-3">CAMPEONES</p>
+          <div className="mt-4 flex justify-center -space-x-4">
+            <Avatar url={campeon.p1?.avatar_url} name={campeon.p1?.first_name} size="w-20 h-20 ring-4 ring-ball" />
+            <Avatar url={campeon.p2?.avatar_url} name={campeon.p2?.first_name} size="w-20 h-20 ring-4 ring-ball" />
+          </div>
+          <p className="mt-4 font-display font-black text-2xl leading-tight">
+            {campeon.p1?.first_name} {campeon.p1?.last_name}<br />
+            <span className="text-ball">&amp;</span> {campeon.p2?.first_name} {campeon.p2?.last_name}
           </p>
-          {subcampeon && (
-            <p className="mt-2 text-white/60 text-xs">
-              Sub-campeones: {subcampeon.p1?.first_name} {subcampeon.p1?.last_name?.[0] ?? ''}. &amp; {subcampeon.p2?.first_name} {subcampeon.p2?.last_name?.[0] ?? ''}.
+          {finalMatch?.score && (
+            <p className="mt-3 inline-block bg-ball text-courtdark font-display font-black text-lg rounded-lg px-4 py-2">
+              {finalMatch.score}
             </p>
           )}
-          {finalMatch?.score && <p className="mt-2 text-ball font-display font-black text-lg">{finalMatch.score}</p>}
+          {subcampeon && (
+            <p className="mt-4 text-white/60 text-sm">
+              Sub-campeones: <b className="text-white/80">{subcampeon.p1?.first_name} {subcampeon.p1?.last_name?.[0] ?? ''}. &amp; {subcampeon.p2?.first_name} {subcampeon.p2?.last_name?.[0] ?? ''}.</b>
+            </p>
+          )}
         </section>
       )}
 
@@ -331,7 +341,9 @@ function Bracket({ knockRounds, pairsById }: any) {
                 {round}
               </p>
               <div className="flex-1 flex flex-col justify-around" style={{ gap: `${gap}px` }}>
-                {ms.map((m: any) => <BracketMatch key={m.id} m={m} pairsById={pairsById} isFinal={/final(?!.*semi)/i.test(round)} />)}
+                {ms.map((m: any) => <BracketMatch key={m.id} m={m} pairsById={pairsById}
+                  isFinal={/final(?!.*semi)/i.test(round)}
+                  isSemi={/semi/i.test(round)} />)}
               </div>
             </div>
           );
@@ -341,12 +353,11 @@ function Bracket({ knockRounds, pairsById }: any) {
   );
 }
 
-function BracketMatch({ m, pairsById, isFinal }: any) {
+function BracketMatch({ m, pairsById, isFinal, isSemi }: any) {
   const p1 = pairsById[m.pair1_id];
   const p2 = pairsById[m.pair2_id];
   const w1 = m.winner_pair_id === m.pair1_id;
   const w2 = m.winner_pair_id === m.pair2_id;
-  // Parseamos "6-4 3-6 6-4" en sets por team
   const setsRaw = (m.score ?? '').split(/\s+/).filter(Boolean);
   const setsT1: string[] = [];
   const setsT2: string[] = [];
@@ -357,15 +368,24 @@ function BracketMatch({ m, pairsById, isFinal }: any) {
   });
 
   return (
-    <div className={`rounded-xl overflow-hidden border-2 ${isFinal ? 'border-ball' : 'border-white/10'} bg-[#141A24]`}>
-      <BracketRow pair={p1} winner={w1} loser={!!m.winner_pair_id && !w1} sets={setsT1} />
-      <div className="h-px bg-white/10" />
-      <BracketRow pair={p2} winner={w2} loser={!!m.winner_pair_id && !w2} sets={setsT2} />
+    <div>
+      {isFinal && (
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <span className="text-2xl">🏆</span>
+          <img src="/brand/logo.png?v=5" alt="NarvoQ" style={{ height: 24, mixBlendMode: 'screen' }} />
+          <span className="text-2xl">🏆</span>
+        </div>
+      )}
+      <div className={`rounded-xl overflow-hidden border-2 ${isFinal ? 'border-ball shadow-[0_0_30px_rgba(216,246,70,0.35)]' : isSemi ? 'border-ball/50' : 'border-white/10'} bg-[#141A24]`}>
+        <BracketRow pair={p1} winner={w1} loser={!!m.winner_pair_id && !w1} sets={setsT1} isFinalist={!!(isFinal || isSemi)} />
+        <div className="h-px bg-white/10" />
+        <BracketRow pair={p2} winner={w2} loser={!!m.winner_pair_id && !w2} sets={setsT2} isFinalist={!!(isFinal || isSemi)} />
+      </div>
     </div>
   );
 }
 
-function BracketRow({ pair, winner, loser, sets }: { pair?: any; winner: boolean; loser: boolean; sets: string[] }) {
+function BracketRow({ pair, winner, loser, sets, isFinalist }: { pair?: any; winner: boolean; loser: boolean; sets: string[]; isFinalist?: boolean }) {
   const bg = winner ? 'bg-ball/10 border-l-4 border-ball' : loser ? 'bg-white/[0.02]' : '';
   const nameCls = winner ? 'text-ball font-black' : loser ? 'text-white/50' : 'text-white/70';
   return (
@@ -381,6 +401,7 @@ function BracketRow({ pair, winner, loser, sets }: { pair?: any; winner: boolean
               : <span className="w-7 h-7 rounded-full bg-grafito text-ball text-[10px] font-black flex items-center justify-center border border-[#141A24]">{pair.p2?.first_name?.[0]}</span>}
           </div>
           <span className={`flex-1 min-w-0 text-xs truncate ${nameCls}`}>
+            {isFinalist && winner && <span className="mr-1">🏆</span>}
             {pair.p1?.first_name} {pair.p1?.last_name?.[0] ?? ''}. &amp; {pair.p2?.first_name} {pair.p2?.last_name?.[0] ?? ''}.
           </span>
           <span className="flex gap-1 shrink-0">

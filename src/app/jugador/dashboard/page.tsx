@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import PlacaButton from '@/components/PlacaButton';
+import { DonutChart, ChartLegend, BarChart } from '@/components/Charts';
 import type { Profile } from '@/lib/types';
 
 export default function Dashboard() {
@@ -81,6 +82,31 @@ export default function Dashboard() {
           </Link>
         ))}
       </section>
+
+      {/* Chart: winrate y balance */}
+      {stats.played > 0 && (
+        <section className="card mt-4 !p-5">
+          <p className="font-display font-black text-ball text-xs tracking-widest">TU BALANCE</p>
+          <div className="mt-3 flex items-center gap-5">
+            <DonutChart
+              segments={[
+                { label: 'Ganados', value: stats.won, color: '#D8F646' },
+                { label: 'Perdidos', value: stats.lost, color: '#3A404A' }
+              ]}
+              size={130} thickness={22}
+              centerLabel={`${Math.round(stats.won / Math.max(1, stats.played) * 100)}%`}
+              centerSub="winrate"
+            />
+            <div className="flex-1 min-w-0">
+              <ChartLegend segments={[
+                { label: 'Ganados', value: stats.won, color: '#D8F646' },
+                { label: 'Perdidos', value: stats.lost, color: '#3A404A' }
+              ]} />
+              <p className="text-white/50 text-xs mt-2">Total: {stats.played} partidos</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="court-divider my-6" />
 

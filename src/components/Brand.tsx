@@ -1,11 +1,12 @@
 // Componente de marca NarvoQ.
-// Usa el logo real de /public/brand/logo.png como imagen para que se vea
-// consistente en toda la app. Para íconos pequeños (mark) usa el isotipo SVG.
+// Usa /public/brand/logo.png con mix-blend-mode: screen para que el fondo
+// oscuro del PNG se funda con el fondo negro de la app y solo se vean el
+// wordmark blanco y la paleta lima.
 
 type Variant = 'full' | 'mark' | 'inline';
 
-const logoSrc = '/brand/logo.png?v=4';
-const iconoAppSrc = '/brand/icono-app.png?v=4';
+const logoSrc = '/brand/logo.png?v=5';
+const iconoAppSrc = '/brand/icono-app.png?v=5';
 
 function IsotipoSvg({ size = 32 }: { size?: number }) {
   return (
@@ -34,7 +35,6 @@ export default function Brand({
   className?: string;
 }) {
   if (variant === 'mark') {
-    // Ícono cuadrado — usamos el isotipo SVG (transparente, contornea el bg)
     return (
       <span className={`inline-flex items-center justify-center text-white ${className}`}
         style={{ width: size, height: size }}>
@@ -42,13 +42,17 @@ export default function Brand({
       </span>
     );
   }
-
-  // full o inline: logo real como imagen.
-  // El PNG es 2172x724 (~3:1). Le damos altura por proporción.
-  const height = variant === 'full' ? size * 1.35 : size * 1.05;
+  // 60% más grande que antes.
+  const baseH = variant === 'full' ? size * 2.15 : size * 1.7;
   return (
     <img src={logoSrc} alt="NarvoQ" className={className}
-      style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }} />
+      style={{
+        height: baseH,
+        width: 'auto',
+        display: 'block',
+        objectFit: 'contain',
+        mixBlendMode: 'screen'   // funde el bg oscuro del logo con el bg de la app
+      }} />
   );
 }
 

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { BarChart } from '@/components/Charts';
 
 const TYPES: Record<string, string> = {
   tecnica: 'Técnica',
@@ -84,17 +85,15 @@ export default function TrainingDashboard() {
       </section>
 
       <section className="card mt-3">
-        <p className="font-display font-bold text-ball text-sm">Balance del grupo</p>
-        {[
-          ['Técnica', stats.tecnica],
-          ['Táctica', stats.tactica],
-          ['Físico', stats.fisico]
-        ].map(([label, value]: any) => (
-          <div key={label} className="mt-3">
-            <div className="flex justify-between text-xs font-bold text-white/60"><span>{label}</span><span>{value}/10</span></div>
-            <div className="mt-1 h-2 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-ball" style={{ width: `${value * 10}%` }} /></div>
-          </div>
-        ))}
+        <p className="font-display font-black text-ball text-xs tracking-widest">BALANCE DEL GRUPO</p>
+        <div className="mt-4">
+          <BarChart bars={[
+            { label: 'Técnica', value: stats.tecnica, color: '#D8F646' },
+            { label: 'Táctica', value: stats.tactica, color: '#A8C22E' },
+            { label: 'Físico', value: stats.fisico, color: '#5F7414' }
+          ]} max={10} height={140} />
+        </div>
+        <p className="text-white/40 text-xs mt-2 text-center">Promedio 0-10 sobre las sesiones cargadas</p>
       </section>
 
       <section className="mt-5">

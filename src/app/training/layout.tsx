@@ -67,7 +67,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-60 bg-[#0D1320] border-r border-white/10 flex-col py-6 z-40">
         <div className="px-5 mb-6">
           <Link href="/training/dashboard" className="block">
-            <img src="/brand/logo.png?v=4" alt="NarvoQ" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+            <img src="/brand/logo.png?v=5" alt="NarvoQ" style={{ height: 64, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
             <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL TRAINING</p>
           </Link>
         </div>
@@ -100,7 +100,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
               </button>
             )}
             <Link href="/training/dashboard" className="shrink-0 active:scale-95 transition">
-              <img src="/brand/logo.png?v=4" alt="NarvoQ" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
+              <img src="/brand/logo.png?v=5" alt="NarvoQ" style={{ height: 70, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
             </Link>
           </div>
           <div className="flex items-center gap-2">

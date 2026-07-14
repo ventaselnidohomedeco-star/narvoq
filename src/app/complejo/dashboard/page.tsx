@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
+import { DonutChart, ChartLegend } from '@/components/Charts';
 
 const Avatar = ({ url, name, size = 'w-10 h-10' }: { url?: string | null; name: string; size?: string }) => url
   ? <img src={url} alt="" className={`${size} rounded-full object-cover shrink-0`} />
@@ -272,6 +273,33 @@ export default function DashboardComplejo() {
           </div>
         ))}
       </section>
+
+      {/* Chart de ocupación */}
+      {(stats.turnos > 0 || stats.libres > 0) && (
+        <section className="card mt-4 !p-5">
+          <p className="font-display font-black text-ball text-xs tracking-widest">OCUPACIÓN DEL PERÍODO</p>
+          <div className="mt-3 flex items-center gap-5">
+            <DonutChart
+              segments={[
+                { label: 'Turnos ocupados', value: stats.turnos, color: '#D8F646' },
+                { label: 'Slots libres', value: stats.libres, color: '#3A404A' }
+              ]}
+              size={140} thickness={26}
+              centerLabel={`${stats.ocupacion}%`}
+              centerSub="ocupación"
+            />
+            <div className="flex-1 min-w-0">
+              <ChartLegend segments={[
+                { label: 'Turnos ocupados', value: stats.turnos, color: '#D8F646' },
+                { label: 'Slots libres', value: stats.libres, color: '#3A404A' }
+              ]} />
+              <Link href="/complejo/rentabilidad" className="text-ball text-xs font-black mt-3 inline-block">
+                Ver rentabilidad por cancha →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Top clientes */}
       <section className="mt-4 bg-white/5 rounded-2xl p-4">
