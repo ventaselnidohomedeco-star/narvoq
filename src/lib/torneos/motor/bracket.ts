@@ -51,22 +51,22 @@ export function buildBracket(qualifiers: Qualifier[]): BracketMatchSpec[] {
   let order = 0;
 
   // ==================== CASO 1: 8 parejas (2 grupos × 4) ====================
-  if (groupsCount === 2) {
+  if (groupsCount === 2 && firsts.length === 2 && seconds.length === 2) {
     // Semi 1: 1º Grupo A vs 2º Grupo B
     // Semi 2: 1º Grupo B vs 2º Grupo A
     const [fA, fB] = firsts;
-    const s2ByGroup = new Map(seconds.map(s => [s.group_label, s]));
-    const sB = s2ByGroup.get(fA.group_label === 'A' ? 'B' : fB.group_label);
-    const sA = s2ByGroup.get(fB.group_label === 'B' ? 'A' : fA.group_label);
-    if (fA && sB && fB && sA) {
+    const s2ByGroup = new Map<string, typeof seconds[0]>(seconds.map(s => [s.group_label, s]));
+    const sOfOtherGroup1 = seconds.find(s => s.group_label !== fA?.group_label);
+    const sOfOtherGroup2 = seconds.find(s => s.group_label !== fB?.group_label);
+    if (fA && fB && sOfOtherGroup1 && sOfOtherGroup2) {
       matches.push({
         round: 'semi', order_index: order++,
-        pair1_id: fA.pair_id, pair2_id: sB.pair_id,
+        pair1_id: fA.pair_id, pair2_id: sOfOtherGroup1.pair_id,
         pair1_path_hint: 'direct_from_1st', pair2_path_hint: 'direct_from_2nd'
       });
       matches.push({
         round: 'semi', order_index: order++,
-        pair1_id: fB.pair_id, pair2_id: sA.pair_id,
+        pair1_id: fB.pair_id, pair2_id: sOfOtherGroup2.pair_id,
         pair1_path_hint: 'direct_from_1st', pair2_path_hint: 'direct_from_2nd'
       });
       matches.push({

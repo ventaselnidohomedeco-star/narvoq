@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import TorneosManager from '@/components/TorneosManager';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function TorneosTraining() {
   const [me, setMe] = useState<any>(null);
@@ -17,5 +18,9 @@ export default function TorneosTraining() {
 
   if (!me) return <main className="p-8 text-white/60">Cargando…</main>;
 
-  return <TorneosManager owner={{ type: 'coach', id: me.id, name: `${me.first_name} ${me.last_name}` }} />;
+  return (
+    <ErrorBoundary label="Torneos del profe">
+      <TorneosManager owner={{ type: 'coach', id: me.id, name: `${me.first_name} ${me.last_name}` }} />
+    </ErrorBoundary>
+  );
 }

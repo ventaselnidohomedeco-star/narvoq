@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import TorneosManager from '@/components/TorneosManager';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function TorneosComplejo() {
   const [cx, setCx] = useState<any>(null);
@@ -17,5 +18,9 @@ export default function TorneosComplejo() {
 
   if (!cx) return <main className="p-8 text-white/60">Cargando complejo…</main>;
 
-  return <TorneosManager owner={{ type: 'complex', id: cx.id, name: cx.name }} />;
+  return (
+    <ErrorBoundary label="Torneos del complejo">
+      <TorneosManager owner={{ type: 'complex', id: cx.id, name: cx.name }} />
+    </ErrorBoundary>
+  );
 }
