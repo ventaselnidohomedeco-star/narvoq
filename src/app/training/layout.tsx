@@ -36,14 +36,21 @@ const Icon = {
     <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
+  ),
+  trophy: (
+    <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 4h8v5a4 4 0 0 1-8 0V4z" />
+      <path d="M4 5h4v3a2 2 0 0 1-4 0V5zM20 5h-4v3a2 2 0 0 0 4 0V5z" />
+      <path d="M10 14h4v3l2 3H8l2-3z" />
+    </svg>
   )
 };
 
 const items = [
   { href: '/training/dashboard', label: 'Grupo', icon: Icon.group },
   { href: '/training/alumnos', label: 'Alumnos', icon: Icon.student },
+  { href: '/training/torneos', label: 'Torneos', icon: Icon.trophy },
   { href: '/smash', label: 'Smashe@', icon: Icon.chat },
-  { href: '/training/amigos', label: 'Red', icon: Icon.network },
   { href: '/training/perfil', label: 'Perfil', icon: Icon.profile }
 ];
 

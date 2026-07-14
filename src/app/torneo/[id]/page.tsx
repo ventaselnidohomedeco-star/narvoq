@@ -425,6 +425,7 @@ function rank(round: string) {
   if (/semi/i.test(round)) return 4;
   if (/cuartos|cuarto/i.test(round)) return 3;
   if (/octavos|octavo/i.test(round)) return 2;
+  if (/16avos|16vos|preliminar/i.test(round)) return 1;
   return 1;
 }
 
