@@ -63,10 +63,21 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* COMPLEJO */}
-      <section className="max-w-md mx-auto px-6 py-10 border-t border-white/5">
-        <p className="text-ball text-xs font-black tracking-widest">SI TENÉS COMPLEJO</p>
-        <h2 className="font-display font-black text-3xl mt-1 leading-tight">Menos WhatsApps, más canchas llenas.</h2>
+      {/* COMPLEJO — hero section grande e ilustrada */}
+      <section className="max-w-md mx-auto px-6 pt-14 pb-10 border-t border-white/5">
+        <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-ball/20 via-ball/5 to-transparent border border-ball/30 p-6">
+          <div className="flex justify-center">
+            <ComplexIllustration />
+          </div>
+          <p className="text-ball text-xs font-black tracking-widest text-center mt-4">SI TENÉS COMPLEJO</p>
+          <h2 className="font-display font-black text-4xl mt-2 leading-tight text-center uppercase">
+            Menos WhatsApp.<br />
+            <span className="text-ball">Más canchas llenas.</span>
+          </h2>
+          <p className="text-white/70 text-center mt-3 text-base">
+            El portal de gestión que tu complejo estaba esperando.
+          </p>
+        </div>
 
         <div className="mt-6 space-y-4">
           <Beneficio emoji="📅" title="Calendario 7 días × canchas" text="Ves todos los turnos de tu complejo en una sola grilla. Cargás bloqueos y reservas manuales." />
@@ -77,15 +88,26 @@ export default function Landing() {
         </div>
 
         <Link href="/complejo/login"
-          className="mt-6 block text-center bg-grafito text-ball font-display font-black rounded-xl py-4">
+          className="mt-6 block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-lg">
           Entrar al portal de complejos →
         </Link>
       </section>
 
-      {/* PROFE */}
-      <section className="max-w-md mx-auto px-6 py-10 border-t border-white/5">
-        <p className="text-ball text-xs font-black tracking-widest">SI SOS PROFE</p>
-        <h2 className="font-display font-black text-3xl mt-1 leading-tight">Un dashboard por alumno. En serio.</h2>
+      {/* PROFE — hero section grande e ilustrada */}
+      <section className="max-w-md mx-auto px-6 pt-14 pb-10 border-t border-white/5">
+        <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-ball/20 via-ball/5 to-transparent border border-ball/30 p-6">
+          <div className="flex justify-center">
+            <CoachIllustration />
+          </div>
+          <p className="text-ball text-xs font-black tracking-widest text-center mt-4">SI SOS PROFE</p>
+          <h2 className="font-display font-black text-4xl mt-2 leading-tight text-center uppercase">
+            Un dashboard<br />
+            <span className="text-ball">por cada alumno.</span>
+          </h2>
+          <p className="text-white/70 text-center mt-3 text-base">
+            Tus clases, tu progreso, tus alumnos. Todo ordenado.
+          </p>
+        </div>
 
         <div className="mt-6 space-y-4">
           <Beneficio emoji="👨‍🏫" title="Registrás sesiones por alumno" text="Tipo de clase, foco técnico, tarea y evaluación 0-10 en técnica, táctica y físico." />
@@ -94,7 +116,7 @@ export default function Landing() {
         </div>
 
         <Link href="/training/login"
-          className="mt-6 block text-center bg-ball text-courtdark font-display font-black rounded-xl py-4">
+          className="mt-6 block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-lg">
           Entrar al portal Training →
         </Link>
       </section>
@@ -126,6 +148,62 @@ function Beneficio({ emoji, title, text }: { emoji: string; title: string; text:
         <p className="text-white/60 text-sm mt-0.5">{text}</p>
       </div>
     </div>
+  );
+}
+
+// Ilustración del complejo: cancha de padel con red y logo del club.
+function ComplexIllustration() {
+  return (
+    <svg viewBox="0 0 220 140" width="200" height="130">
+      {/* Piso oscuro */}
+      <rect x="10" y="70" width="200" height="60" rx="4" fill="#0F141D" stroke="#D8F646" strokeOpacity="0.5" strokeWidth="1.5" />
+      {/* Cancha superior */}
+      <rect x="30" y="40" width="160" height="60" rx="2" fill="none" stroke="#D8F646" strokeWidth="2" />
+      {/* Red */}
+      <line x1="110" y1="40" x2="110" y2="100" stroke="#D8F646" strokeWidth="2.5" strokeDasharray="4 3" />
+      {/* Líneas de saque */}
+      <line x1="60" y1="40" x2="60" y2="100" stroke="#D8F646" strokeWidth="1" strokeOpacity="0.5" />
+      <line x1="160" y1="40" x2="160" y2="100" stroke="#D8F646" strokeWidth="1" strokeOpacity="0.5" />
+      {/* Techo */}
+      <path d="M 15 40 L 110 8 L 205 40" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Logo del club (letra C simulada) */}
+      <circle cx="110" cy="24" r="8" fill="#D8F646" />
+      <text x="110" y="28" textAnchor="middle" fontSize="10" fontWeight="900" fill="#0B0F16">🏢</text>
+      {/* Pelota jugando */}
+      <circle cx="80" cy="70" r="4" fill="#D8F646" />
+      <path d="M 76 68 Q 80 66 84 68" fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="0.8" />
+    </svg>
+  );
+}
+
+// Ilustración del profe: silbato + planilla con tildes de sesión.
+function CoachIllustration() {
+  return (
+    <svg viewBox="0 0 220 140" width="200" height="130">
+      {/* Planilla */}
+      <rect x="20" y="20" width="90" height="110" rx="6" fill="#0F141D" stroke="#D8F646" strokeWidth="2" />
+      <rect x="42" y="12" width="46" height="14" rx="3" fill="#D8F646" />
+      <rect x="52" y="14" width="26" height="10" rx="2" fill="#0F141D" />
+      {/* Líneas de la planilla */}
+      <line x1="30" y1="42" x2="100" y2="42" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
+      <line x1="30" y1="58" x2="100" y2="58" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
+      <line x1="30" y1="74" x2="100" y2="74" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
+      <line x1="30" y1="90" x2="100" y2="90" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
+      <line x1="30" y1="106" x2="100" y2="106" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
+      {/* Tildes en lima */}
+      <path d="M 34 40 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M 34 56 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M 34 72 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M 34 88 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Pelota */}
+      <circle cx="160" cy="50" r="26" fill="#D8F646" />
+      <path d="M 138 42 Q 160 30 182 42" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M 138 58 Q 160 70 182 58" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Silbato */}
+      <rect x="140" y="95" width="40" height="18" rx="9" fill="#0F141D" stroke="#D8F646" strokeWidth="2" />
+      <circle cx="150" cy="104" r="4" fill="#D8F646" />
+      <rect x="176" y="102" width="14" height="4" rx="2" fill="#D8F646" />
+    </svg>
   );
 }
 

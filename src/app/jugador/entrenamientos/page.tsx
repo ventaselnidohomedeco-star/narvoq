@@ -131,25 +131,82 @@ export default function Entrenamientos() {
         <button onClick={guardar} className="btn-ball w-full">Guardar entrenamiento</button>
       </section>
 
-      <ul className="mt-5 space-y-2">
-        {items.map(t => (
-          <li key={t.id} className="card">
-            <div className="flex justify-between gap-3">
-              <div>
-                <p className="font-semibold">{TYPES[t.type]}{t.coach ? ` - ${t.coach}` : t.complex?.name ? ` - ${t.complex.name}` : ''}</p>
-                {t.focus && <p className="text-ball text-xs font-semibold">Foco: {t.focus}</p>}
-                {t.goals && <p className="text-white/50 text-sm">{t.goals}</p>}
-              </div>
-              <div className="text-right text-sm text-white/50 shrink-0">
-                <p>{new Date(t.date + 'T00:00').toLocaleDateString('es-AR')}</p>
-                <p className="font-bold text-court">{t.duration_min} min</p>
-              </div>
-            </div>
-            {t.homework && <p className="mt-2 text-xs text-yellow-200">Tarea: {t.homework}</p>}
-            {t.notes && <p className="mt-1 text-white/45 text-sm">{t.notes}</p>}
-          </li>
-        ))}
-      </ul>
+      <section className="mt-6">
+        <p className="font-display font-black text-ball text-sm mb-2">Historial de sesiones</p>
+        <ul className="space-y-2">
+          {items.map(t => <SessionItem key={t.id} t={t} />)}
+          {items.length === 0 && (
+            <li className="card text-center py-8">
+              <p className="text-3xl">🎾</p>
+              <p className="text-white/60 mt-2">Todavía no tenés sesiones cargadas.</p>
+            </li>
+          )}
+        </ul>
+      </section>
     </main>
+  );
+}
+
+function SessionItem({ t }: { t: any }) {
+  const [open, setOpen] = useState(false);
+  const conQuien = t.coach || t.complex?.name || 'Solo';
+  return (
+    <li className="card !p-0 overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left active:bg-white/5 transition">
+        <span className="w-11 h-11 rounded-full bg-ball/15 flex items-center justify-center text-xl shrink-0">🎾</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-display font-bold text-base truncate">{TYPES[t.type] ?? t.type}</p>
+          <p className="text-white/60 text-xs truncate">
+            {new Date(t.date + 'T00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {' · '}con <b className="text-white/80">{conQuien}</b>
+            {' · '}{t.duration_min} min
+          </p>
+        </div>
+        <span className={`text-ball text-lg shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}>›</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+          {t.focus && (
+            <div>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Foco técnico</p>
+              <p className="text-ball font-bold text-sm mt-0.5">{t.focus}</p>
+            </div>
+          )}
+          {t.goals && (
+            <div>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Objetivo</p>
+              <p className="text-white text-sm mt-0.5">{t.goals}</p>
+            </div>
+          )}
+          {(t.intensity || t.technical_score || t.tactical_score || t.physical_score) && (
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                ['Intensidad', t.intensity],
+                ['Técnica', t.technical_score],
+                ['Táctica', t.tactical_score],
+                ['Físico', t.physical_score]
+              ].map(([label, val]: any) => (
+                <div key={label} className="bg-white/5 rounded-lg py-2 text-center">
+                  <p className="font-display font-black text-ball text-lg leading-none">{val ?? '–'}<span className="text-white/40 text-xs">/10</span></p>
+                  <p className="text-white/50 text-[10px] font-bold mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {t.homework && (
+            <div className="bg-yellow-300/10 border border-yellow-300/30 rounded-xl p-3">
+              <p className="text-yellow-200 text-[10px] font-black uppercase tracking-widest">Tarea para casa</p>
+              <p className="text-yellow-100 text-sm mt-1">{t.homework}</p>
+            </div>
+          )}
+          {t.notes && (
+            <div>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Notas</p>
+              <p className="text-white/80 text-sm mt-0.5 whitespace-pre-wrap">{t.notes}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </li>
   );
 }

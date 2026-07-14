@@ -1,11 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
 
-export default function Reservas() {
-  const [tab, setTab] = useState<'proximas' | 'cargar' | 'historial'>('proximas');
+function ReservasInner() {
+  const params = useSearchParams();
+  const initial = (params.get('tab') as any) || 'proximas';
+  const [tab, setTab] = useState<'proximas' | 'cargar' | 'historial'>(initial);
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [toLoad, setToLoad] = useState<any[]>([]);
   const [historial, setHistorial] = useState<any[]>([]);
@@ -188,5 +191,13 @@ export default function Reservas() {
             </div>)}
       </div>
     </main>
+  );
+}
+
+export default function Reservas() {
+  return (
+    <Suspense fallback={<main className="p-8 text-white/50">Cargando…</main>}>
+      <ReservasInner />
+    </Suspense>
   );
 }

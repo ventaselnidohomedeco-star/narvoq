@@ -71,14 +71,14 @@ export default function Dashboard() {
 
       <section className="mt-6 grid grid-cols-3 gap-3">
         {[
-          { n: stats.played, l: 'Jugados' },
-          { n: stats.won, l: 'Ganados' },
-          { n: stats.points, l: 'Pts. ranking' }
+          { n: stats.played, l: 'Jugados', href: '/jugador/reservas?tab=historial' },
+          { n: stats.won, l: 'Ganados', href: '/jugador/reservas?tab=historial' },
+          { n: stats.points, l: 'Pts. ranking', href: '/jugador/ranking' }
         ].map(s => (
-          <div key={s.l} className="card !p-4 text-center">
+          <Link key={s.l} href={s.href} className="card !p-4 text-center active:scale-95 transition">
             <p className="font-display font-black text-3xl text-ball">{s.n}</p>
             <p className="text-white/70 text-xs font-bold uppercase tracking-wider mt-1">{s.l}</p>
-          </div>
+          </Link>
         ))}
       </section>
 

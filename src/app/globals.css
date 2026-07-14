@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Tema oscuro carbón + lima (identidad NarvoQ) ===== */
+/* ===== Tema NarvoQ: negro + lima ===== */
 :root {
-  --bg: #0B0F16;
-  --surface: #141A24;
-  --surface-2: #0F141D;
+  --bg: #000000;          /* mismo negro del logo */
+  --surface: #12161C;     /* cards */
+  --surface-2: #0A0D12;   /* inputs */
 }
 
-html { font-size: 17px; }        /* base más grande para 14-70 años */
+html { font-size: 17px; }
 @media (min-width: 768px) { html { font-size: 16px; } }
 
 body {
@@ -18,14 +18,14 @@ body {
   min-height: 100dvh;
 }
 
-/* Firma visual: doble línea de saque, ahora en lima */
+/* Firma visual: doble línea de saque en lima */
 .court-divider {
   height: 10px;
   border-top: 3px solid rgba(216, 246, 70, 0.85);
   border-bottom: 3px solid rgba(216, 246, 70, 0.25);
 }
 
-/* ===== Componentes de botones y cards ===== */
+/* ===== Componentes ===== */
 .btn-ball {
   @apply bg-ball text-courtdark font-display font-black rounded-2xl px-6 py-4 text-base
          active:scale-95 transition min-h-[52px] inline-flex items-center justify-center gap-2;
@@ -56,7 +56,7 @@ body {
 select.input option { color: #0B0F16; background: #F7F9FC; }
 select.input option:checked { color: #0B0F16; background: #D8F646; }
 
-/* ===== Tipografía dashboards ===== */
+/* Tipografía dashboards */
 .h-hero { @apply font-display font-black text-3xl leading-tight; }
 .h-section { @apply font-display font-black text-xl; }
 .h-card { @apply font-display font-bold text-base; }

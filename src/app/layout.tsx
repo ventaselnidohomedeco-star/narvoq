@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     shortcut: '/brand/icono-app.png'
   }
 };
-export const viewport: Viewport = { themeColor: '#0B0F16', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#000000', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

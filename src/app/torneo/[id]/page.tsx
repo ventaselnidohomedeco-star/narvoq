@@ -90,13 +90,13 @@ export default function TorneoDetalle() {
   const zoneRounds = rounds.filter(r => r.round.toLowerCase().startsWith('zona'));
   const knockRounds = rounds.filter(r => !r.round.toLowerCase().startsWith('zona'));
 
-  // Cálculo de tabla por zona
+  // Cálculo de tabla por zona (con puntos estilo mundial: 3 por victoria)
   function tablaZona(msZone: TMatch[]) {
-    const stats: Record<string, { pair: Pair; pj: number; g: number; p: number; sg: number; sp: number }> = {};
+    const stats: Record<string, { pair: Pair; pj: number; g: number; p: number; sg: number; sp: number; pts: number }> = {};
     msZone.forEach(m => {
       [m.pair1_id, m.pair2_id].forEach(pid => {
         if (!pid) return;
-        if (!stats[pid]) stats[pid] = { pair: pairsById[pid], pj: 0, g: 0, p: 0, sg: 0, sp: 0 };
+        if (!stats[pid]) stats[pid] = { pair: pairsById[pid], pj: 0, g: 0, p: 0, sg: 0, sp: 0, pts: 0 };
       });
       if (!m.winner_pair_id) return;
       const sets = (m.score ?? '').split(' ').map(s => s.split('-').map(Number)).filter(a => a.length === 2 && !a.some(isNaN));
@@ -105,13 +105,13 @@ export default function TorneoDetalle() {
       const [id1, id2] = [m.pair1_id!, m.pair2_id!];
       const isW1 = m.winner_pair_id === id1;
       stats[id1].pj++; stats[id2].pj++;
-      if (isW1) { stats[id1].g++; stats[id2].p++; }
-      else { stats[id2].g++; stats[id1].p++; }
+      if (isW1) { stats[id1].g++; stats[id2].p++; stats[id1].pts += 3; }
+      else { stats[id2].g++; stats[id1].p++; stats[id2].pts += 3; }
       stats[id1].sg += s1; stats[id1].sp += s2;
       stats[id2].sg += s2; stats[id2].sp += s1;
     });
     return Object.values(stats)
-      .sort((a, b) => b.g - a.g || (b.sg - b.sp) - (a.sg - a.sp))
+      .sort((a, b) => b.pts - a.pts || (b.sg - b.sp) - (a.sg - a.sp) || b.g - a.g)
       .filter(x => x.pair);
   }
 
@@ -185,57 +185,81 @@ export default function TorneoDetalle() {
         </section>
       )}
 
-      {/* Etapa de Clasificación */}
+      {/* Etapa de Clasificación — formato mundial: cards de grupo + tabla con Pts */}
       {zoneRounds.length > 0 && (
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-4">
-            <span className="w-10 h-10 rounded-full bg-ball text-courtdark font-display font-black flex items-center justify-center text-lg">1</span>
+            <span className="w-12 h-12 rounded-full bg-ball text-courtdark font-display font-black flex items-center justify-center text-xl">1</span>
             <div>
               <p className="text-ball text-[11px] font-black tracking-widest">ETAPA 1</p>
-              <h2 className="font-display font-black text-2xl leading-tight">Clasificación</h2>
-              <p className="text-white/50 text-xs">Los 2 primeros de cada zona pasan a la etapa eliminatoria.</p>
+              <h2 className="font-display font-black text-3xl leading-tight uppercase">Clasificación</h2>
+              <p className="text-white/60 text-sm mt-0.5">Los 2 primeros de cada grupo pasan a eliminatoria.</p>
             </div>
           </div>
-          {zoneRounds.map(({ round, ms }) => {
-            const tabla = tablaZona(ms);
-            return (
-              <div key={round} className="mt-3 card !p-4">
-                <p className="font-display font-black text-ball text-sm">{round}</p>
-                {/* Tabla de posiciones */}
-                <table className="w-full mt-3 text-xs">
-                  <thead>
-                    <tr className="text-white/40 font-bold border-b border-white/10">
-                      <th className="text-left py-1">#</th>
-                      <th className="text-left py-1">Pareja</th>
-                      <th className="text-center py-1">PJ</th>
-                      <th className="text-center py-1">G</th>
-                      <th className="text-center py-1">DS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tabla.map((row, i) => (
-                      <tr key={row.pair.id} className={i < 2 ? 'text-ball font-black' : 'text-white/80'}>
-                        <td className="py-1.5">{i + 1}</td>
-                        <td className="py-1.5">
-                          <span className="flex items-center gap-1.5">
-                            <Avatar url={row.pair.p1?.avatar_url} name={row.pair.p1?.first_name} size="w-6 h-6" />
-                            <span className="truncate">{row.pair.p1?.first_name} &amp; {row.pair.p2?.first_name}</span>
+
+          <div className="space-y-4">
+            {zoneRounds.map(({ round, ms }) => {
+              const tabla = tablaZona(ms);
+              const letra = round.replace(/zona\s*/i, '').trim().toUpperCase() || round.toUpperCase();
+              return (
+                <div key={round} className="rounded-2xl overflow-hidden border-2 border-ball/30 bg-[#0F141D]">
+                  {/* Header del grupo con letra grande */}
+                  <div className="flex items-center gap-3 bg-ball/10 px-4 py-3 border-b border-ball/20">
+                    <span className="w-11 h-11 rounded-lg bg-ball text-courtdark font-display font-black text-xl flex items-center justify-center">
+                      {letra}
+                    </span>
+                    <div>
+                      <p className="text-white/50 text-[10px] font-black tracking-widest">GRUPO</p>
+                      <p className="font-display font-black text-lg leading-none">{round}</p>
+                    </div>
+                  </div>
+
+                  {/* Tabla de posiciones */}
+                  <div className="px-3 pt-3">
+                    <div className="grid grid-cols-[24px_1fr_28px_28px_38px_38px] gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest px-2 pb-2">
+                      <span>#</span>
+                      <span>Pareja</span>
+                      <span className="text-center">PJ</span>
+                      <span className="text-center">G</span>
+                      <span className="text-center">DS</span>
+                      <span className="text-center">PTS</span>
+                    </div>
+                    {tabla.map((row, i) => {
+                      const clasifica = i < 2;
+                      return (
+                        <div key={row.pair.id}
+                          className={`grid grid-cols-[24px_1fr_28px_28px_38px_38px] gap-2 items-center rounded-lg px-2 py-2.5
+                            ${clasifica ? 'bg-ball/10 text-white' : 'text-white/70'}`}>
+                          <span className={`font-black ${clasifica ? 'text-ball' : 'text-white/60'}`}>{i + 1}</span>
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span className="flex -space-x-1.5 shrink-0">
+                              <Avatar url={row.pair.p1?.avatar_url} name={row.pair.p1?.first_name} size="w-6 h-6" />
+                              <Avatar url={row.pair.p2?.avatar_url} name={row.pair.p2?.first_name} size="w-6 h-6" />
+                            </span>
+                            <span className={`text-sm truncate ${clasifica ? 'font-black' : 'font-semibold'}`}>
+                              {row.pair.p1?.first_name} &amp; {row.pair.p2?.first_name}
+                            </span>
                           </span>
-                        </td>
-                        <td className="text-center">{row.pj}</td>
-                        <td className="text-center">{row.g}</td>
-                        <td className="text-center">{row.sg - row.sp}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {/* Partidos de esa zona */}
-                <div className="mt-4 space-y-2">
-                  {ms.map(m => <MatchRow key={m.id} m={m} pairsById={pairsById} />)}
+                          <span className="text-center text-sm">{row.pj}</span>
+                          <span className="text-center text-sm font-bold">{row.g}</span>
+                          <span className="text-center text-sm">{row.sg - row.sp > 0 ? `+${row.sg - row.sp}` : row.sg - row.sp}</span>
+                          <span className={`text-center font-display font-black text-lg ${clasifica ? 'text-ball' : 'text-white/60'}`}>
+                            {row.pts}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Partidos del grupo — cards grandes */}
+                  <div className="px-3 py-3 space-y-2 border-t border-white/5 mt-3">
+                    <p className="text-white/40 text-[10px] font-black uppercase tracking-widest px-1">Partidos</p>
+                    {ms.map(m => <GroupMatch key={m.id} m={m} pairsById={pairsById} />)}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </section>
       )}
 
@@ -381,4 +405,55 @@ function rank(round: string) {
   if (/cuartos|cuarto/i.test(round)) return 3;
   if (/octavos|octavo/i.test(round)) return 2;
   return 1;
+}
+
+// Partido de fase de grupos: card ancho con ambas parejas en columnas y score central.
+function GroupMatch({ m, pairsById }: any) {
+  const p1 = pairsById[m.pair1_id];
+  const p2 = pairsById[m.pair2_id];
+  const w1 = m.winner_pair_id === m.pair1_id;
+  const w2 = m.winner_pair_id === m.pair2_id;
+  const played = !!m.winner_pair_id;
+
+  const setsRaw = (m.score ?? '').split(/\s+/).filter(Boolean);
+  const setsT1: string[] = [];
+  const setsT2: string[] = [];
+  setsRaw.forEach((s: string) => {
+    const [a, b] = s.split('-');
+    setsT1.push(a ?? '');
+    setsT2.push(b ?? '');
+  });
+
+  const TeamRow = ({ pair, winner, loser, sets }: any) => (
+    <div className={`flex items-center gap-2 px-3 py-2 ${winner ? 'bg-ball/10' : ''}`}>
+      {pair ? (
+        <>
+          <div className="flex -space-x-2 shrink-0">
+            <Avatar url={pair.p1?.avatar_url} name={pair.p1?.first_name} size="w-8 h-8" />
+            <Avatar url={pair.p2?.avatar_url} name={pair.p2?.first_name} size="w-8 h-8" />
+          </div>
+          <span className={`flex-1 min-w-0 text-sm truncate ${winner ? 'text-ball font-black' : loser ? 'text-white/50' : 'text-white/80 font-bold'}`}>
+            {pair.p1?.first_name} {pair.p1?.last_name?.[0] ?? ''}. &amp; {pair.p2?.first_name} {pair.p2?.last_name?.[0] ?? ''}.
+          </span>
+          <span className="flex gap-1 shrink-0">
+            {sets.map((s: string, i: number) => (
+              <span key={i} className={`w-7 text-center font-display font-black text-base ${winner ? 'text-ball' : loser ? 'text-white/40' : 'text-white/60'}`}>
+                {s || '-'}
+              </span>
+            ))}
+          </span>
+        </>
+      ) : (
+        <span className="text-white/30 text-xs italic">— pendiente —</span>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="rounded-xl border border-white/10 overflow-hidden">
+      <TeamRow pair={p1} winner={w1} loser={played && !w1} sets={setsT1} />
+      <div className="h-px bg-white/10" />
+      <TeamRow pair={p2} winner={w2} loser={played && !w2} sets={setsT2} />
+    </div>
+  );
 }

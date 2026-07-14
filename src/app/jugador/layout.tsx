@@ -2,7 +2,6 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import ProfileGuard from '@/components/ProfileGuard';
 import Banner from '@/components/Banner';
-import Brand from '@/components/Brand';
 import Bell from '@/components/Bell';
 import InstallButton from '@/components/InstallButton';
 
@@ -10,10 +9,12 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
   return (
     <ProfileGuard>
       <Banner />
-      <div className="min-h-dvh pb-28 lg:pb-8 lg:pl-56">
+      <div className="min-h-dvh pb-32 lg:pb-8 lg:pl-60">
         <div className="max-w-3xl xl:max-w-5xl mx-auto">
-          <header className="px-5 pt-4 pb-2 flex items-center justify-between gap-2 lg:hidden">
-            <Link href="/jugador/dashboard"><Brand variant="inline" size={26} /></Link>
+          <header className="px-5 pt-4 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5">
+            <Link href="/jugador/dashboard" className="shrink-0 active:scale-95 transition">
+              <img src="/brand/logo.png?v=4" alt="NarvoQ" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
+            </Link>
             <div className="flex items-center gap-2">
               <InstallButton variant="ghost" />
               <Bell />

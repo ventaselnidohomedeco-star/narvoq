@@ -207,9 +207,9 @@ export default function Feed() {
           </AuthorLink>
           <div className="flex-1 min-w-0">
             <AuthorLink post={p}>
-              <p className="font-display font-bold truncate text-sm">{authorName}</p>
+              <p className="font-display font-black truncate text-base leading-tight">{authorName}</p>
             </AuthorLink>
-            <p className="text-white/50 text-xs">
+            <p className="text-white/50 text-[13px] mt-0.5">
               {subtitle}{subtitle ? ' · ' : ''}{p.created_at ? timeAgo(p.created_at) : ''}
             </p>
           </div>
@@ -219,7 +219,7 @@ export default function Feed() {
             </span>
           )}
         </header>
-        {p.text_content && <p className="px-4 pt-2 text-[15px]">{p.text_content}</p>}
+        {p.text_content && <p className="px-4 pt-3 text-[17px] leading-relaxed">{p.text_content}</p>}
         {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full" />}
         {p.complex?.id && !embedded && (
           <Link href={`/club/${p.complex.id}`}

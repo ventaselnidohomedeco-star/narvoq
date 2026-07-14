@@ -107,10 +107,11 @@ export default function Marketplace() {
           </button>
         </div>
 
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <div className="mt-3 flex flex-wrap gap-2">
           {CATS.map(c => (
             <button key={c.k} onClick={() => setCat(c.k)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold ${cat === c.k ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/60'}`}>
+              className={`rounded-full px-4 py-2.5 text-sm font-black min-h-[44px]
+                ${cat === c.k ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/70 border border-white/10'}`}>
               {c.l}
             </button>
           ))}
