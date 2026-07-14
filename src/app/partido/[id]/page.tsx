@@ -128,14 +128,16 @@ export default function Partido() {
       await supabase.from('matches').update({ status: 'jugada' }).eq('id', id);
     }
 
-    // Armar mensaje del feed con nombres de los 4 jugadores y tags.
+    // Armar mensaje del feed: "Resultado de [equipo del que carga] Vs [otro equipo] en [complejo] score"
     const team1 = players.filter(p => p.team === 1);
     const team2 = players.filter(p => p.team === 2);
-    const ganadores = winnerTeam === 1 ? team1 : team2;
-    const perdedores = winnerTeam === 1 ? team2 : team1;
-    const namesG = ganadores.map(p => `${p.profile.first_name} ${p.profile.last_name ?? ''}`.trim()).join(' y ');
-    const namesP = perdedores.map(p => `${p.profile.first_name} ${p.profile.last_name ?? ''}`.trim()).join(' y ');
-    const score = played.map(s => `${s.t1}-${s.t2}`).join(' ');
+    const myPlayer = players.find(p => p.player_id === me);
+    const myTeam = myPlayer?.team === 2 ? team2 : team1;
+    const otherTeam = myPlayer?.team === 2 ? team1 : team2;
+    const fullName = (p: any) => `${p.profile.first_name} ${p.profile.last_name ?? ''}`.trim();
+    const namesMy = myTeam.map(fullName).join(' y ');
+    const namesOther = otherTeam.map(fullName).join(' y ');
+    const score = played.map(s => `${s.t1}-${s.t2}`).join('/');
     const taggedIds = players.map(p => p.player_id);
 
     await supabase.from('posts').insert({
@@ -143,7 +145,7 @@ export default function Partido() {
       kind: 'resultado',
       ref_match_id: id,
       tagged_players: taggedIds,
-      text_content: `🎾 ${namesG} le ganaron ${score} a ${namesP} · ${match.booking.court.complex.name}`
+      text_content: `🎾 Resultado de ${namesMy} Vs ${namesOther} en ${match.booking.court.complex.name} · ${score}`
     });
 
     load();
