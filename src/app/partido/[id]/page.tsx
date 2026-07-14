@@ -197,8 +197,9 @@ export default function Partido() {
             {result.sets.map((s: any) => `${s.t1}-${s.t2}`).join('  /  ')}
           </p>
           <p className="text-white/50 text-sm mt-1">
-            Ganó el equipo {result.winner_team}
-            {result.status === 'pendiente' ? ' · esperando validación del complejo' : ' · validado ✓'}
+            Ganó el equipo {result.winner_team} · {match.tournament_match_id
+              ? (result.status === 'pendiente' ? 'esperando validación del complejo' : 'validado — puntos sumados al ranking ✓')
+              : 'amistoso registrado en tu historial'}
           </p>
           <div className="mt-3 flex justify-center">
             <PlacaButton data={{
@@ -230,7 +231,9 @@ export default function Partido() {
           </div>
           {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
           <button onClick={cargarResultado} className="btn-ball w-full mt-3">Guardar resultado</button>
-          <p className="text-white/50 text-xs mt-2">El complejo lo valida y suma puntos al ranking de los 4 jugadores.</p>
+          <p className="text-white/50 text-xs mt-2">
+            El resultado impacta en tu historial y estadísticas. Los amistosos no suman al ranking.
+          </p>
         </div>
       ) : null}
 

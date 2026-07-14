@@ -373,3 +373,12 @@ function BracketRow({ pair, winner, loser, sets }: { pair?: any; winner: boolean
     </div>
   );
 }
+
+// Ordena rondas de eliminatoria por avance (mayor = más cerca de la final).
+function rank(round: string) {
+  if (/final(?!.*semi)/i.test(round)) return 5;
+  if (/semi/i.test(round)) return 4;
+  if (/cuartos|cuarto/i.test(round)) return 3;
+  if (/octavos|octavo/i.test(round)) return 2;
+  return 1;
+}
