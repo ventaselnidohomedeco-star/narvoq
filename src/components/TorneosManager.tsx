@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { recommendFormat } from '@/lib/torneos/motor';
-import { generateFullTournament, generateKnockoutStage, recordMatchResult, checkAndCloseTournament } from '@/lib/torneos/persist';
+import { generateFullTournament, generateKnockoutStage, recordMatchResult, checkAndCloseTournament, propagateAllWinners } from '@/lib/torneos/persist';
 
 // Manager de torneos usable por complejos Y por entrenadores.
 // Se pasa `owner: { type: 'complex'|'coach', id: uuid }`.
@@ -367,26 +367,41 @@ function Gestionar({ torneo, onVolver }: any) {
           </button>
         )}
         {knockoutGenerado && (
-          <button
-            onClick={async () => {
-              if (!confirm('¿Regenerar la fase eliminatoria? Se borran los partidos eliminatorios actuales y se rearman con los standings finales de los grupos.')) return;
-              setBusy(true); setMsg('');
-              try {
-                // borrar todo lo que NO es Zona
-                const toDelete = matches.filter((m: any) => !String(m.round).toLowerCase().startsWith('zona'));
-                if (toDelete.length) {
-                  await supabase.from('tournament_matches').delete().in('id', toDelete.map((m: any) => m.id));
-                }
-                const r = await generateKnockoutStage(torneo.id);
-                setMsg(`✓ Eliminatoria regenerada con ${r.matches} partidos.`);
-                load();
-              } catch (e: any) { setMsg(e.message); }
-              setBusy(false);
-            }}
-            disabled={busy}
-            className="w-full py-3 rounded-xl bg-yellow-300/15 border border-yellow-300/40 text-yellow-200 font-black text-sm">
-            🔄 Regenerar eliminatoria (arregla datos viejos)
-          </button>
+          <>
+            <button
+              onClick={async () => {
+                setBusy(true); setMsg('');
+                try {
+                  const n = await propagateAllWinners(torneo.id);
+                  setMsg(n > 0 ? `✓ ${n} slot(s) actualizados en la fase siguiente.` : 'Todo al día — nada para actualizar.');
+                  load();
+                } catch (e: any) { setMsg(e.message); }
+                setBusy(false);
+              }}
+              disabled={busy}
+              className="w-full py-3 rounded-xl bg-ball/15 border border-ball/40 text-ball font-black text-sm">
+              → Actualizar fase siguiente
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm('¿Regenerar toda la fase eliminatoria? Se borran los partidos eliminatorios actuales y se rearman con los standings finales de los grupos.')) return;
+                setBusy(true); setMsg('');
+                try {
+                  const toDelete = matches.filter((m: any) => !String(m.round).toLowerCase().startsWith('zona'));
+                  if (toDelete.length) {
+                    await supabase.from('tournament_matches').delete().in('id', toDelete.map((m: any) => m.id));
+                  }
+                  const r = await generateKnockoutStage(torneo.id);
+                  setMsg(`✓ Eliminatoria regenerada con ${r.matches} partidos.`);
+                  load();
+                } catch (e: any) { setMsg(e.message); }
+                setBusy(false);
+              }}
+              disabled={busy}
+              className="w-full py-3 rounded-xl bg-yellow-300/15 border border-yellow-300/40 text-yellow-200 font-black text-sm">
+              🔄 Regenerar eliminatoria completa (arregla datos viejos)
+            </button>
+          </>
         )}
         {msg && <p className="text-sm text-ball">{msg}</p>}
       </div>

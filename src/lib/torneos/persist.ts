@@ -201,28 +201,9 @@ export async function recordMatchResult(
     if (uErr) throw new Error(`No pude guardar el ganador: ${uErr.message}. Revisá permisos.`);
   }
 
-  // Avance de ganador: buscar en la próxima ronda un match con notes "from:X|Y"
-  if (winnerPairId && match.notes == null) {
-    // este match está en fase de grupos: no avanza automáticamente aquí (se genera knockout con generateKnockoutStage)
-  }
+  // Propagar ganadores a rondas siguientes (idempotente, usa normalización)
   if (winnerPairId) {
-    const tag = `${match.round}:${match.order_index}`;
-    const { data: nextMatches } = await supabase.from('tournament_matches')
-      .select('id, notes, pair1_id, pair2_id')
-      .eq('tournament_id', match.tournament_id).not('notes', 'is', null);
-    for (const nm of nextMatches ?? []) {
-      if (!nm.notes) continue;
-      // formato notes: "from:<pair1From>|<pair2From>"
-      const m = String(nm.notes).match(/^from:([^|]*)\|(.*)$/);
-      if (!m) continue;
-      const [, p1From, p2From] = m;
-      if (p1From === tag && !nm.pair1_id) {
-        await supabase.from('tournament_matches').update({ pair1_id: winnerPairId }).eq('id', nm.id);
-      }
-      if (p2From === tag && !nm.pair2_id) {
-        await supabase.from('tournament_matches').update({ pair2_id: winnerPairId }).eq('id', nm.id);
-      }
-    }
+    await propagateAllWinners(match.tournament_id);
   }
 
   await supabase.from('tournament_audit').insert({
@@ -233,6 +214,72 @@ export async function recordMatchResult(
   });
 
   return { winnerPairId };
+}
+
+// Recorre TODOS los matches con notes "from:<round>:<order_index>" y completa
+// los slots pair1_id/pair2_id si el match referenciado ya tiene ganador.
+// Es idempotente: si el slot ya está lleno o el rival aún no jugó, no hace nada.
+export async function propagateAllWinners(tournamentId: string) {
+  const { data: allMatches } = await supabase.from('tournament_matches')
+    .select('id, round, order_index, pair1_id, pair2_id, winner_pair_id, special_winner_pair_id, notes')
+    .eq('tournament_id', tournamentId);
+  if (!allMatches) return 0;
+
+  // Índice por tag "<round>:<order_index>"
+  const byTag: Record<string, any> = {};
+  for (const m of allMatches) {
+    byTag[normalizeTag(m.round, m.order_index)] = m;
+  }
+
+  let updated = 0;
+  for (const m of allMatches) {
+    if (!m.notes) continue;
+    const parsed = String(m.notes).match(/^from:([^|]*)\|(.*)$/);
+    if (!parsed) continue;
+    const [, p1From, p2From] = parsed;
+
+    const p1FromNorm = p1From ? normalizeAnyTag(p1From) : '';
+    const p2FromNorm = p2From ? normalizeAnyTag(p2From) : '';
+
+    const changes: any = {};
+    if (p1FromNorm && !m.pair1_id) {
+      const src = byTag[p1FromNorm];
+      const w = src?.winner_pair_id ?? src?.special_winner_pair_id;
+      if (w) changes.pair1_id = w;
+    }
+    if (p2FromNorm && !m.pair2_id) {
+      const src = byTag[p2FromNorm];
+      const w = src?.winner_pair_id ?? src?.special_winner_pair_id;
+      if (w) changes.pair2_id = w;
+    }
+    if (Object.keys(changes).length) {
+      await supabase.from('tournament_matches').update(changes).eq('id', m.id);
+      updated++;
+    }
+  }
+  return updated;
+}
+
+// Normaliza el tag round:order a formato canónico "round_key:index"
+// Acepta variantes "16avos", "Octavos", "8vos", "Cuartos", "Semifinal", "Final".
+function normalizeTag(round: string, orderIndex: number): string {
+  return `${roundKey(round)}:${orderIndex}`;
+}
+function normalizeAnyTag(tag: string): string {
+  // tag puede venir como "16avos:0" o "Octavos:5" — normalizamos
+  const m = tag.match(/^([^:]+):(\d+)$/);
+  if (!m) return tag;
+  return `${roundKey(m[1])}:${Number(m[2])}`;
+}
+function roundKey(round: string): string {
+  const r = round.toLowerCase();
+  if (r.includes('16') || r.includes('preliminar')) return '16avos';
+  if (r.includes('octavo') || r === '8vos') return '8vos';
+  if (r.includes('cuarto')) return 'cuartos';
+  if (r.includes('semi')) return 'semi';
+  if (r.includes('final')) return 'final';
+  if (r.includes('zona')) return 'zona';
+  return r;
 }
 
 // Chequea si el torneo terminó (final tiene ganador) y actualiza status.
