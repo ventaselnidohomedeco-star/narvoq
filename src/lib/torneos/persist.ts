@@ -122,22 +122,25 @@ export async function generateKnockoutStage(tournamentId: string) {
   // 4) Construir bracket con el motor
   const bracketSpecs = buildBracket(qualifiers);
 
-  // 5) Persistir matches eliminatorios
+  // 5) Persistir matches eliminatorios.
+  // IMPORTANTE: usamos exactamente el order_index que devuelve el motor
+  // para que las etiquetas "from:<round>:<order_index>" apunten al match
+  // correcto al momento de avanzar ganadores.
   const round2sql: Record<Round, string> = {
     'zona': 'Zona', '16avos': '16avos', '8vos': 'Octavos',
     'cuartos': 'Cuartos', 'semi': 'Semifinal', 'final': 'Final'
   };
-  const startOrder = 10000; // offset para no chocar con orders de zona
-  await supabase.from('tournament_matches').insert(bracketSpecs.map((b, i) => ({
+  const { error: kErr } = await supabase.from('tournament_matches').insert(bracketSpecs.map(b => ({
     tournament_id: tournamentId,
     round: round2sql[b.round],
     pair1_id: b.pair1_id,
     pair2_id: b.pair2_id,
-    order_index: startOrder + i,
+    order_index: b.order_index,
     notes: b.pair1_from || b.pair2_from
       ? `from:${b.pair1_from ?? ''}|${b.pair2_from ?? ''}`
       : null
   })));
+  if (kErr) throw new Error(`No pude generar la eliminatoria: ${kErr.message}`);
 
   await supabase.from('tournament_audit').insert({
     tournament_id: tournamentId,

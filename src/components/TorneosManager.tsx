@@ -366,6 +366,28 @@ function Gestionar({ torneo, onVolver }: any) {
             {busy ? 'Generando…' : zonaTerminada ? 'Generar fase eliminatoria' : 'Cargá todos los resultados de grupos primero'}
           </button>
         )}
+        {knockoutGenerado && (
+          <button
+            onClick={async () => {
+              if (!confirm('¿Regenerar la fase eliminatoria? Se borran los partidos eliminatorios actuales y se rearman con los standings finales de los grupos.')) return;
+              setBusy(true); setMsg('');
+              try {
+                // borrar todo lo que NO es Zona
+                const toDelete = matches.filter((m: any) => !String(m.round).toLowerCase().startsWith('zona'));
+                if (toDelete.length) {
+                  await supabase.from('tournament_matches').delete().in('id', toDelete.map((m: any) => m.id));
+                }
+                const r = await generateKnockoutStage(torneo.id);
+                setMsg(`✓ Eliminatoria regenerada con ${r.matches} partidos.`);
+                load();
+              } catch (e: any) { setMsg(e.message); }
+              setBusy(false);
+            }}
+            disabled={busy}
+            className="w-full py-3 rounded-xl bg-yellow-300/15 border border-yellow-300/40 text-yellow-200 font-black text-sm">
+            🔄 Regenerar eliminatoria (arregla datos viejos)
+          </button>
+        )}
         {msg && <p className="text-sm text-ball">{msg}</p>}
       </div>
 
@@ -635,14 +657,18 @@ function MatchRow({ m, pairs, onSave }: any) {
 
   return (
     <li className={`rounded-xl p-3 ${played ? 'bg-ball/10 border border-ball/30' : 'bg-white/5 border border-white/5'}`}>
-      <div className={`flex items-center gap-2 ${m.winner_pair_id === m.pair1_id ? 'text-ball' : played && m.winner_pair_id === m.pair2_id ? 'text-white/40' : 'text-white/85'}`}>
+      <div className={`flex items-center gap-2 ${played && m.winner_pair_id === m.pair1_id && !!m.pair1_id ? 'text-ball' : played && m.winner_pair_id === m.pair2_id ? 'text-white/40' : 'text-white/85'}`}>
         <PairChip p={p1} big />
-        {m.winner_pair_id === m.pair1_id && <span className="ml-auto text-ball font-black text-xs">GANÓ ✓</span>}
+        {played && m.winner_pair_id && m.winner_pair_id === m.pair1_id && (
+          <span className="ml-auto text-ball font-black text-xs">GANÓ ✓</span>
+        )}
       </div>
       <div className="text-center text-white/40 text-[10px] font-black tracking-widest my-1">— VS —</div>
-      <div className={`flex items-center gap-2 ${m.winner_pair_id === m.pair2_id ? 'text-ball' : played && m.winner_pair_id === m.pair1_id ? 'text-white/40' : 'text-white/85'}`}>
+      <div className={`flex items-center gap-2 ${played && m.winner_pair_id === m.pair2_id && !!m.pair2_id ? 'text-ball' : played && m.winner_pair_id === m.pair1_id ? 'text-white/40' : 'text-white/85'}`}>
         <PairChip p={p2} big />
-        {m.winner_pair_id === m.pair2_id && <span className="ml-auto text-ball font-black text-xs">GANÓ ✓</span>}
+        {played && m.winner_pair_id && m.winner_pair_id === m.pair2_id && (
+          <span className="ml-auto text-ball font-black text-xs">GANÓ ✓</span>
+        )}
       </div>
       {m.score && <p className="text-ball font-display font-black text-center text-lg mt-2">{m.score}</p>}
 
