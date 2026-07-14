@@ -7,11 +7,39 @@ import BackButton from '@/components/BackButton';
 
 type Pair = {
   id: string; tournament_id: string;
-  player1_id: string; player2_id: string;
+  player1_id: string | null; player2_id: string | null;
   pair_name?: string | null; zone?: string | null; seed?: number | null;
   status?: string | null;
+  provisional_p1_name?: string | null;
+  provisional_p2_name?: string | null;
   p1?: any; p2?: any;
 };
+
+// Helpers para leer nombre efectivo (registrado o provisional).
+function firstNameOf(pair: any, which: 1 | 2): string {
+  if (!pair) return '?';
+  const reg = which === 1 ? pair.p1 : pair.p2;
+  const prov = which === 1 ? pair.provisional_p1_name : pair.provisional_p2_name;
+  if (reg?.first_name) return reg.first_name;
+  if (prov) return prov.split(' ')[0];
+  return '?';
+}
+function lastInitialOf(pair: any, which: 1 | 2): string {
+  if (!pair) return '';
+  const reg = which === 1 ? pair.p1 : pair.p2;
+  const prov = which === 1 ? pair.provisional_p1_name : pair.provisional_p2_name;
+  if (reg?.last_name) return reg.last_name[0] + '.';
+  if (prov) {
+    const parts = prov.split(' ');
+    return parts.length > 1 ? parts[parts.length - 1][0] + '.' : '';
+  }
+  return '';
+}
+function avatarUrlOf(pair: any, which: 1 | 2): string | null {
+  if (!pair) return null;
+  const reg = which === 1 ? pair.p1 : pair.p2;
+  return reg?.avatar_url ?? null;
+}
 
 type TMatch = {
   id: string; round: string;
@@ -29,15 +57,17 @@ const Avatar = ({ url, name, size = 'w-8 h-8' }: any) => url
 
 function PairView({ pair, right = false, winner = false, dim = false }: { pair?: Pair; right?: boolean; winner?: boolean; dim?: boolean }) {
   if (!pair) return <span className="text-white/30 text-xs italic">— A definir —</span>;
+  const n1 = firstNameOf(pair, 1), n2 = firstNameOf(pair, 2);
+  const l1 = lastInitialOf(pair, 1), l2 = lastInitialOf(pair, 2);
   return (
     <div className={`flex items-center gap-2 ${right ? 'flex-row-reverse text-right' : ''} ${dim ? 'opacity-50' : ''}`}>
       <div className="flex -space-x-2">
-        <Avatar url={pair.p1?.avatar_url} name={pair.p1?.first_name} />
-        <Avatar url={pair.p2?.avatar_url} name={pair.p2?.first_name} />
+        <Avatar url={avatarUrlOf(pair, 1)} name={n1} />
+        <Avatar url={avatarUrlOf(pair, 2)} name={n2} />
       </div>
       <div className="min-w-0">
         <p className={`text-sm ${winner ? 'text-ball font-black' : 'font-bold'} truncate`}>
-          {pair.p1?.first_name} {pair.p1?.last_name?.[0] ?? ''}. &amp; {pair.p2?.first_name} {pair.p2?.last_name?.[0] ?? ''}.
+          {n1} {l1} &amp; {n2} {l2}
         </p>
         {pair.seed != null && <p className="text-white/40 text-[10px]">Cabeza de serie {pair.seed}</p>}
       </div>
@@ -161,12 +191,12 @@ export default function TorneoDetalle() {
           </div>
           <p className="text-ball text-[11px] font-black tracking-widest mt-3">CAMPEONES</p>
           <div className="mt-4 flex justify-center -space-x-4">
-            <Avatar url={campeon.p1?.avatar_url} name={campeon.p1?.first_name} size="w-20 h-20 ring-4 ring-ball" />
-            <Avatar url={campeon.p2?.avatar_url} name={campeon.p2?.first_name} size="w-20 h-20 ring-4 ring-ball" />
+            <Avatar url={avatarUrlOf(campeon, 1)} name={firstNameOf(campeon, 1)} size="w-20 h-20 ring-4 ring-ball" />
+            <Avatar url={avatarUrlOf(campeon, 2)} name={firstNameOf(campeon, 2)} size="w-20 h-20 ring-4 ring-ball" />
           </div>
           <p className="mt-4 font-display font-black text-2xl leading-tight">
-            {campeon.p1?.first_name} {campeon.p1?.last_name}<br />
-            <span className="text-ball">&amp;</span> {campeon.p2?.first_name} {campeon.p2?.last_name}
+            {firstNameOf(campeon, 1)} {campeon.p1?.last_name ?? campeon.provisional_p1_name?.split(' ').slice(1).join(' ') ?? ''}<br />
+            <span className="text-ball">&amp;</span> {firstNameOf(campeon, 2)} {campeon.p2?.last_name ?? campeon.provisional_p2_name?.split(' ').slice(1).join(' ') ?? ''}
           </p>
           {finalMatch?.score && (
             <p className="mt-3 inline-block bg-ball text-courtdark font-display font-black text-lg rounded-lg px-4 py-2">
@@ -175,7 +205,7 @@ export default function TorneoDetalle() {
           )}
           {subcampeon && (
             <p className="mt-4 text-white/60 text-sm">
-              Sub-campeones: <b className="text-white/80">{subcampeon.p1?.first_name} {subcampeon.p1?.last_name?.[0] ?? ''}. &amp; {subcampeon.p2?.first_name} {subcampeon.p2?.last_name?.[0] ?? ''}.</b>
+              Sub-campeones: <b className="text-white/80">{firstNameOf(subcampeon, 1)} {lastInitialOf(subcampeon, 1)} &amp; {firstNameOf(subcampeon, 2)} {lastInitialOf(subcampeon, 2)}</b>
             </p>
           )}
         </section>
@@ -243,11 +273,11 @@ export default function TorneoDetalle() {
                           <span className={`font-black ${clasifica ? 'text-ball' : 'text-white/60'}`}>{i + 1}</span>
                           <span className="flex items-center gap-2 min-w-0">
                             <span className="flex -space-x-1.5 shrink-0">
-                              <Avatar url={row.pair.p1?.avatar_url} name={row.pair.p1?.first_name} size="w-6 h-6" />
-                              <Avatar url={row.pair.p2?.avatar_url} name={row.pair.p2?.first_name} size="w-6 h-6" />
+                              <Avatar url={avatarUrlOf(row.pair, 1)} name={firstNameOf(row.pair, 1)} size="w-6 h-6" />
+                              <Avatar url={avatarUrlOf(row.pair, 2)} name={firstNameOf(row.pair, 2)} size="w-6 h-6" />
                             </span>
                             <span className={`text-sm truncate ${clasifica ? 'font-black' : 'font-semibold'}`}>
-                              {row.pair.p1?.first_name} &amp; {row.pair.p2?.first_name}
+                              {firstNameOf(row.pair, 1)} &amp; {firstNameOf(row.pair, 2)}
                             </span>
                           </span>
                           <span className="text-center text-sm">{row.pj}</span>
@@ -388,21 +418,27 @@ function BracketMatch({ m, pairsById, isFinal, isSemi }: any) {
 function BracketRow({ pair, winner, loser, sets, isFinalist }: { pair?: any; winner: boolean; loser: boolean; sets: string[]; isFinalist?: boolean }) {
   const bg = winner ? 'bg-ball/10 border-l-4 border-ball' : loser ? 'bg-white/[0.02]' : '';
   const nameCls = winner ? 'text-ball font-black' : loser ? 'text-white/50' : 'text-white/70';
+  const n1 = pair ? firstNameOf(pair, 1) : '';
+  const n2 = pair ? firstNameOf(pair, 2) : '';
+  const l1 = pair ? lastInitialOf(pair, 1) : '';
+  const l2 = pair ? lastInitialOf(pair, 2) : '';
+  const av1 = pair ? avatarUrlOf(pair, 1) : null;
+  const av2 = pair ? avatarUrlOf(pair, 2) : null;
   return (
     <div className={`flex items-center gap-2 px-3 py-2.5 ${bg}`}>
       {pair ? (
         <>
           <div className="flex -space-x-2 shrink-0">
-            {pair.p1?.avatar_url
-              ? <img src={pair.p1.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border border-[#141A24]" />
-              : <span className="w-7 h-7 rounded-full bg-grafito text-ball text-[10px] font-black flex items-center justify-center border border-[#141A24]">{pair.p1?.first_name?.[0]}</span>}
-            {pair.p2?.avatar_url
-              ? <img src={pair.p2.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border border-[#141A24]" />
-              : <span className="w-7 h-7 rounded-full bg-grafito text-ball text-[10px] font-black flex items-center justify-center border border-[#141A24]">{pair.p2?.first_name?.[0]}</span>}
+            {av1
+              ? <img src={av1} alt="" className="w-7 h-7 rounded-full object-cover border border-[#141A24]" />
+              : <span className="w-7 h-7 rounded-full bg-grafito text-ball text-[10px] font-black flex items-center justify-center border border-[#141A24]">{n1[0]}</span>}
+            {av2
+              ? <img src={av2} alt="" className="w-7 h-7 rounded-full object-cover border border-[#141A24]" />
+              : <span className="w-7 h-7 rounded-full bg-grafito text-ball text-[10px] font-black flex items-center justify-center border border-[#141A24]">{n2[0]}</span>}
           </div>
           <span className={`flex-1 min-w-0 text-xs truncate ${nameCls}`}>
             {isFinalist && winner && <span className="mr-1">🏆</span>}
-            {pair.p1?.first_name} {pair.p1?.last_name?.[0] ?? ''}. &amp; {pair.p2?.first_name} {pair.p2?.last_name?.[0] ?? ''}.
+            {n1} {l1} &amp; {n2} {l2}
           </span>
           <span className="flex gap-1 shrink-0">
             {sets.map((s, i) => (
