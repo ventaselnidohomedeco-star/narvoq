@@ -541,46 +541,96 @@ function MatchRow({ m, pairs, onSave }: any) {
   const p1 = pairs.find((p: any) => p.id === m.pair1_id);
   const p2 = pairs.find((p: any) => p.id === m.pair2_id);
   const [score, setScore] = useState(m.sets?.length ? m.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((s: any) => `${s.t1_games}-${s.t2_games}`).join(' ') : '');
-  const [wo, setWo] = useState('');
+  const [woMenu, setWoMenu] = useState(false);
+  const [pendingWo, setPendingWo] = useState<{ type: string; winnerId: string; winnerName: string; loserName: string } | null>(null);
   const played = !!m.winner_pair_id;
 
-  const name = (p: any) => !p ? 'A definir' :
+  const shortName = (p: any) => !p ? 'A definir' :
     (p.p1 ? `${p.p1.first_name} ${p.p1.last_name?.[0] ?? ''}.` : p.provisional_p1_name ?? '?') + ' & ' +
     (p.p2 ? `${p.p2.first_name} ${p.p2.last_name?.[0] ?? ''}.` : p.provisional_p2_name ?? '?');
+  const fullName = (p: any) => !p ? '?' :
+    (p.p1 ? `${p.p1.first_name} ${p.p1.last_name}` : p.provisional_p1_name ?? '?') + ' & ' +
+    (p.p2 ? `${p.p2.first_name} ${p.p2.last_name}` : p.provisional_p2_name ?? '?');
+
+  const woLabel: Record<string, string> = {
+    walkover: 'Walkover (no se presentó)',
+    abandono: 'Abandono (se lesionó / se fue)',
+    dq: 'Descalificación'
+  };
 
   return (
     <li className={`rounded-xl p-3 ${played ? 'bg-ball/10 border border-ball/30' : 'bg-white/5'}`}>
       <p className="text-white/50 text-[10px] font-black uppercase tracking-widest">{m.round}</p>
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center mt-2 text-sm">
-        <span className={m.winner_pair_id === m.pair1_id ? 'text-ball font-black' : 'text-white/70'}>{name(p1)}</span>
+        <span className={m.winner_pair_id === m.pair1_id ? 'text-ball font-black' : 'text-white/70'}>{shortName(p1)}</span>
         <span className="text-white/40 text-xs">vs</span>
-        <span className={`text-right ${m.winner_pair_id === m.pair2_id ? 'text-ball font-black' : 'text-white/70'}`}>{name(p2)}</span>
+        <span className={`text-right ${m.winner_pair_id === m.pair2_id ? 'text-ball font-black' : 'text-white/70'}`}>{shortName(p2)}</span>
       </div>
-      {p1 && p2 && (
-        <div className="mt-2 flex gap-2">
-          <input className="input !py-2 text-sm flex-1" placeholder="6-4 3-6 6-4"
-            value={score} onChange={e => setScore(e.target.value)} />
-          <button onClick={() => onSave(m.id, score, wo)}
-            className="bg-ball text-courtdark text-xs font-black px-3 rounded-lg">Guardar</button>
+
+      {p1 && p2 && !played && !woMenu && !pendingWo && (
+        <>
+          <div className="mt-3 flex gap-2">
+            <input className="input !py-2 text-sm flex-1" placeholder="6-4 3-6 6-4"
+              value={score} onChange={e => setScore(e.target.value)} />
+            <button onClick={() => onSave(m.id, score, '')}
+              className="bg-ball text-courtdark text-xs font-black px-3 rounded-lg">Guardar</button>
+          </div>
+          <button onClick={() => setWoMenu(true)}
+            className="mt-2 text-white/50 text-[11px] font-bold underline">
+            El partido no se jugó (walkover / abandono / descalificación)
+          </button>
+        </>
+      )}
+
+      {p1 && p2 && !played && woMenu && !pendingWo && (
+        <div className="mt-3 bg-black/30 rounded-lg p-3 space-y-3">
+          <p className="text-white/80 text-xs font-black uppercase tracking-widest">¿Qué pasó?</p>
+          {(['walkover', 'abandono', 'dq'] as const).map(t => (
+            <div key={t} className="space-y-1">
+              <p className="text-ball text-xs font-black">{woLabel[t]}</p>
+              <p className="text-white/50 text-[10px]">¿Quién gana?</p>
+              <div className="flex gap-2">
+                <button onClick={() => setPendingWo({ type: t, winnerId: m.pair1_id, winnerName: fullName(p1), loserName: fullName(p2) })}
+                  className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-ball/20 text-xs font-bold text-left px-3">
+                  ✓ {shortName(p1)}
+                </button>
+                <button onClick={() => setPendingWo({ type: t, winnerId: m.pair2_id, winnerName: fullName(p2), loserName: fullName(p1) })}
+                  className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-ball/20 text-xs font-bold text-left px-3">
+                  ✓ {shortName(p2)}
+                </button>
+              </div>
+            </div>
+          ))}
+          <button onClick={() => setWoMenu(false)} className="text-white/50 text-xs">Cancelar</button>
         </div>
       )}
-      {p1 && p2 && !played && (
-        <div className="mt-2 flex gap-1 text-[10px]">
-          {(['walkover', 'abandono', 'dq'] as const).map(t => (
-            <button key={t} onClick={() => setWo(`${t}:${m.pair1_id}`) }
-              className="flex-1 py-1 rounded bg-white/10 text-white/60">{t} p1</button>
-          ))}
-          {(['walkover', 'abandono', 'dq'] as const).map(t => (
-            <button key={t + '2'} onClick={() => setWo(`${t}:${m.pair2_id}`)}
-              className="flex-1 py-1 rounded bg-white/10 text-white/60">{t} p2</button>
-          ))}
+
+      {pendingWo && (
+        <div className="mt-3 bg-yellow-300/10 border border-yellow-300/40 rounded-lg p-3 space-y-2">
+          <p className="text-yellow-200 text-xs font-black">¿Confirmás?</p>
+          <p className="text-white text-sm">
+            <b className="text-ball">{pendingWo.winnerName}</b> gana por <b>{woLabel[pendingWo.type].split(' (')[0].toLowerCase()}</b>.
+            <br /><span className="text-white/60 text-xs">{pendingWo.loserName} queda eliminado del partido.</span>
+          </p>
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => { onSave(m.id, '', `${pendingWo.type}:${pendingWo.winnerId}`); setPendingWo(null); setWoMenu(false); }}
+              className="flex-1 bg-yellow-300 text-black px-3 py-2 rounded-lg font-black text-xs">
+              Sí, confirmar
+            </button>
+            <button onClick={() => setPendingWo(null)}
+              className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-xs">
+              Volver
+            </button>
+          </div>
         </div>
       )}
-      {wo && (
-        <div className="mt-2 flex gap-2 items-center text-xs">
-          <span className="text-yellow-300">→ {wo}</span>
-          <button onClick={() => onSave(m.id, '', wo)} className="bg-yellow-300 text-black px-2 py-1 rounded font-black">Confirmar</button>
-          <button onClick={() => setWo('')} className="text-white/40">×</button>
+
+      {played && !woMenu && (
+        <div className="mt-2 flex gap-2 items-center">
+          <input className="input !py-2 text-sm flex-1" value={score}
+            onChange={e => setScore(e.target.value)} />
+          <button onClick={() => onSave(m.id, score, '')}
+            className="bg-white/10 text-white/70 text-xs font-black px-3 py-2 rounded-lg">Corregir</button>
         </div>
       )}
     </li>
