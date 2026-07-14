@@ -386,32 +386,37 @@ function Gestionar({ torneo, onVolver }: any) {
 
 function AddPairForm({ tournamentId, onAdded }: any) {
   const [tipo, setTipo] = useState<'usuarios' | 'provisional'>('usuarios');
-  const [u1, setU1] = useState(''); const [u2, setU2] = useState('');
+  // Usuarios seleccionados (con búsqueda tipo autocomplete)
+  const [pick1, setPick1] = useState<any>(null);
+  const [pick2, setPick2] = useState<any>(null);
+  // Provisional
   const [n1, setN1] = useState(''); const [n2, setN2] = useState('');
+  const [ph1, setPh1] = useState(''); const [ph2, setPh2] = useState('');
   const [msg, setMsg] = useState('');
 
   async function add() {
     setMsg('');
     let payload: any = { tournament_id: tournamentId, status: 'aprobada' };
     if (tipo === 'usuarios') {
-      const { data: p1 } = await supabase.from('profiles').select('id').eq('username', u1.toLowerCase().trim()).maybeSingle();
-      const { data: p2 } = await supabase.from('profiles').select('id').eq('username', u2.toLowerCase().trim()).maybeSingle();
-      if (!p1 || !p2) return setMsg('Alguno de los usuarios no existe.');
-      if (p1.id === p2.id) return setMsg('No pueden ser el mismo jugador.');
-      payload.player1_id = p1.id; payload.player2_id = p2.id;
+      if (!pick1 || !pick2) return setMsg('Seleccioná los dos jugadores.');
+      if (pick1.id === pick2.id) return setMsg('No pueden ser el mismo jugador.');
+      payload.player1_id = pick1.id; payload.player2_id = pick2.id;
     } else {
       if (!n1.trim() || !n2.trim()) return setMsg('Cargá los dos nombres.');
       payload.provisional_p1_name = n1.trim();
       payload.provisional_p2_name = n2.trim();
+      if (ph1.trim()) payload.provisional_p1_phone = ph1.trim();
+      if (ph2.trim()) payload.provisional_p2_phone = ph2.trim();
     }
     const { error } = await supabase.from('tournament_pairs').insert(payload);
-    if (error) return setMsg(error.message);
-    setU1(''); setU2(''); setN1(''); setN2('');
+    if (error) return setMsg(`${error.message}. ¿Ejecutaste update-18-fix-pairs-rls.sql?`);
+    setPick1(null); setPick2(null);
+    setN1(''); setN2(''); setPh1(''); setPh2('');
     onAdded();
   }
 
   return (
-    <div className="mt-3 bg-white/5 rounded-xl p-3 space-y-2">
+    <div className="mt-3 bg-white/5 rounded-xl p-3 space-y-3">
       <div className="flex gap-2">
         {[['usuarios','Usuarios de la app'],['provisional','Jugadores sin cuenta']].map(([k, l]) => (
           <button key={k} onClick={() => setTipo(k as any)}
@@ -422,17 +427,112 @@ function AddPairForm({ tournamentId, onAdded }: any) {
       </div>
       {tipo === 'usuarios' ? (
         <>
-          <input className="input" placeholder="@usuario del jugador 1" value={u1} onChange={e => setU1(e.target.value)} />
-          <input className="input" placeholder="@usuario del jugador 2" value={u2} onChange={e => setU2(e.target.value)} />
+          <div>
+            <label className="label !text-xs">Jugador 1</label>
+            <UserPicker selected={pick1} onSelect={setPick1} otherId={pick2?.id} />
+          </div>
+          <div>
+            <label className="label !text-xs">Jugador 2 (compañero/a)</label>
+            <UserPicker selected={pick2} onSelect={setPick2} otherId={pick1?.id} />
+          </div>
         </>
       ) : (
         <>
-          <input className="input" placeholder="Nombre y apellido jugador 1" value={n1} onChange={e => setN1(e.target.value)} />
-          <input className="input" placeholder="Nombre y apellido jugador 2" value={n2} onChange={e => setN2(e.target.value)} />
+          <div className="grid grid-cols-1 gap-2">
+            <input className="input" placeholder="Nombre y apellido jugador 1" value={n1} onChange={e => setN1(e.target.value)} />
+            <input className="input" placeholder="Celular jugador 1 (opcional)" inputMode="tel" value={ph1} onChange={e => setPh1(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <input className="input" placeholder="Nombre y apellido jugador 2" value={n2} onChange={e => setN2(e.target.value)} />
+            <input className="input" placeholder="Celular jugador 2 (opcional)" inputMode="tel" value={ph2} onChange={e => setPh2(e.target.value)} />
+          </div>
         </>
       )}
       {msg && <p className="text-red-400 text-xs">{msg}</p>}
       <button onClick={add} className="btn-ball w-full !py-3 text-sm">Agregar pareja</button>
+    </div>
+  );
+}
+
+// Buscador tipo autocomplete de usuarios registrados.
+// Filtra por nombre, apellido, "nombre apellido", @usuario o celular.
+function UserPicker({ selected, onSelect, otherId }: {
+  selected: any; onSelect: (u: any) => void; otherId?: string;
+}) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (selected) return;
+    const raw = q.trim();
+    if (raw.length < 2) { setResults([]); return; }
+    const t = `%${raw.replace(/^@/, '')}%`;
+    const digits = raw.replace(/\D/g, '');
+    const phoneT = digits.length >= 3 ? `%${digits}%` : null;
+    const parts = raw.replace(/^@/, '').split(/\s+/);
+    let orClauses = [
+      `username.ilike.${t}`, `first_name.ilike.${t}`, `last_name.ilike.${t}`
+    ];
+    if (phoneT) orClauses.push(`phone.ilike.${phoneT}`);
+    if (parts.length >= 2) {
+      orClauses.push(`and(first_name.ilike.%${parts[0]}%,last_name.ilike.%${parts.slice(1).join(' ')}%)`);
+    }
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.from('profiles')
+        .select('id, username, first_name, last_name, avatar_url, category, phone, role')
+        .or(orClauses.join(','))
+        .limit(8);
+      setResults((data ?? []).filter((p: any) => p.id !== otherId));
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [q, otherId, selected]);
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 bg-ball/10 border border-ball/40 rounded-xl p-3">
+        {selected.avatar_url
+          ? <img src={selected.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+          : <span className="w-9 h-9 rounded-full bg-grafito text-ball font-black flex items-center justify-center">{selected.first_name?.[0]}</span>}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-black text-white truncate">{selected.first_name} {selected.last_name}</p>
+          <p className="text-white/50 text-xs truncate">@{selected.username}{selected.category ? ` · cat. ${selected.category}` : ''}</p>
+        </div>
+        <button onClick={() => { onSelect(null); setQ(''); }}
+          className="text-white/40 text-lg px-1">×</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <input className="input" placeholder="Nombre, apellido, @usuario o celular…"
+        value={q} onChange={e => setQ(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)} />
+      {open && q.trim().length >= 2 && (
+        <div className="absolute left-0 right-0 mt-1 bg-[#141A24] border border-white/10 rounded-xl shadow-xl z-20 max-h-64 overflow-y-auto">
+          {results.length === 0 && (
+            <p className="text-white/50 text-xs p-3">No hay resultados. Probá con nombre, @usuario o celular.</p>
+          )}
+          {results.map(r => (
+            <button key={r.id} onMouseDown={() => { onSelect(r); setQ(''); }}
+              className="w-full flex items-center gap-2 p-2.5 hover:bg-white/5 text-left border-b border-white/5 last:border-b-0">
+              {r.avatar_url
+                ? <img src={r.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+                : <span className="w-9 h-9 rounded-full bg-grafito text-ball font-black flex items-center justify-center">{r.first_name?.[0]}</span>}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black truncate">{r.first_name} {r.last_name}</p>
+                <p className="text-white/50 text-xs truncate">
+                  @{r.username}
+                  {r.category ? ` · cat. ${r.category}` : ''}
+                  {r.role === 'coach' ? ' · profe' : ''}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
