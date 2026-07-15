@@ -113,7 +113,10 @@ export default function TorneosJugador() {
               <div className="flex justify-between items-start gap-3">
                 <div className="min-w-0">
                   <p className="font-display font-black text-lg leading-tight truncate">{t.name}</p>
-                  <p className="text-white/60 text-sm truncate">{t.complex.name} · {t.complex.city.name}</p>
+                  <p className="text-white/60 text-sm truncate">
+                    {t.complex?.name ?? (t.owner_coach_id ? '🎾 Torneo de profe' : 'Organizador')}
+                    {t.complex?.city?.name ? ` · ${t.complex.city.name}` : ''}
+                  </p>
                 </div>
                 <span className={`shrink-0 text-[10px] font-black uppercase px-2 py-1 rounded ${
                   t.status === 'finalizado' ? 'bg-white/10 text-white/60'
