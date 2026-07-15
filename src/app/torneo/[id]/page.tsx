@@ -80,22 +80,30 @@ export default function TorneoDetalle() {
   const [t, setT] = useState<any>(null);
   const [pairs, setPairs] = useState<Pair[]>([]);
   const [matches, setMatches] = useState<TMatch[]>([]);
+  const [loadError, setLoadError] = useState<string>('');
 
   useEffect(() => {
     (async () => {
-      const { data: tor } = await supabase.from('tournaments')
-        .select('*, complex:complexes(name, city:cities(name), logo_url)')
-        .eq('id', id).single();
-      setT(tor);
-      const { data: ps } = await supabase.from('tournament_pairs')
-        .select(`*,
-          p1:profiles!player1_id(id, username, first_name, last_name, avatar_url, category),
-          p2:profiles!player2_id(id, username, first_name, last_name, avatar_url, category)`)
-        .eq('tournament_id', id);
-      setPairs(ps ?? []);
-      const { data: ms } = await supabase.from('tournament_matches')
-        .select('*').eq('tournament_id', id).order('order_index');
-      setMatches(ms ?? []);
+      try {
+        const { data: tor, error: tErr } = await supabase.from('tournaments')
+          .select('*, complex:complexes(name, city:cities(name), logo_url)')
+          .eq('id', id).single();
+        if (tErr) throw new Error(`Cargar torneo: ${tErr.message}`);
+        setT(tor);
+        const { data: ps, error: pErr } = await supabase.from('tournament_pairs')
+          .select(`*,
+            p1:profiles!player1_id(id, username, first_name, last_name, avatar_url, category),
+            p2:profiles!player2_id(id, username, first_name, last_name, avatar_url, category)`)
+          .eq('tournament_id', id);
+        if (pErr) throw new Error(`Cargar parejas: ${pErr.message}`);
+        setPairs(ps ?? []);
+        const { data: ms, error: mErr } = await supabase.from('tournament_matches')
+          .select('*').eq('tournament_id', id).order('order_index');
+        if (mErr) throw new Error(`Cargar partidos: ${mErr.message}`);
+        setMatches(ms ?? []);
+      } catch (e: any) {
+        setLoadError(e?.message ?? 'Error desconocido al cargar torneo');
+      }
     })();
   }, [id]);
 
@@ -153,6 +161,16 @@ export default function TorneoDetalle() {
     ? pairsById[(finalMatch.pair1_id === finalMatch.winner_pair_id ? finalMatch.pair2_id : finalMatch.pair1_id)!]
     : null;
 
+  if (loadError) return (
+    <main className="p-8 max-w-md mx-auto">
+      <div className="card !p-6 text-center space-y-3">
+        <p className="text-4xl">⚠️</p>
+        <p className="font-display font-black">No pudimos cargar este torneo.</p>
+        <p className="text-red-400 text-xs font-mono bg-black/30 rounded p-3 break-words">{loadError}</p>
+        <button onClick={() => window.location.reload()} className="btn-ball">Reintentar</button>
+      </div>
+    </main>
+  );
   if (!t) return <main className="p-8 text-white/50">Cargando torneo…</main>;
 
   return (
