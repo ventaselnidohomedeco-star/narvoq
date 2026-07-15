@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { recommendFormat } from '@/lib/torneos/motor';
-import { generateFullTournament, generateKnockoutStage, recordMatchResult, checkAndCloseTournament, propagateAllWinners } from '@/lib/torneos/persist';
+import { generateFullTournament, generateKnockoutStage, recordMatchResult, checkAndCloseTournament, propagateAllWinners, validateTournamentBracket, confirmBracket, unfreezeBracket } from '@/lib/torneos/persist';
 
 // Manager de torneos usable por complejos Y por entrenadores.
 // Se pasa `owner: { type: 'complex'|'coach', id: uuid }`.
@@ -204,6 +204,8 @@ function Gestionar({ torneo, onVolver }: any) {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [validation, setValidation] = useState<{ ok: boolean; errors: any[]; warnings: any[] } | null>(null);
+  const [confirmed, setConfirmed] = useState<boolean>(!!torneo.bracket_confirmed_at);
 
   async function load() {
     const { data: ps } = await supabase.from('tournament_pairs')
@@ -397,13 +399,83 @@ function Gestionar({ torneo, onVolver }: any) {
                 } catch (e: any) { setMsg(e.message); }
                 setBusy(false);
               }}
-              disabled={busy}
-              className="w-full py-3 rounded-xl bg-yellow-300/15 border border-yellow-300/40 text-yellow-200 font-black text-sm">
+              disabled={busy || confirmed}
+              className="w-full py-3 rounded-xl bg-yellow-300/15 border border-yellow-300/40 text-yellow-200 font-black text-sm disabled:opacity-40">
               🔄 Regenerar eliminatoria completa (arregla datos viejos)
             </button>
+
+            {/* Validación + confirmación del cuadro */}
+            <button
+              onClick={async () => {
+                setBusy(true); setMsg('');
+                try {
+                  const r = await validateTournamentBracket(torneo.id);
+                  setValidation(r);
+                  if (r.ok) setMsg(`✓ Cuadro válido. ${r.warnings.length} advertencia(s).`);
+                  else setMsg(`⚠ ${r.errors.length} error(es) bloqueante(s) detectado(s).`);
+                } catch (e: any) { setMsg(e.message); }
+                setBusy(false);
+              }}
+              disabled={busy}
+              className="w-full py-3 rounded-xl bg-white/5 border border-white/20 text-white font-black text-sm">
+              🔍 Validar cuadro
+            </button>
+
+            {!confirmed && (
+              <button
+                onClick={async () => {
+                  if (!confirm('¿Confirmar el cuadro? Después no se podrán regenerar los partidos sin des-confirmar.')) return;
+                  setBusy(true); setMsg('');
+                  try {
+                    const r = await confirmBracket(torneo.id);
+                    setConfirmed(true);
+                    setMsg(`✓ Cuadro CONFIRMADO. ${r.warnings.length} advertencia(s) registrada(s).`);
+                    load();
+                  } catch (e: any) { setMsg(e.message); }
+                  setBusy(false);
+                }}
+                disabled={busy}
+                className="w-full py-3 rounded-xl bg-ball text-courtdark font-black text-sm">
+                ✓ Confirmar cuadro (bloquear)
+              </button>
+            )}
+
+            {confirmed && (
+              <div className="w-full py-3 rounded-xl bg-ball/20 border border-ball/40 text-ball text-center text-sm font-black">
+                🔒 Cuadro confirmado — regeneración bloqueada
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Des-confirmar el cuadro? Esto permite editar / regenerar partidos.')) return;
+                    setBusy(true); setMsg('');
+                    try {
+                      await unfreezeBracket(torneo.id);
+                      setConfirmed(false);
+                      setMsg('Cuadro des-confirmado. Ahora se pueden hacer cambios.');
+                    } catch (e: any) { setMsg(e.message); }
+                    setBusy(false);
+                  }}
+                  className="ml-3 text-xs underline text-white/80">Des-confirmar</button>
+              </div>
+            )}
           </>
         )}
         {msg && <p className="text-sm text-ball">{msg}</p>}
+
+        {/* Lista de errores y advertencias del validador */}
+        {validation && (validation.errors.length > 0 || validation.warnings.length > 0) && (
+          <div className="mt-3 space-y-1.5">
+            {validation.errors.map((e: any, i: number) => (
+              <p key={`e${i}`} className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                <span className="font-black">✕ ERROR:</span> {e.message}
+              </p>
+            ))}
+            {validation.warnings.map((w: any, i: number) => (
+              <p key={`w${i}`} className="text-xs text-yellow-200 bg-yellow-500/10 border border-yellow-500/30 rounded px-3 py-2">
+                <span className="font-black">⚠</span> {w.message}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Cargar resultados agrupados por Ronda */}
@@ -576,11 +648,12 @@ function MatchesByRound({ matches, pairs, onSave }: any) {
   const rounds = Object.keys(groups).sort((a, b) => {
     const rr = (r: string) => {
       if (/^Zona/i.test(r)) return 0;
-      if (/16avos|preliminar/i.test(r)) return 1;
-      if (/octavos/i.test(r)) return 2;
-      if (/cuartos/i.test(r)) return 3;
-      if (/semifinal|semi/i.test(r)) return 4;
-      if (/final/i.test(r)) return 5;
+      if (/play-?in|32/i.test(r)) return 1;
+      if (/16avos|preliminar/i.test(r)) return 2;
+      if (/octavos/i.test(r)) return 3;
+      if (/cuartos/i.test(r)) return 4;
+      if (/semifinal|semi/i.test(r)) return 5;
+      if (/final/i.test(r)) return 6;
       return 99;
     };
     if (rr(a) !== rr(b)) return rr(a) - rr(b);

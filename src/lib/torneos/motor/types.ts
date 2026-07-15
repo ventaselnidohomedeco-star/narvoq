@@ -4,11 +4,37 @@ export type MatchFormat = 'best_of_3_super_tb' | 'best_of_3_full' | 'single_set'
 export type SpecialResult = null | 'walkover' | 'abandono' | 'dq' | 'suspendido';
 export type Round =
   | 'zona'       // fase de grupos
-  | '16avos'     // preliminar (3º y 4º)
+  | '32avos'     // play-in (ronda 1 preliminar, sólo 4ºs cuando hay muchos)
+  | '16avos'     // preliminar (ronda 2 → clasifica a octavos)
   | '8vos'
   | 'cuartos'
   | 'semi'
   | 'final';
+
+// Nombres canónicos internos (spec formal). El "Round" arriba se mantiene
+// por compatibilidad con todo el motor previo; usar RoundName sólo para
+// referencias externas / API / validaciones estrictas.
+export type RoundName =
+  | 'GROUP'
+  | 'PLAY_IN'
+  | 'PRELIMINARY'
+  | 'MAIN_ACCESS'
+  | 'ROUND_OF_32'
+  | 'ROUND_OF_16'
+  | 'QUARTERFINAL'
+  | 'SEMIFINAL'
+  | 'FINAL'
+  | 'CUSTOM';
+
+// Cantidad de parejas EXACTA que debe tener una ronda para llamarse así.
+// Se usa en el validador para rechazar "Octavos con 18 parejas".
+export const REQUIRED_PAIRS_PER_ROUND: Partial<Record<RoundName, number>> = {
+  ROUND_OF_32: 32,
+  ROUND_OF_16: 16,
+  QUARTERFINAL: 8,
+  SEMIFINAL: 4,
+  FINAL: 2
+};
 
 export interface PairRef {
   id: string;

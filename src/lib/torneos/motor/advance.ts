@@ -63,5 +63,5 @@ export function propagateWinner(
 
 // Convierte round a orden numérico (util para sorting)
 export const roundOrder: Record<Round, number> = {
-  'zona': 0, '16avos': 1, '8vos': 2, 'cuartos': 3, 'semi': 4, 'final': 5
+  'zona': 0, '32avos': 1, '16avos': 2, '8vos': 3, 'cuartos': 4, 'semi': 5, 'final': 6
 };

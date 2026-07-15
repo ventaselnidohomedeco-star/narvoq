@@ -102,13 +102,42 @@ function sortWithTiebreaks(list: GroupStanding[], allMatches: MatchInput[]): Gro
       else if (winner === b.pair_id) finalOrder.push(b, a);
       else finalOrder.push(...g); // ya ordenados por diferencias
     } else {
-      // 3+: mini-tabla entre los empatados
+      // 3+: mini-tabla entre los empatados.
+      // Cortamos recursión si la mini-tabla NO reduce el empate (mismo set con mismos puntajes):
+      // en ese caso volvemos al orden por diferencias globales.
       const ids = g.map(x => x.pair_id);
-      const mini = computeStandings(
-        ids,
-        allMatches.filter(m => m.pair1_id && m.pair2_id && ids.includes(m.pair1_id) && ids.includes(m.pair2_id))
+      const miniMatches = allMatches.filter(
+        m => m.pair1_id && m.pair2_id && ids.includes(m.pair1_id) && ids.includes(m.pair2_id)
       );
-      finalOrder.push(...mini.map(m => list.find(l => l.pair_id === m.pair_id)!));
+      const miniBase: GroupStanding[] = ids.map(id => ({
+        pair_id: id, pj: 0, pg: 0, pp: 0, sf: 0, sc: 0, ds: 0, gf: 0, gc: 0, dg: 0, pts: 0
+      }));
+      miniMatches.forEach(m => {
+        if (!m.pair1_id || !m.pair2_id) return;
+        const winner = m.winner_pair_id ?? m.special_winner_pair_id;
+        if (!winner) return;
+        const { s1, s2, g1, g2 } = tallyMatch(m);
+        const a = miniBase.find(x => x.pair_id === m.pair1_id)!;
+        const b = miniBase.find(x => x.pair_id === m.pair2_id)!;
+        a.pj++; b.pj++;
+        a.sf += s1; a.sc += s2; a.gf += g1; a.gc += g2;
+        b.sf += s2; b.sc += s1; b.gf += g2; b.gc += g1;
+        if (winner === m.pair1_id) { a.pg++; a.pts += 3; }
+        else { b.pg++; b.pts += 3; }
+      });
+      miniBase.forEach(s => { s.ds = s.sf - s.sc; s.dg = s.gf - s.gc; });
+
+      // Ordenamos la mini-tabla por pts → ds → dg → gf (SIN recursionar)
+      const miniSorted = [...miniBase].sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.ds !== a.ds) return b.ds - a.ds;
+        if (b.dg !== a.dg) return b.dg - a.dg;
+        return b.gf - a.gf;
+      });
+
+      // Si la mini-tabla no rompió el empate (todos con mismos pts/ds/dg/gf),
+      // se caerá en el sorteo determinístico (mantener orden estable).
+      finalOrder.push(...miniSorted.map(m => list.find(l => l.pair_id === m.pair_id)!));
     }
   }
 

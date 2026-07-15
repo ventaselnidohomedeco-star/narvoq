@@ -135,8 +135,8 @@ export async function generateKnockoutStage(tournamentId: string) {
   // para que las etiquetas "from:<round>:<order_index>" apunten al match
   // correcto al momento de avanzar ganadores.
   const round2sql: Record<Round, string> = {
-    'zona': 'Zona', '16avos': '16avos', '8vos': 'Octavos',
-    'cuartos': 'Cuartos', 'semi': 'Semifinal', 'final': 'Final'
+    'zona': 'Zona', '32avos': 'Play-in', '16avos': 'Preliminar',
+    '8vos': 'Octavos', 'cuartos': 'Cuartos', 'semi': 'Semifinal', 'final': 'Final'
   };
   const { error: kErr } = await supabase.from('tournament_matches').insert(bracketSpecs.map(b => ({
     tournament_id: tournamentId,
@@ -281,6 +281,7 @@ function normalizeAnyTag(tag: string): string {
 }
 function roundKey(round: string): string {
   const r = round.toLowerCase();
+  if (r.includes('play-in') || r.includes('playin') || r.includes('32')) return '32avos';
   if (r.includes('16') || r.includes('preliminar')) return '16avos';
   if (r.includes('octavo') || r === '8vos') return '8vos';
   if (r.includes('cuarto')) return 'cuartos';
@@ -303,4 +304,103 @@ export async function checkAndCloseTournament(tournamentId: string) {
     return true;
   }
   return false;
+}
+
+// ==================== Validador integrado ====================
+// Corre el validator contra el estado actual del bracket persistido.
+// Devuelve errores bloqueantes + advertencias listos para mostrar en UI.
+export async function validateTournamentBracket(tournamentId: string) {
+  const { validateBracket } = await import('./motor/validator');
+
+  const { data: matches } = await supabase.from('tournament_matches')
+    .select('id, round, order_index, pair1_id, pair2_id, notes')
+    .eq('tournament_id', tournamentId);
+  if (!matches) return { ok: true, errors: [], warnings: [] };
+
+  // Traer partidos de zona jugados para detectar revanchas
+  const { data: pairs } = await supabase.from('tournament_pairs')
+    .select('id, status').eq('tournament_id', tournamentId);
+  const allPairIds = (pairs ?? []).filter(p => p.status === 'aprobada').map(p => p.id);
+
+  const bracket = matches
+    .filter(m => !String(m.round).toLowerCase().startsWith('zona'))
+    .map(m => {
+      const roundKey = normalizeRoundToMotor(m.round);
+      const parsed = m.notes ? String(m.notes).match(/^from:([^|]*)\|(.*)$/) : null;
+      return {
+        round: roundKey as Round,
+        order_index: m.order_index,
+        pair1_id: m.pair1_id,
+        pair2_id: m.pair2_id,
+        pair1_from: parsed?.[1] || undefined,
+        pair2_from: parsed?.[2] || undefined
+      };
+    });
+
+  const groupMatches = matches
+    .filter(m => String(m.round).toLowerCase().startsWith('zona'))
+    .filter(m => m.pair1_id && m.pair2_id)
+    .map(m => ({ pair1_id: m.pair1_id as string, pair2_id: m.pair2_id as string }));
+
+  return validateBracket({ bracket, allPairIds, groupMatches });
+}
+
+// Confirma el cuadro: corre validator, guarda snapshot y setea timestamp.
+// Si hay errores bloqueantes, tira Error.
+export async function confirmBracket(tournamentId: string) {
+  const report = await validateTournamentBracket(tournamentId);
+  if (!report.ok) {
+    throw new Error(
+      `No se puede confirmar el cuadro. Hay ${report.errors.length} error(es): ${report.errors.map(e => e.message).join(' | ')}`
+    );
+  }
+
+  // Snapshot del estado actual
+  const { data: matches } = await supabase.from('tournament_matches')
+    .select('id, round, order_index, pair1_id, pair2_id, notes, winner_pair_id, special_result')
+    .eq('tournament_id', tournamentId);
+
+  const { error: uErr } = await supabase.from('tournaments').update({
+    bracket_confirmed_at: new Date().toISOString(),
+    bracket_snapshot: { matches, warnings: report.warnings }
+  }).eq('id', tournamentId);
+  if (uErr) throw new Error(`No pude guardar la confirmación: ${uErr.message}. ¿Corriste update-20-bracket-freeze.sql?`);
+
+  await supabase.from('tournament_audit').insert({
+    tournament_id: tournamentId,
+    action: 'confirm_bracket',
+    payload: { warnings: report.warnings.length, matches: (matches ?? []).length }
+  });
+
+  return { ok: true, warnings: report.warnings };
+}
+
+// Des-confirma el cuadro (organizador debe corregir algo).
+export async function unfreezeBracket(tournamentId: string) {
+  const { error } = await supabase.from('tournaments').update({
+    bracket_confirmed_at: null
+  }).eq('id', tournamentId);
+  if (error) throw new Error(`No pude des-confirmar el cuadro: ${error.message}`);
+  await supabase.from('tournament_audit').insert({
+    tournament_id: tournamentId, action: 'unfreeze_bracket', payload: {}
+  });
+}
+
+// Verifica si el bracket está confirmado (freeze).
+export async function isBracketConfirmed(tournamentId: string): Promise<boolean> {
+  const { data } = await supabase.from('tournaments')
+    .select('bracket_confirmed_at').eq('id', tournamentId).maybeSingle();
+  return !!data?.bracket_confirmed_at;
+}
+
+function normalizeRoundToMotor(sqlRound: string): Round {
+  const r = String(sqlRound).toLowerCase();
+  if (r.includes('zona')) return 'zona';
+  if (r.includes('play-in') || r.includes('playin') || r.includes('32')) return '32avos';
+  if (r.includes('preliminar') || r.includes('16avos')) return '16avos';
+  if (r.includes('octavo') || r === '8vos') return '8vos';
+  if (r.includes('cuarto')) return 'cuartos';
+  if (r.includes('semi')) return 'semi';
+  if (r.includes('final')) return 'final';
+  return '8vos';
 }
