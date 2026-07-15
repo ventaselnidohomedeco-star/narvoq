@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import BackButton from '@/components/BackButton';
+import TournamentPoster, { PosterInput } from '@/components/TournamentPoster';
 
 type Pair = {
   id: string; tournament_id: string;
@@ -248,11 +249,64 @@ export default function TorneoDetalle() {
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-12 h-12 rounded-full bg-ball text-courtdark font-display font-black flex items-center justify-center text-xl">1</span>
-            <div>
+            <div className="flex-1">
               <p className="text-ball text-[11px] font-black tracking-widest">ETAPA 1</p>
               <h2 className="font-display font-black text-3xl leading-tight uppercase">Clasificación</h2>
               <p className="text-white/60 text-sm mt-0.5">Los 2 primeros de cada grupo pasan a eliminatoria.</p>
             </div>
+          </div>
+
+          {/* Botones para descargar imágenes de esta fase */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <TournamentPoster
+              label="Imagen de grupos"
+              input={{
+                mode: 'groups',
+                tournamentName: t.name,
+                category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
+                groups: zoneRounds.map(({ round, ms }) => {
+                  const label = round.replace(/zona\s*/i, '').trim().toUpperCase() || 'A';
+                  const pairIds = new Set<string>();
+                  ms.forEach(m => { m.pair1_id && pairIds.add(m.pair1_id); m.pair2_id && pairIds.add(m.pair2_id); });
+                  return {
+                    label,
+                    members: Array.from(pairIds).map(pid => {
+                      const p = pairsById[pid];
+                      return {
+                        id: pid,
+                        n1: `${firstNameOf(p, 1)} ${lastInitialOf(p, 1)}`.trim(),
+                        n2: `${firstNameOf(p, 2)} ${lastInitialOf(p, 2)}`.trim(),
+                      };
+                    })
+                  };
+                })
+              }}
+            />
+            {zoneRounds.some(({ ms }) => ms.some(m => m.winner_pair_id)) && (
+              <TournamentPoster
+                label="Imagen de posiciones"
+                input={{
+                  mode: 'standings',
+                  tournamentName: t.name,
+                  category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
+                  standings: zoneRounds.map(({ round, ms }) => {
+                    const label = round.replace(/zona\s*/i, '').trim().toUpperCase() || 'A';
+                    const tabla = tablaZona(ms);
+                    return {
+                      label,
+                      rows: tabla.map(r => ({
+                        pair: {
+                          id: r.pair.id,
+                          n1: `${firstNameOf(r.pair, 1)} ${lastInitialOf(r.pair, 1)}`.trim(),
+                          n2: `${firstNameOf(r.pair, 2)} ${lastInitialOf(r.pair, 2)}`.trim(),
+                        },
+                        pts: r.pts, pg: r.g, pj: r.pj, ds: r.sg - r.sp
+                      }))
+                    };
+                  })
+                }}
+              />
+            )}
           </div>
 
           <div className="space-y-4">
@@ -326,11 +380,50 @@ export default function TorneoDetalle() {
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-10 h-10 rounded-full bg-ball text-courtdark font-display font-black flex items-center justify-center text-lg">2</span>
-            <div>
+            <div className="flex-1">
               <p className="text-ball text-[11px] font-black tracking-widest">ETAPA 2</p>
               <h2 className="font-display font-black text-2xl leading-tight">Eliminatoria</h2>
               <p className="text-white/50 text-xs">Cuadro completo. Deslizá horizontal para ver todas las rondas.</p>
             </div>
+          </div>
+
+          {/* Botón imagen del cuadro */}
+          <div className="mb-4">
+            <TournamentPoster
+              label="Imagen del cuadro"
+              input={{
+                mode: 'bracket',
+                tournamentName: t.name,
+                category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
+                matches: knockRounds.flatMap(({ round, ms }) =>
+                  ms.map(m => ({
+                    round,
+                    pair1: m.pair1_id ? {
+                      id: m.pair1_id,
+                      n1: `${firstNameOf(pairsById[m.pair1_id], 1)} ${lastInitialOf(pairsById[m.pair1_id], 1)}`.trim(),
+                      n2: `${firstNameOf(pairsById[m.pair1_id], 2)} ${lastInitialOf(pairsById[m.pair1_id], 2)}`.trim(),
+                    } : null,
+                    pair2: m.pair2_id ? {
+                      id: m.pair2_id,
+                      n1: `${firstNameOf(pairsById[m.pair2_id], 1)} ${lastInitialOf(pairsById[m.pair2_id], 1)}`.trim(),
+                      n2: `${firstNameOf(pairsById[m.pair2_id], 2)} ${lastInitialOf(pairsById[m.pair2_id], 2)}`.trim(),
+                    } : null,
+                    score: m.score,
+                    winner_id: m.winner_pair_id
+                  }))
+                ),
+                champion: campeon ? {
+                  id: campeon.id,
+                  n1: `${firstNameOf(campeon, 1)} ${lastInitialOf(campeon, 1)}`.trim(),
+                  n2: `${firstNameOf(campeon, 2)} ${lastInitialOf(campeon, 2)}`.trim(),
+                } : null,
+                runnerUp: subcampeon ? {
+                  id: subcampeon.id,
+                  n1: `${firstNameOf(subcampeon, 1)} ${lastInitialOf(subcampeon, 1)}`.trim(),
+                  n2: `${firstNameOf(subcampeon, 2)} ${lastInitialOf(subcampeon, 2)}`.trim(),
+                } : null
+              }}
+            />
           </div>
 
           <Bracket knockRounds={knockRounds} pairsById={pairsById} />
@@ -506,11 +599,11 @@ function GroupMatch({ m, pairsById }: any) {
       {pair ? (
         <>
           <div className="flex -space-x-2 shrink-0">
-            <Avatar url={pair.p1?.avatar_url} name={pair.p1?.first_name} size="w-8 h-8" />
-            <Avatar url={pair.p2?.avatar_url} name={pair.p2?.first_name} size="w-8 h-8" />
+            <Avatar url={avatarUrlOf(pair, 1)} name={firstNameOf(pair, 1)} size="w-8 h-8" />
+            <Avatar url={avatarUrlOf(pair, 2)} name={firstNameOf(pair, 2)} size="w-8 h-8" />
           </div>
           <span className={`flex-1 min-w-0 text-sm truncate ${winner ? 'text-ball font-black' : loser ? 'text-white/50' : 'text-white/80 font-bold'}`}>
-            {pair.p1?.first_name} {pair.p1?.last_name?.[0] ?? ''}. &amp; {pair.p2?.first_name} {pair.p2?.last_name?.[0] ?? ''}.
+            {firstNameOf(pair, 1)} {lastInitialOf(pair, 1)} &amp; {firstNameOf(pair, 2)} {lastInitialOf(pair, 2)}
           </span>
           <span className="flex gap-1 shrink-0">
             {sets.map((s: string, i: number) => (
