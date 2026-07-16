@@ -42,6 +42,21 @@ function avatarUrlOf(pair: any, which: 1 | 2): string | null {
   return reg?.avatar_url ?? null;
 }
 
+// Adapta una Pair de DB al formato PairRow que consume TournamentPoster.
+function pairToPoster(pair: any) {
+  return {
+    id: pair?.id ?? '',
+    p1: {
+      name: `${firstNameOf(pair, 1)} ${lastInitialOf(pair, 1)}`.trim(),
+      avatar_url: avatarUrlOf(pair, 1)
+    },
+    p2: {
+      name: `${firstNameOf(pair, 2)} ${lastInitialOf(pair, 2)}`.trim(),
+      avatar_url: avatarUrlOf(pair, 2)
+    }
+  };
+}
+
 type TMatch = {
   id: string; round: string;
   pair1_id?: string | null; pair2_id?: string | null;
@@ -271,14 +286,7 @@ export default function TorneoDetalle() {
                   ms.forEach(m => { m.pair1_id && pairIds.add(m.pair1_id); m.pair2_id && pairIds.add(m.pair2_id); });
                   return {
                     label,
-                    members: Array.from(pairIds).map(pid => {
-                      const p = pairsById[pid];
-                      return {
-                        id: pid,
-                        n1: `${firstNameOf(p, 1)} ${lastInitialOf(p, 1)}`.trim(),
-                        n2: `${firstNameOf(p, 2)} ${lastInitialOf(p, 2)}`.trim(),
-                      };
-                    })
+                    members: Array.from(pairIds).map(pid => pairToPoster(pairsById[pid]))
                   };
                 })
               }}
@@ -297,11 +305,7 @@ export default function TorneoDetalle() {
                     return {
                       label,
                       rows: tabla.map(r => ({
-                        pair: {
-                          id: r.pair.id,
-                          n1: `${firstNameOf(r.pair, 1)} ${lastInitialOf(r.pair, 1)}`.trim(),
-                          n2: `${firstNameOf(r.pair, 2)} ${lastInitialOf(r.pair, 2)}`.trim(),
-                        },
+                        pair: pairToPoster(r.pair),
                         pts: r.pts, pg: r.g, pj: r.pj, ds: r.sg - r.sp
                       }))
                     };
@@ -408,29 +412,13 @@ export default function TorneoDetalle() {
                     category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
                     roundLabel: round,
                     matches: ms.map((m: any) => ({
-                      pair1: m.pair1_id ? {
-                        id: m.pair1_id,
-                        n1: `${firstNameOf(pairsById[m.pair1_id], 1)} ${lastInitialOf(pairsById[m.pair1_id], 1)}`.trim(),
-                        n2: `${firstNameOf(pairsById[m.pair1_id], 2)} ${lastInitialOf(pairsById[m.pair1_id], 2)}`.trim(),
-                      } : null,
-                      pair2: m.pair2_id ? {
-                        id: m.pair2_id,
-                        n1: `${firstNameOf(pairsById[m.pair2_id], 1)} ${lastInitialOf(pairsById[m.pair2_id], 1)}`.trim(),
-                        n2: `${firstNameOf(pairsById[m.pair2_id], 2)} ${lastInitialOf(pairsById[m.pair2_id], 2)}`.trim(),
-                      } : null,
+                      pair1: m.pair1_id ? pairToPoster(pairsById[m.pair1_id]) : null,
+                      pair2: m.pair2_id ? pairToPoster(pairsById[m.pair2_id]) : null,
                       score: m.score,
                       winner_id: m.winner_pair_id
                     })),
-                    champion: isFinal && campeon ? {
-                      id: campeon.id,
-                      n1: `${firstNameOf(campeon, 1)} ${lastInitialOf(campeon, 1)}`.trim(),
-                      n2: `${firstNameOf(campeon, 2)} ${lastInitialOf(campeon, 2)}`.trim(),
-                    } : null,
-                    runnerUp: isFinal && subcampeon ? {
-                      id: subcampeon.id,
-                      n1: `${firstNameOf(subcampeon, 1)} ${lastInitialOf(subcampeon, 1)}`.trim(),
-                      n2: `${firstNameOf(subcampeon, 2)} ${lastInitialOf(subcampeon, 2)}`.trim(),
-                    } : null,
+                    champion: isFinal && campeon ? pairToPoster(campeon) : null,
+                    runnerUp: isFinal && subcampeon ? pairToPoster(subcampeon) : null,
                     sponsors: t.sponsors ?? []
                   }}
                 />
