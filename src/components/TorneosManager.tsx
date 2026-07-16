@@ -295,6 +295,9 @@ function Gestionar({ torneo, onVolver }: any) {
         </Link>
       </div>
 
+      {/* Auspiciantes del torneo — aparecen en las imágenes generadas */}
+      <SponsorsManager tournamentId={torneo.id} initialSponsors={torneo.sponsors ?? []} />
+
       {/* Preview del formato */}
       <div className="card">
         <p className="font-display font-black text-ball text-sm">RECOMENDACIÓN DEL MOTOR</p>
@@ -827,5 +830,89 @@ function MatchRow({ m, pairs, onSave }: any) {
         </div>
       )}
     </li>
+  );
+}
+
+// -------------------- Gestor de auspiciantes --------------------
+// El admin pega URLs de logos (jpg/png). Se guardan en tournaments.sponsors (jsonb).
+// Aparecen abajo de las imágenes generadas.
+function SponsorsManager({ tournamentId, initialSponsors }: { tournamentId: string; initialSponsors: any[] }) {
+  const [sponsors, setSponsors] = useState<{ name?: string; logo_url: string; url?: string }[]>(initialSponsors ?? []);
+  const [name, setName] = useState('');
+  const [logo, setLogo] = useState('');
+  const [link, setLink] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function save(next: typeof sponsors) {
+    setBusy(true);
+    const { error } = await supabase.from('tournaments').update({ sponsors: next }).eq('id', tournamentId);
+    setBusy(false);
+    if (error) { setMsg(`Error: ${error.message}. ¿Corriste update-21-tournament-sponsors.sql?`); return; }
+    setSponsors(next);
+    setMsg('✓ Auspiciantes guardados.');
+  }
+
+  async function add() {
+    if (!logo.trim()) { setMsg('Pegá el link del logo (jpg/png).'); return; }
+    if (sponsors.length >= 6) { setMsg('Máximo 6 auspiciantes.'); return; }
+    const next = [...sponsors, { name: name.trim() || undefined, logo_url: logo.trim(), url: link.trim() || undefined }];
+    await save(next);
+    setName(''); setLogo(''); setLink('');
+  }
+
+  async function remove(i: number) {
+    const next = sponsors.filter((_, idx) => idx !== i);
+    await save(next);
+  }
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="font-display font-black text-ball text-sm">AUSPICIANTES · {sponsors.length}/6</p>
+        <span className="text-white/40 text-xs">Aparecen en las imágenes generadas</span>
+      </div>
+
+      {sponsors.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {sponsors.map((s, i) => (
+            <div key={i} className="relative bg-white rounded-lg p-2 flex items-center justify-center h-16">
+              <img src={s.logo_url} alt={s.name ?? 'sponsor'} className="max-h-full max-w-full object-contain" />
+              <button
+                onClick={() => remove(i)}
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-black">×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {sponsors.length < 6 && (
+        <div className="space-y-2 pt-2 border-t border-white/10">
+          <input
+            value={name} onChange={e => setName(e.target.value)}
+            placeholder="Nombre (opcional, ej: 'Adidas Padel')"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40" />
+          <input
+            value={logo} onChange={e => setLogo(e.target.value)}
+            placeholder="URL del logo (jpg/png) — obligatorio"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40" />
+          <input
+            value={link} onChange={e => setLink(e.target.value)}
+            placeholder="Link a su web (opcional)"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40" />
+          <button
+            onClick={add} disabled={busy || !logo.trim()}
+            className="w-full py-2 rounded-lg bg-ball text-courtdark font-black text-sm disabled:opacity-40">
+            + Agregar auspiciante
+          </button>
+        </div>
+      )}
+
+      {msg && <p className="text-xs text-ball">{msg}</p>}
+
+      <p className="text-white/40 text-[11px] leading-tight">
+        💡 Cómo conseguir la URL del logo: subilo a Imgur/Google Drive (con enlace público) o usá el link directo desde la web del auspiciante. Debe terminar en .jpg, .png o .webp.
+      </p>
+    </div>
   );
 }

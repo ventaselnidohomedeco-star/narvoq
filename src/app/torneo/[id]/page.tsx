@@ -264,6 +264,7 @@ export default function TorneoDetalle() {
                 mode: 'groups',
                 tournamentName: t.name,
                 category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
+                sponsors: t.sponsors ?? [],
                 groups: zoneRounds.map(({ round, ms }) => {
                   const label = round.replace(/zona\s*/i, '').trim().toUpperCase() || 'A';
                   const pairIds = new Set<string>();
@@ -289,6 +290,7 @@ export default function TorneoDetalle() {
                   mode: 'standings',
                   tournamentName: t.name,
                   category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
+                  sponsors: t.sponsors ?? [],
                   standings: zoneRounds.map(({ round, ms }) => {
                     const label = round.replace(/zona\s*/i, '').trim().toUpperCase() || 'A';
                     const tabla = tablaZona(ms);
@@ -387,43 +389,53 @@ export default function TorneoDetalle() {
             </div>
           </div>
 
-          {/* Botón imagen del cuadro */}
-          <div className="mb-4">
-            <TournamentPoster
-              label="Imagen del cuadro"
-              input={{
-                mode: 'bracket',
-                tournamentName: t.name,
-                category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
-                matches: knockRounds.flatMap(({ round, ms }) =>
-                  ms.map(m => ({
-                    round,
-                    pair1: m.pair1_id ? {
-                      id: m.pair1_id,
-                      n1: `${firstNameOf(pairsById[m.pair1_id], 1)} ${lastInitialOf(pairsById[m.pair1_id], 1)}`.trim(),
-                      n2: `${firstNameOf(pairsById[m.pair1_id], 2)} ${lastInitialOf(pairsById[m.pair1_id], 2)}`.trim(),
+          {/* Un botón "compartir imagen" por CADA ronda */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {knockRounds.map(({ round, ms }) => {
+              const played = ms.filter((m: any) => m.winner_pair_id).length;
+              const total = ms.length;
+              const state = played === 0 ? 'sin resultados'
+                : played === total ? 'con resultados'
+                : `${played}/${total}`;
+              const isFinal = /final(?!.*semi)/i.test(round);
+              return (
+                <TournamentPoster
+                  key={round}
+                  label={`${round} · ${state}`}
+                  input={{
+                    mode: 'round',
+                    tournamentName: t.name,
+                    category: t.sum_target ? `Suma ${t.sum_target}` : undefined,
+                    roundLabel: round,
+                    matches: ms.map((m: any) => ({
+                      pair1: m.pair1_id ? {
+                        id: m.pair1_id,
+                        n1: `${firstNameOf(pairsById[m.pair1_id], 1)} ${lastInitialOf(pairsById[m.pair1_id], 1)}`.trim(),
+                        n2: `${firstNameOf(pairsById[m.pair1_id], 2)} ${lastInitialOf(pairsById[m.pair1_id], 2)}`.trim(),
+                      } : null,
+                      pair2: m.pair2_id ? {
+                        id: m.pair2_id,
+                        n1: `${firstNameOf(pairsById[m.pair2_id], 1)} ${lastInitialOf(pairsById[m.pair2_id], 1)}`.trim(),
+                        n2: `${firstNameOf(pairsById[m.pair2_id], 2)} ${lastInitialOf(pairsById[m.pair2_id], 2)}`.trim(),
+                      } : null,
+                      score: m.score,
+                      winner_id: m.winner_pair_id
+                    })),
+                    champion: isFinal && campeon ? {
+                      id: campeon.id,
+                      n1: `${firstNameOf(campeon, 1)} ${lastInitialOf(campeon, 1)}`.trim(),
+                      n2: `${firstNameOf(campeon, 2)} ${lastInitialOf(campeon, 2)}`.trim(),
                     } : null,
-                    pair2: m.pair2_id ? {
-                      id: m.pair2_id,
-                      n1: `${firstNameOf(pairsById[m.pair2_id], 1)} ${lastInitialOf(pairsById[m.pair2_id], 1)}`.trim(),
-                      n2: `${firstNameOf(pairsById[m.pair2_id], 2)} ${lastInitialOf(pairsById[m.pair2_id], 2)}`.trim(),
+                    runnerUp: isFinal && subcampeon ? {
+                      id: subcampeon.id,
+                      n1: `${firstNameOf(subcampeon, 1)} ${lastInitialOf(subcampeon, 1)}`.trim(),
+                      n2: `${firstNameOf(subcampeon, 2)} ${lastInitialOf(subcampeon, 2)}`.trim(),
                     } : null,
-                    score: m.score,
-                    winner_id: m.winner_pair_id
-                  }))
-                ),
-                champion: campeon ? {
-                  id: campeon.id,
-                  n1: `${firstNameOf(campeon, 1)} ${lastInitialOf(campeon, 1)}`.trim(),
-                  n2: `${firstNameOf(campeon, 2)} ${lastInitialOf(campeon, 2)}`.trim(),
-                } : null,
-                runnerUp: subcampeon ? {
-                  id: subcampeon.id,
-                  n1: `${firstNameOf(subcampeon, 1)} ${lastInitialOf(subcampeon, 1)}`.trim(),
-                  n2: `${firstNameOf(subcampeon, 2)} ${lastInitialOf(subcampeon, 2)}`.trim(),
-                } : null
-              }}
-            />
+                    sponsors: t.sponsors ?? []
+                  }}
+                />
+              );
+            })}
           </div>
 
           <Bracket knockRounds={knockRounds} pairsById={pairsById} />

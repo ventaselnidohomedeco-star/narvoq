@@ -1,33 +1,50 @@
 'use client';
 import { useState } from 'react';
 
-// Poster generado en Canvas: PNG descargable con branding NarvoQ.
-// 3 modos: 'groups' (armado inicial), 'standings' (post fase de grupos), 'bracket' (eliminatoria).
-// No usa dependencias externas — Canvas API puro.
+// Generador de posters compartibles del torneo (Canvas puro, sin deps).
+// Modos:
+//   - 'groups'     → grid de grupos con integrantes
+//   - 'standings'  → tablas de posiciones por grupo (post fase de grupos)
+//   - 'round'      → una fase eliminatoria concreta (preliminar/octavos/…/final)
+// Todos los modos incluyen auspiciantes al pie si se pasan.
 
-type PairRow = { id: string; n1: string; n2: string; };
-type GroupSummary = { label: string; members: PairRow[] };
-type StandingRow = { pair: PairRow; pts: number; pg: number; pj: number; ds: number };
-type StandingSummary = { label: string; rows: StandingRow[] };
-type BracketMatch = {
-  round: string;       // "Play-in", "Preliminar", "Octavos", "Cuartos", "Semifinal", "Final"
+export type PairRow = { id: string; n1: string; n2: string };
+export type GroupSummary = { label: string; members: PairRow[] };
+export type StandingRow = { pair: PairRow; pts: number; pg: number; pj: number; ds: number };
+export type StandingSummary = { label: string; rows: StandingRow[] };
+export type RoundMatch = {
   pair1?: PairRow | null;
   pair2?: PairRow | null;
   score?: string | null;
   winner_id?: string | null;
 };
+export type Sponsor = { name?: string; logo_url: string; url?: string };
 
 export type PosterInput =
-  | { mode: 'groups'; tournamentName: string; category?: string; groups: GroupSummary[] }
-  | { mode: 'standings'; tournamentName: string; category?: string; standings: StandingSummary[] }
-  | { mode: 'bracket'; tournamentName: string; category?: string; matches: BracketMatch[]; champion?: PairRow | null; runnerUp?: PairRow | null };
+  | { mode: 'groups'; tournamentName: string; category?: string; groups: GroupSummary[]; sponsors?: Sponsor[] }
+  | { mode: 'standings'; tournamentName: string; category?: string; standings: StandingSummary[]; sponsors?: Sponsor[] }
+  | {
+      mode: 'round';
+      tournamentName: string;
+      category?: string;
+      roundLabel: string;              // "Preliminar", "Octavos", "Cuartos", "Semifinal", "Final"
+      matches: RoundMatch[];
+      showSubtitle?: boolean;
+      champion?: PairRow | null;       // solo en final con ganador
+      runnerUp?: PairRow | null;
+      sponsors?: Sponsor[];
+    };
 
+// Paleta NarvoQ
 const BALL = '#D8F646';
-const COURT = '#0A1633';
-const GRAFITO = '#2A2E36';
+const BALL_DARK = '#8FA82C';
+const BG = '#0A0F1A';
+const CARD = '#141B2A';
+const CARD_LIGHT = '#1D2637';
 const WHITE = '#FFFFFF';
-const WHITE70 = 'rgba(255,255,255,0.7)';
-const WHITE40 = 'rgba(255,255,255,0.4)';
+const W80 = 'rgba(255,255,255,0.8)';
+const W60 = 'rgba(255,255,255,0.6)';
+const W30 = 'rgba(255,255,255,0.3)';
 
 export default function TournamentPoster({ input, label }: { input: PosterInput; label?: string }) {
   const [busy, setBusy] = useState(false);
@@ -35,18 +52,26 @@ export default function TournamentPoster({ input, label }: { input: PosterInput;
   async function generate() {
     setBusy(true);
     try {
+      // 1) Precargar imágenes de auspiciantes (Canvas necesita HTMLImageElement listo)
+      const sponsors = ('sponsors' in input && input.sponsors) ? input.sponsors : [];
+      const sponsorImgs = await Promise.all(
+        sponsors.map(s => loadImage(s.logo_url).catch(() => null))
+      );
+
+      // 2) Dibujar
       const canvas = document.createElement('canvas');
-      // Resolución alta para calidad de descarga
       canvas.width = 1200;
       canvas.height = 1600;
       const ctx = canvas.getContext('2d')!;
-      drawPoster(ctx, canvas.width, canvas.height, input);
+      drawPoster(ctx, canvas.width, canvas.height, input, sponsorImgs);
 
-      // Descargar como PNG
+      // 3) Descargar
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       const safeName = input.tournamentName.replace(/[^\w\-]+/g, '_');
-      const suffix = input.mode === 'groups' ? 'grupos' : input.mode === 'standings' ? 'posiciones' : 'cuadro';
+      const suffix = input.mode === 'groups' ? 'grupos'
+        : input.mode === 'standings' ? 'posiciones'
+        : input.roundLabel.toLowerCase().replace(/\s+/g, '_');
       a.href = url;
       a.download = `NarvoQ_${safeName}_${suffix}.png`;
       a.click();
@@ -68,324 +93,504 @@ export default function TournamentPoster({ input, label }: { input: PosterInput;
   );
 }
 
-// ==================== Dibujar ====================
+// ==================== Composición general ====================
 
-function drawPoster(ctx: CanvasRenderingContext2D, W: number, H: number, input: PosterInput) {
-  // Fondo negro
-  ctx.fillStyle = '#000';
+function drawPoster(
+  ctx: CanvasRenderingContext2D, W: number, H: number,
+  input: PosterInput, sponsorImgs: (HTMLImageElement | null)[]
+) {
+  // Fondo con gradiente sutil
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0F1524');
+  bg.addColorStop(1, '#050810');
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Gradiente sutil de fondo
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, 'rgba(216,246,70,0.06)');
-  grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(216,246,70,0.04)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
+  // Textura de "grid" muy sutil de cancha
+  ctx.strokeStyle = 'rgba(216,246,70,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
 
-  // Header con logo
-  drawHeader(ctx, W, input.tournamentName, input.category);
-
-  // Contenido según modo
-  if (input.mode === 'groups') drawGroups(ctx, W, H, input.groups);
-  else if (input.mode === 'standings') drawStandings(ctx, W, H, input.standings);
-  else drawBracket(ctx, W, H, input.matches, input.champion, input.runnerUp);
-
-  // Footer
-  drawFooter(ctx, W, H);
-}
-
-function drawHeader(ctx: CanvasRenderingContext2D, W: number, title: string, category?: string) {
-  // Wordmark NarvoQ (dibujado a mano — evita cargar imagen async)
-  const cx = W / 2;
-  const topY = 90;
-
-  // Bloque marca
-  ctx.font = 'bold 68px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  // "narvo" + "Q" con Q en lima
-  const totalText = 'narvoQ';
-  const qPos = ctx.measureText('narvo').width;
-  ctx.fillStyle = WHITE;
-  ctx.fillText('narvo', cx - ctx.measureText('narvoQ').width / 2 + ctx.measureText('narvo').width / 2, topY);
-
-  // Q en lima con círculo
+  // Banda diagonal decorativa en esquina superior derecha
+  ctx.save();
   ctx.fillStyle = BALL;
-  ctx.fillText('Q', cx - ctx.measureText('narvoQ').width / 2 + qPos + ctx.measureText('Q').width / 2, topY);
-
-  // Línea divisoria
-  ctx.strokeStyle = 'rgba(216,246,70,0.4)';
-  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 200, topY + 60);
-  ctx.lineTo(cx + 200, topY + 60);
+  ctx.moveTo(W, 0); ctx.lineTo(W, 80); ctx.lineTo(W - 320, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Franja negra para auspiciantes al pie
+  const footerH = sponsorImgs.length > 0 ? 180 : 90;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, H - footerH, W, footerH);
+  ctx.strokeStyle = BALL;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, H - footerH); ctx.lineTo(W, H - footerH);
   ctx.stroke();
 
-  // Título del torneo
-  ctx.font = 'bold 44px system-ui, sans-serif';
+  // Header
+  drawHeader(ctx, W, input.tournamentName, input.category);
+
+  // Contenido
+  const contentTop = 340;
+  const contentBottom = H - footerH - 40;
+
+  if (input.mode === 'groups') drawGroups(ctx, W, contentTop, contentBottom, input.groups);
+  else if (input.mode === 'standings') drawStandings(ctx, W, contentTop, contentBottom, input.standings);
+  else drawRound(ctx, W, contentTop, contentBottom, input.roundLabel, input.matches, input.champion, input.runnerUp);
+
+  // Auspiciantes al pie
+  drawSponsors(ctx, W, H, footerH, input.sponsors ?? [], sponsorImgs);
+}
+
+// ==================== Header ====================
+
+function drawHeader(ctx: CanvasRenderingContext2D, W: number, title: string, category?: string) {
+  const cx = W / 2;
+
+  // Wordmark "narvoQ"
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '900 82px system-ui, -apple-system, sans-serif';
+
+  const parte1 = 'narvo';
+  const parte2 = 'Q';
+  const w1 = ctx.measureText(parte1).width;
+  const w2 = ctx.measureText(parte2).width;
+  const totalW = w1 + w2;
+  const startX = cx - totalW / 2;
+
   ctx.fillStyle = WHITE;
-  const titleY = topY + 110;
-  wrappedText(ctx, title.toUpperCase(), cx, titleY, W - 100, 50, 2);
+  ctx.textAlign = 'left';
+  ctx.fillText(parte1, startX, 100);
+
+  ctx.fillStyle = BALL;
+  ctx.fillText(parte2, startX + w1, 100);
+
+  // Tag "TORNEO" chico
+  ctx.textAlign = 'center';
+  ctx.font = '900 14px system-ui, sans-serif';
+  ctx.fillStyle = BALL;
+  ctx.fillText('T O R N E O   O F I C I A L', cx, 160);
+
+  // Divider
+  ctx.strokeStyle = 'rgba(216,246,70,0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 220, 190); ctx.lineTo(cx + 220, 190); ctx.stroke();
+
+  // Título del torneo
+  ctx.font = '900 42px system-ui, sans-serif';
+  ctx.fillStyle = WHITE;
+  wrappedText(ctx, title.toUpperCase(), cx, 230, W - 120, 48, 2);
 
   // Categoría
   if (category) {
-    ctx.font = 'bold 24px system-ui, sans-serif';
-    ctx.fillStyle = WHITE70;
-    ctx.fillText(category.toUpperCase(), cx, titleY + 60);
+    ctx.font = '700 22px system-ui, sans-serif';
+    ctx.fillStyle = W60;
+    ctx.fillText(category.toUpperCase(), cx, 300);
   }
 }
 
-function drawGroups(ctx: CanvasRenderingContext2D, W: number, H: number, groups: GroupSummary[]) {
-  // Sub-título
-  const subY = 340;
-  ctx.font = 'bold 32px system-ui, sans-serif';
+// ==================== Grupos ====================
+
+function drawGroups(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, groups: GroupSummary[]) {
+  ctx.font = '900 34px system-ui, sans-serif';
   ctx.fillStyle = BALL;
   ctx.textAlign = 'center';
-  ctx.fillText('GRUPOS DEFINIDOS', W / 2, subY);
+  ctx.fillText('GRUPOS DEFINIDOS', W / 2, top);
 
-  // Grid de grupos: 2 columnas (para hasta 8 grupos)
-  const cols = groups.length <= 4 ? 2 : Math.ceil(Math.sqrt(groups.length));
+  const areaTop = top + 60;
+  const areaH = bottom - areaTop;
+  const cols = groups.length <= 4 ? 2 : Math.min(4, Math.ceil(Math.sqrt(groups.length)));
   const rows = Math.ceil(groups.length / cols);
-  const gap = 30;
-  const marginX = 60;
-  const startY = subY + 60;
-  const availableH = H - startY - 100;
+  const gap = 24;
+  const marginX = 50;
   const cardW = (W - marginX * 2 - gap * (cols - 1)) / cols;
-  const cardH = Math.min(400, (availableH - gap * (rows - 1)) / rows);
+  const cardH = Math.min(420, (areaH - gap * (rows - 1)) / rows);
 
   groups.forEach((g, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = marginX + col * (cardW + gap);
-    const y = startY + row * (cardH + gap);
+    const y = areaTop + row * (cardH + gap);
     drawGroupCard(ctx, x, y, cardW, cardH, g);
   });
 }
 
 function drawGroupCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, g: GroupSummary) {
-  // Fondo con borde lima
-  ctx.fillStyle = 'rgba(216,246,70,0.08)';
-  roundRect(ctx, x, y, w, h, 20);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(216,246,70,0.3)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  // Card
+  ctx.fillStyle = CARD;
+  roundRect(ctx, x, y, w, h, 16); ctx.fill();
+  ctx.strokeStyle = 'rgba(216,246,70,0.4)';
+  ctx.lineWidth = 2; ctx.stroke();
 
-  // Header del grupo
+  // Header lima
   ctx.fillStyle = BALL;
-  roundRect(ctx, x, y, w, 50, 20, { bottomLeft: 0, bottomRight: 0 });
+  roundRect(ctx, x, y, w, 56, 16, { bottomLeft: 0, bottomRight: 0 });
   ctx.fill();
 
-  ctx.font = 'bold 26px system-ui, sans-serif';
-  ctx.fillStyle = COURT;
+  // Etiqueta grande "A", "B", …
+  ctx.fillStyle = 'rgba(10,15,26,0.15)';
+  ctx.font = '900 90px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(g.label, x + 12, y + h / 2 + 20);
+
+  // Texto header
+  ctx.fillStyle = '#0A0F1A';
+  ctx.font = '900 24px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`GRUPO ${g.label}`, x + w / 2, y + 25);
+  ctx.fillText(`GRUPO ${g.label}`, x + w / 2, y + 28);
 
-  // Lista de parejas
-  const rowH = (h - 60) / Math.max(1, g.members.length);
+  // Miembros
+  const listTop = y + 76;
+  const listH = h - 86;
+  const rowH = listH / Math.max(1, g.members.length);
+
   g.members.forEach((p, i) => {
-    const yy = y + 60 + i * rowH;
-    // Separador
+    const yy = listTop + i * rowH;
     if (i > 0) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x + 20, yy);
-      ctx.lineTo(x + w - 20, yy);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 20, yy); ctx.lineTo(x + w - 20, yy); ctx.stroke();
     }
-    // Número
-    ctx.font = 'bold 18px system-ui, sans-serif';
+    // Bullet lima
     ctx.fillStyle = BALL;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`${i + 1}`, x + 20, yy + rowH / 2);
+    ctx.beginPath();
+    ctx.arc(x + 28, yy + rowH / 2, 4, 0, Math.PI * 2);
+    ctx.fill();
 
     // Nombres
-    ctx.font = 'bold 20px system-ui, sans-serif';
+    ctx.font = '700 20px system-ui, sans-serif';
     ctx.fillStyle = WHITE;
-    const label = `${p.n1} & ${p.n2}`;
-    const truncated = truncateText(ctx, label, w - 60);
-    ctx.fillText(truncated, x + 50, yy + rowH / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const label = `${p.n1}   &   ${p.n2}`;
+    ctx.fillText(truncateText(ctx, label, w - 60), x + 44, yy + rowH / 2);
   });
 }
 
-function drawStandings(ctx: CanvasRenderingContext2D, W: number, H: number, standings: StandingSummary[]) {
-  const subY = 340;
-  ctx.font = 'bold 32px system-ui, sans-serif';
+// ==================== Standings ====================
+
+function drawStandings(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, standings: StandingSummary[]) {
+  ctx.font = '900 34px system-ui, sans-serif';
   ctx.fillStyle = BALL;
   ctx.textAlign = 'center';
-  ctx.fillText('POSICIONES FINALES', W / 2, subY);
+  ctx.fillText('POSICIONES FINALES', W / 2, top);
 
-  const cols = standings.length <= 4 ? 2 : Math.ceil(Math.sqrt(standings.length));
+  const areaTop = top + 60;
+  const areaH = bottom - areaTop;
+  const cols = standings.length <= 4 ? 2 : Math.min(4, Math.ceil(Math.sqrt(standings.length)));
   const rows = Math.ceil(standings.length / cols);
-  const gap = 30;
-  const marginX = 60;
-  const startY = subY + 60;
-  const availableH = H - startY - 100;
+  const gap = 24;
+  const marginX = 50;
   const cardW = (W - marginX * 2 - gap * (cols - 1)) / cols;
-  const cardH = Math.min(440, (availableH - gap * (rows - 1)) / rows);
+  const cardH = Math.min(440, (areaH - gap * (rows - 1)) / rows);
 
   standings.forEach((s, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = marginX + col * (cardW + gap);
-    const y = startY + row * (cardH + gap);
+    const y = areaTop + row * (cardH + gap);
     drawStandingCard(ctx, x, y, cardW, cardH, s);
   });
 }
 
 function drawStandingCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: StandingSummary) {
-  ctx.fillStyle = 'rgba(216,246,70,0.08)';
-  roundRect(ctx, x, y, w, h, 20);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(216,246,70,0.3)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.fillStyle = CARD;
+  roundRect(ctx, x, y, w, h, 16); ctx.fill();
+  ctx.strokeStyle = 'rgba(216,246,70,0.4)';
+  ctx.lineWidth = 2; ctx.stroke();
 
-  // Header
+  // Header lima
   ctx.fillStyle = BALL;
-  roundRect(ctx, x, y, w, 50, 20, { bottomLeft: 0, bottomRight: 0 });
+  roundRect(ctx, x, y, w, 50, 16, { bottomLeft: 0, bottomRight: 0 });
   ctx.fill();
-  ctx.font = 'bold 26px system-ui, sans-serif';
-  ctx.fillStyle = COURT;
+  ctx.font = '900 22px system-ui, sans-serif';
+  ctx.fillStyle = '#0A0F1A';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`ZONA ${s.label}`, x + w / 2, y + 25);
+  ctx.fillText(`GRUPO ${s.label}`, x + w / 2, y + 25);
 
-  // Columnas de header interno
-  const headerY = y + 70;
-  ctx.font = 'bold 14px system-ui, sans-serif';
-  ctx.fillStyle = WHITE40;
+  // Columnas headers
+  const headerY = y + 74;
+  ctx.font = '800 12px system-ui, sans-serif';
+  ctx.fillStyle = W30;
   ctx.textAlign = 'left';
-  ctx.fillText('#', x + 20, headerY);
-  ctx.fillText('PAREJA', x + 50, headerY);
+  ctx.fillText('#', x + 16, headerY);
+  ctx.fillText('PAREJA', x + 44, headerY);
   ctx.textAlign = 'right';
   ctx.fillText('PJ', x + w - 130, headerY);
   ctx.fillText('DS', x + w - 80, headerY);
   ctx.fillText('PTS', x + w - 20, headerY);
 
-  const rowH = (h - 90) / Math.max(1, s.rows.length);
+  const rowsTop = headerY + 18;
+  const rowH = (h - 96) / Math.max(1, s.rows.length);
   s.rows.forEach((r, i) => {
-    const yy = headerY + 20 + i * rowH;
-    // Row bg (primeros dos con lima leve)
-    if (i < 2) {
-      ctx.fillStyle = 'rgba(216,246,70,0.1)';
-      roundRect(ctx, x + 10, yy, w - 20, rowH - 4, 8);
+    const yy = rowsTop + i * rowH;
+    const clasifica = i < 2;
+
+    // Fondo clasificado
+    if (clasifica) {
+      ctx.fillStyle = 'rgba(216,246,70,0.12)';
+      roundRect(ctx, x + 8, yy + 2, w - 16, rowH - 4, 8);
       ctx.fill();
     }
 
-    // Posición
-    ctx.font = 'bold 22px system-ui, sans-serif';
-    ctx.fillStyle = i < 2 ? BALL : WHITE70;
+    // # posición
+    ctx.font = '900 20px system-ui, sans-serif';
+    ctx.fillStyle = clasifica ? BALL : W60;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${i + 1}`, x + 20, yy + rowH / 2);
+    ctx.fillText(`${i + 1}`, x + 16, yy + rowH / 2);
 
     // Nombres
-    ctx.font = i < 2 ? 'bold 18px system-ui, sans-serif' : '18px system-ui, sans-serif';
-    ctx.fillStyle = i < 2 ? WHITE : WHITE70;
-    const label = `${r.pair.n1} & ${r.pair.n2}`;
-    const truncated = truncateText(ctx, label, w - 200);
-    ctx.fillText(truncated, x + 50, yy + rowH / 2);
+    ctx.font = clasifica ? '800 17px system-ui, sans-serif' : '700 16px system-ui, sans-serif';
+    ctx.fillStyle = clasifica ? WHITE : W80;
+    ctx.fillText(truncateText(ctx, `${r.pair.n1} & ${r.pair.n2}`, w - 190), x + 44, yy + rowH / 2);
 
     // Stats
+    ctx.font = '700 16px system-ui, sans-serif';
+    ctx.fillStyle = W60;
     ctx.textAlign = 'right';
-    ctx.font = 'bold 18px system-ui, sans-serif';
-    ctx.fillStyle = WHITE70;
     ctx.fillText(`${r.pj}`, x + w - 130, yy + rowH / 2);
     ctx.fillText(`${r.ds >= 0 ? '+' : ''}${r.ds}`, x + w - 80, yy + rowH / 2);
-    ctx.fillStyle = i < 2 ? BALL : WHITE;
-    ctx.font = 'bold 22px system-ui, sans-serif';
+    ctx.font = '900 20px system-ui, sans-serif';
+    ctx.fillStyle = clasifica ? BALL : WHITE;
     ctx.fillText(`${r.pts}`, x + w - 20, yy + rowH / 2);
   });
 }
 
-function drawBracket(ctx: CanvasRenderingContext2D, W: number, H: number, matches: BracketMatch[], champion?: PairRow | null, runnerUp?: PairRow | null) {
-  const subY = 340;
-  ctx.font = 'bold 32px system-ui, sans-serif';
+// ==================== Ronda eliminatoria (individual) ====================
+
+function drawRound(
+  ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number,
+  roundLabel: string, matches: RoundMatch[],
+  champion?: PairRow | null, runnerUp?: PairRow | null
+) {
+  // Título grande de la ronda
+  ctx.font = '900 52px system-ui, sans-serif';
   ctx.fillStyle = BALL;
   ctx.textAlign = 'center';
-  ctx.fillText('CUADRO ELIMINATORIO', W / 2, subY);
+  ctx.textBaseline = 'middle';
+  ctx.fillText(roundLabel.toUpperCase(), W / 2, top + 20);
 
-  // Agrupar por ronda
-  const byRound: Record<string, BracketMatch[]> = {};
-  matches.forEach(m => { (byRound[m.round] ||= []).push(m); });
-  const roundNames = ['Play-in', 'Preliminar', 'Octavos', 'Cuartos', 'Semifinal', 'Final']
-    .filter(r => byRound[r]?.length);
+  // Sub-badge según estado
+  const played = matches.filter(m => m.winner_id).length;
+  const total = matches.length;
+  const status = played === 0 ? 'CRUCES DEFINIDOS'
+    : played === total ? 'RESULTADOS FINALES'
+    : `${played}/${total} PARTIDOS DISPUTADOS`;
+  ctx.font = '900 15px system-ui, sans-serif';
+  ctx.fillStyle = W60;
+  ctx.fillText(status, W / 2, top + 60);
 
-  // Copa al centro
-  const centerX = W / 2;
-  const centerY = 950;
-  drawTrophy(ctx, centerX, centerY, 200);
-
-  // Campeón debajo de la copa
-  if (champion) {
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 20px system-ui, sans-serif';
-    ctx.fillStyle = BALL;
-    ctx.fillText('CAMPEONES', centerX, centerY + 130);
-    ctx.font = 'bold 26px system-ui, sans-serif';
-    ctx.fillStyle = WHITE;
-    ctx.fillText(`${champion.n1} & ${champion.n2}`, centerX, centerY + 165);
+  // Caso especial: FINAL con campeón — mostrar copa + campeón grande
+  const isFinal = /final/i.test(roundLabel) && matches.length === 1;
+  if (isFinal && champion) {
+    drawFinalWithChampion(ctx, W, top + 100, bottom, matches[0], champion, runnerUp);
+    return;
   }
 
-  if (runnerUp) {
-    ctx.font = '16px system-ui, sans-serif';
-    ctx.fillStyle = WHITE40;
-    ctx.fillText(`Sub-campeones: ${runnerUp.n1} & ${runnerUp.n2}`, centerX, centerY + 200);
-  }
+  // Grid de partidos
+  const areaTop = top + 100;
+  const areaH = bottom - areaTop;
+  const cols = matches.length === 1 ? 1 : matches.length <= 2 ? 1 : matches.length <= 4 ? 2 : 2;
+  const rows = Math.ceil(matches.length / cols);
+  const gap = 24;
+  const marginX = matches.length === 1 ? 120 : 60;
+  const cardW = (W - marginX * 2 - gap * (cols - 1)) / cols;
+  const cardH = Math.min(180, (areaH - gap * (rows - 1)) / rows);
 
-  // Dibujar rondas en columnas: izquierda las primeras, derecha las últimas
-  // Para simplificar, mostramos la ronda MÁS COMPLETA (la primera) del cuadro
-  // Y solo listamos las rondas con matches
-  const listY = subY + 60;
-  const listH = 500;
-  const colW = 260;
-  const cols = roundNames.length;
-  const marginX = Math.max(40, (W - cols * colW) / 2);
-
-  roundNames.forEach((r, idx) => {
-    const x = marginX + idx * colW;
-    // Header ronda
-    ctx.font = 'bold 20px system-ui, sans-serif';
-    ctx.fillStyle = BALL;
-    ctx.textAlign = 'center';
-    ctx.fillText(r.toUpperCase(), x + colW / 2 - 20, listY);
-
-    // Lista de matches
-    const ms = byRound[r];
-    const matchH = Math.min(60, (listH - 40) / Math.max(1, ms.length));
-    ms.forEach((m, i) => {
-      const yy = listY + 30 + i * (matchH + 4);
-      drawMatchRow(ctx, x, yy, colW - 30, matchH, m);
-    });
+  matches.forEach((m, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = marginX + col * (cardW + gap);
+    const y = areaTop + row * (cardH + gap);
+    drawMatchCard(ctx, x, y, cardW, cardH, m, i + 1);
   });
 }
 
-function drawMatchRow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, m: BracketMatch) {
-  ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  roundRect(ctx, x, y, w, h, 8);
+function drawMatchCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, m: RoundMatch, num: number) {
+  // Fondo
+  ctx.fillStyle = CARD;
+  roundRect(ctx, x, y, w, h, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(216,246,70,0.35)';
+  ctx.lineWidth = 2; ctx.stroke();
+
+  // Badge de número
+  ctx.fillStyle = BALL;
+  ctx.beginPath();
+  ctx.arc(x + 26, y + 26, 20, 0, Math.PI * 2);
   ctx.fill();
+  ctx.font = '900 20px system-ui, sans-serif';
+  ctx.fillStyle = '#0A0F1A';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`${num}`, x + 26, y + 26);
 
-  const drawTeam = (pair: PairRow | null | undefined, isWinner: boolean, offsetY: number) => {
-    ctx.font = isWinner ? 'bold 13px system-ui, sans-serif' : '12px system-ui, sans-serif';
-    ctx.fillStyle = isWinner ? BALL : pair ? WHITE70 : WHITE40;
-    ctx.textAlign = 'left';
+  // Score al centro (si hay)
+  const hasScore = !!m.score;
+  const scoreW = 140;
+  const scoreX = x + w - scoreW - 16;
+
+  if (hasScore) {
+    ctx.fillStyle = BALL;
+    roundRect(ctx, scoreX, y + h / 2 - 24, scoreW, 48, 8);
+    ctx.fill();
+    ctx.fillStyle = '#0A0F1A';
+    ctx.font = '900 22px system-ui, sans-serif';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const label = pair ? `${pair.n1} & ${pair.n2}` : '— pendiente —';
-    const truncated = truncateText(ctx, label, w - 20);
-    ctx.fillText(truncated, x + 10, y + offsetY);
-  };
+    ctx.fillText(truncateText(ctx, m.score!, scoreW - 20), scoreX + scoreW / 2, y + h / 2);
+  }
 
-  drawTeam(m.pair1, m.winner_id === m.pair1?.id, h * 0.3);
-  drawTeam(m.pair2, m.winner_id === m.pair2?.id, h * 0.7);
+  // Nombres pareja 1 y 2
+  const nameX = x + 56;
+  const nameMaxW = (hasScore ? scoreX - nameX - 20 : w - nameX - 20);
+  drawTeamLine(ctx, nameX, y + h * 0.30, nameMaxW, m.pair1, m.winner_id === m.pair1?.id, m.winner_id != null && !!m.pair1);
+  drawSeparator(ctx, x + 56, y + h * 0.5, w - 76);
+  drawTeamLine(ctx, nameX, y + h * 0.70, nameMaxW, m.pair2, m.winner_id === m.pair2?.id, m.winner_id != null && !!m.pair2);
+
+  // VS al centro si NO hay resultado
+  if (!hasScore) {
+    ctx.font = '900 24px system-ui, sans-serif';
+    ctx.fillStyle = W30;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('VS', x + w - 30, y + h / 2);
+  }
 }
 
-// Copa de pádel (dibujada a mano — similar a la de Padeleros Argentina)
+function drawTeamLine(ctx: CanvasRenderingContext2D, x: number, y: number, maxW: number, pair: PairRow | null | undefined, isWinner: boolean, decided: boolean) {
+  const isLoser = decided && !isWinner;
+  ctx.font = isWinner ? '900 22px system-ui, sans-serif' : '700 20px system-ui, sans-serif';
+  ctx.fillStyle = isWinner ? BALL : isLoser ? W30 : WHITE;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const label = pair ? `${pair.n1} & ${pair.n2}` : '— A definir —';
+  ctx.fillText(truncateText(ctx, label, maxW), x, y);
+
+  // Check ganador
+  if (isWinner) {
+    ctx.font = '900 22px system-ui, sans-serif';
+    ctx.fillStyle = BALL;
+    ctx.textAlign = 'right';
+    // (dibujado a la derecha si hay espacio)
+  }
+}
+
+function drawSeparator(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
+}
+
+function drawFinalWithChampion(
+  ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number,
+  finalMatch: RoundMatch, champion: PairRow, runnerUp?: PairRow | null
+) {
+  const cx = W / 2;
+  // Copa
+  drawTrophy(ctx, cx, top + 200, 240);
+
+  // Label CAMPEONES
+  ctx.font = '900 20px system-ui, sans-serif';
+  ctx.fillStyle = BALL;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('★ CAMPEONES ★', cx, top + 380);
+
+  // Nombres campeón
+  ctx.font = '900 38px system-ui, sans-serif';
+  ctx.fillStyle = WHITE;
+  wrappedText(ctx, `${champion.n1} & ${champion.n2}`, cx, top + 425, W - 120, 44, 2);
+
+  // Score final
+  if (finalMatch.score) {
+    ctx.fillStyle = BALL;
+    const scoreLabel = finalMatch.score;
+    ctx.font = '900 24px system-ui, sans-serif';
+    const w = ctx.measureText(scoreLabel).width + 40;
+    roundRect(ctx, cx - w / 2, top + 490, w, 46, 10);
+    ctx.fill();
+    ctx.fillStyle = '#0A0F1A';
+    ctx.fillText(scoreLabel, cx, top + 513);
+  }
+
+  // Sub-campeón
+  if (runnerUp) {
+    ctx.font = '700 18px system-ui, sans-serif';
+    ctx.fillStyle = W60;
+    ctx.textAlign = 'center';
+    ctx.fillText(`Sub-campeones: ${runnerUp.n1} & ${runnerUp.n2}`, cx, top + 560);
+  }
+}
+
+// ==================== Auspiciantes ====================
+
+function drawSponsors(
+  ctx: CanvasRenderingContext2D, W: number, H: number, footerH: number,
+  sponsors: Sponsor[], imgs: (HTMLImageElement | null)[]
+) {
+  const baseY = H - footerH;
+
+  // Título AUSPICIAN
+  if (sponsors.length > 0) {
+    ctx.font = '900 14px system-ui, sans-serif';
+    ctx.fillStyle = BALL;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('A U S P I C I A N', W / 2, baseY + 22);
+
+    // Grid de logos
+    const validImgs = imgs.map((im, i) => ({ im, sponsor: sponsors[i] })).filter(x => x.im);
+    if (validImgs.length > 0) {
+      const logoAreaTop = baseY + 48;
+      const logoAreaBottom = H - 30;
+      const logoH = 80;
+      const maxLogos = 6;
+      const shown = validImgs.slice(0, maxLogos);
+      const gap = 24;
+      const totalMaxW = W - 80;
+      const logoW = Math.min(160, (totalMaxW - gap * (shown.length - 1)) / shown.length);
+      const totalW = shown.length * logoW + (shown.length - 1) * gap;
+      let cx = (W - totalW) / 2;
+      const cy = (logoAreaTop + logoAreaBottom) / 2 - logoH / 2;
+
+      shown.forEach(({ im }) => {
+        if (!im) return;
+        // Fit dentro de logoW x logoH manteniendo ratio
+        const ratio = im.width / im.height;
+        let dw = logoW, dh = logoW / ratio;
+        if (dh > logoH) { dh = logoH; dw = logoH * ratio; }
+        const dx = cx + (logoW - dw) / 2;
+        const dy = cy + (logoH - dh) / 2;
+        // Fondo blanco redondeado para logos que sean transparentes o oscuros
+        ctx.fillStyle = '#FFFFFF';
+        roundRect(ctx, cx - 4, cy - 4, logoW + 8, logoH + 8, 8);
+        ctx.fill();
+        ctx.drawImage(im, dx, dy, dw, dh);
+        cx += logoW + gap;
+      });
+    }
+  }
+
+  // Footer legal
+  ctx.font = '700 12px system-ui, sans-serif';
+  ctx.fillStyle = W60;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Generado con narvoQ · narvoq.vercel.app', W / 2, H - 15);
+}
+
+// ==================== Copa ====================
+
 function drawTrophy(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number) {
   const scale = size / 200;
   ctx.save();
@@ -394,100 +599,102 @@ function drawTrophy(ctx: CanvasRenderingContext2D, cx: number, cy: number, size:
 
   // Base
   ctx.fillStyle = '#8B6914';
-  roundRect(ctx, -60, 70, 120, 20, 4);
-  ctx.fill();
-
-  // Peana
+  roundRect(ctx, -60, 70, 120, 22, 4); ctx.fill();
   ctx.fillStyle = '#5A4409';
-  roundRect(ctx, -50, 60, 100, 20, 4);
-  ctx.fill();
+  roundRect(ctx, -50, 58, 100, 18, 4); ctx.fill();
 
-  // Cuerpo copa (silueta)
+  // Copa (gradiente plata)
   const grad = ctx.createLinearGradient(-50, -80, 50, 60);
-  grad.addColorStop(0, '#F5F5F5');
-  grad.addColorStop(0.5, '#C0C0C0');
-  grad.addColorStop(1, '#909090');
+  grad.addColorStop(0, '#F8F8F8');
+  grad.addColorStop(0.5, '#C8C8C8');
+  grad.addColorStop(1, '#8A8A8A');
   ctx.fillStyle = grad;
 
   ctx.beginPath();
-  // Tazón invertido
-  ctx.moveTo(-50, -60);
-  ctx.bezierCurveTo(-50, -20, -40, 30, 0, 30);
-  ctx.bezierCurveTo(40, 30, 50, -20, 50, -60);
-  ctx.lineTo(50, -80);
-  ctx.lineTo(-50, -80);
+  ctx.moveTo(-52, -70);
+  ctx.bezierCurveTo(-52, -20, -40, 32, 0, 32);
+  ctx.bezierCurveTo(40, 32, 52, -20, 52, -70);
+  ctx.lineTo(52, -85);
+  ctx.lineTo(-52, -85);
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = '#666';
+  ctx.strokeStyle = '#555';
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Tapa con perilla
-  ctx.fillStyle = '#D0D0D0';
+  // Boca de la copa
+  ctx.fillStyle = '#D8D8D8';
   ctx.beginPath();
-  ctx.ellipse(0, -85, 40, 12, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -85, 52, 12, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
+  // Tapa/perilla
   ctx.beginPath();
-  ctx.arc(0, -105, 10, 0, Math.PI * 2);
+  ctx.arc(0, -110, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#D8D8D8';
   ctx.fill();
   ctx.stroke();
 
   // Asas
-  ctx.strokeStyle = '#909090';
-  ctx.lineWidth = 8;
+  ctx.strokeStyle = '#A0A0A0';
+  ctx.lineWidth = 9;
   ctx.beginPath();
-  ctx.arc(-60, -40, 20, -Math.PI / 2, Math.PI / 2);
+  ctx.arc(-62, -40, 22, -Math.PI / 2, Math.PI / 2);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(60, -40, 20, Math.PI / 2, -Math.PI / 2, true);
-  ctx.stroke();
-
-  // Cintas argentinas (celeste + blanco)
-  ctx.strokeStyle = '#75AADB';
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.moveTo(-30, 30);
-  ctx.bezierCurveTo(-40, 70, -35, 110, -50, 130);
-  ctx.stroke();
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.beginPath();
-  ctx.moveTo(-30, 35);
-  ctx.bezierCurveTo(-35, 75, -30, 115, -45, 135);
+  ctx.arc(62, -40, 22, Math.PI / 2, -Math.PI / 2, true);
   ctx.stroke();
 
-  ctx.strokeStyle = '#75AADB';
-  ctx.beginPath();
-  ctx.moveTo(30, 30);
-  ctx.bezierCurveTo(40, 70, 35, 110, 50, 130);
-  ctx.stroke();
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.beginPath();
-  ctx.moveTo(30, 35);
-  ctx.bezierCurveTo(35, 75, 30, 115, 45, 135);
-  ctx.stroke();
+  // Cintas celeste/blanco Argentina
+  const drawCinta = (side: -1 | 1) => {
+    const s = side;
+    ctx.strokeStyle = '#75AADB';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(30 * s, 32);
+    ctx.bezierCurveTo(40 * s, 70, 30 * s, 115, 55 * s, 140);
+    ctx.stroke();
 
-  // Pelotitas de pádel (decoración)
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(30 * s + 4 * s, 40);
+    ctx.bezierCurveTo(38 * s, 75, 26 * s, 118, 50 * s, 145);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#75AADB';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(30 * s + 8 * s, 48);
+    ctx.bezierCurveTo(36 * s, 80, 22 * s, 122, 44 * s, 150);
+    ctx.stroke();
+  };
+  drawCinta(-1); drawCinta(1);
+
+  // Pelotitas de pádel
   ctx.fillStyle = BALL;
-  ctx.beginPath();
-  ctx.arc(-80, 90, 8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(80, 90, 8, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(-85, 95, 10, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = BALL_DARK; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-95, 95); ctx.quadraticCurveTo(-85, 90, -75, 95); ctx.stroke();
+
+  ctx.beginPath(); ctx.arc(85, 95, 10, 0, Math.PI * 2); ctx.fillStyle = BALL; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(75, 95); ctx.quadraticCurveTo(85, 90, 95, 95); ctx.stroke();
 
   ctx.restore();
 }
 
-function drawFooter(ctx: CanvasRenderingContext2D, W: number, H: number) {
-  ctx.font = '14px system-ui, sans-serif';
-  ctx.fillStyle = WHITE40;
-  ctx.textAlign = 'center';
-  ctx.fillText('Generado con narvoQ · narvoq.vercel.app', W / 2, H - 40);
-}
+// ==================== Utilidades ====================
 
-// ---- Utilidades de dibujo ----
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('load'));
+    img.src = url;
+  });
+}
 
 function roundRect(
   ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number,
@@ -524,16 +731,11 @@ function wrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: 
   words.forEach(w => {
     const test = cur ? cur + ' ' + w : w;
     if (ctx.measureText(test).width > maxW && cur) {
-      lines.push(cur);
-      cur = w;
-    } else {
-      cur = test;
-    }
+      lines.push(cur); cur = w;
+    } else cur = test;
   });
   if (cur) lines.push(cur);
   const shown = lines.slice(0, maxLines);
-  const startY = y - ((shown.length - 1) * lineH) / 2;
-  shown.forEach((ln, i) => {
-    ctx.fillText(ln, x, startY + i * lineH);
-  });
+  const startY = y + lineH / 2;
+  shown.forEach((ln, i) => { ctx.fillText(ln, x, startY + i * lineH); });
 }
