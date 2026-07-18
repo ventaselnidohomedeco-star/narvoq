@@ -298,6 +298,13 @@ function Gestionar({ torneo, onVolver }: any) {
       {/* Auspiciantes del torneo — aparecen en las imágenes generadas */}
       <SponsorsManager tournamentId={torneo.id} initialSponsors={torneo.sponsors ?? []} />
 
+      {/* Fotos del podio (para la imagen de Final) */}
+      <PodiumPhotosManager
+        tournamentId={torneo.id}
+        initialChampion={torneo.podium_champion_photo ?? ''}
+        initialRunnerup={torneo.podium_runnerup_photo ?? ''}
+      />
+
       {/* Preview del formato */}
       <div className="card">
         <p className="font-display font-black text-ball text-sm">RECOMENDACIÓN DEL MOTOR</p>
@@ -912,6 +919,84 @@ function SponsorsManager({ tournamentId, initialSponsors }: { tournamentId: stri
 
       <p className="text-white/40 text-[11px] leading-tight">
         💡 Cómo conseguir la URL del logo: subilo a Imgur/Google Drive (con enlace público) o usá el link directo desde la web del auspiciante. Debe terminar en .jpg, .png o .webp.
+      </p>
+    </div>
+  );
+}
+
+// -------------------- Gestor de fotos del podio --------------------
+// Si el organizador sube fotos reales del podio (campeones y sub-campeones),
+// la imagen exportada de la Final las usa en vez de los avatares individuales.
+function PodiumPhotosManager({
+  tournamentId, initialChampion, initialRunnerup
+}: { tournamentId: string; initialChampion: string; initialRunnerup: string }) {
+  const [champUrl, setChampUrl] = useState(initialChampion);
+  const [runnerUrl, setRunnerUrl] = useState(initialRunnerup);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function save(field: 'podium_champion_photo' | 'podium_runnerup_photo', value: string) {
+    setBusy(true);
+    const { error } = await supabase.from('tournaments').update({ [field]: value || null }).eq('id', tournamentId);
+    setBusy(false);
+    if (error) { setMsg(`Error: ${error.message}. ¿Corriste update-22-podium-photos.sql?`); return; }
+    setMsg('✓ Foto guardada.');
+  }
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="font-display font-black text-ball text-sm">FOTOS DEL PODIO</p>
+        <span className="text-white/40 text-xs">Opcional — reemplazan avatares en la Final</span>
+      </div>
+
+      {/* Campeones */}
+      <div className="space-y-1.5">
+        <label className="text-white/70 text-xs font-bold">🥇 Campeones (foto real)</label>
+        <div className="flex gap-2">
+          <input
+            value={champUrl}
+            onChange={e => setChampUrl(e.target.value)}
+            placeholder="URL de la foto (jpg/png)"
+            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40" />
+          <button
+            onClick={() => save('podium_champion_photo', champUrl)}
+            disabled={busy}
+            className="bg-ball text-courtdark px-4 py-2 rounded-lg font-black text-sm">
+            Guardar
+          </button>
+        </div>
+        {champUrl && (
+          <img src={champUrl} alt="" className="w-full max-w-xs rounded-lg border border-white/10 mt-1" />
+        )}
+      </div>
+
+      {/* Sub-campeones */}
+      <div className="space-y-1.5 pt-2 border-t border-white/10">
+        <label className="text-white/70 text-xs font-bold">🥈 Sub-campeones (foto real)</label>
+        <div className="flex gap-2">
+          <input
+            value={runnerUrl}
+            onChange={e => setRunnerUrl(e.target.value)}
+            placeholder="URL de la foto (jpg/png)"
+            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40" />
+          <button
+            onClick={() => save('podium_runnerup_photo', runnerUrl)}
+            disabled={busy}
+            className="bg-ball text-courtdark px-4 py-2 rounded-lg font-black text-sm">
+            Guardar
+          </button>
+        </div>
+        {runnerUrl && (
+          <img src={runnerUrl} alt="" className="w-full max-w-xs rounded-lg border border-white/10 mt-1" />
+        )}
+      </div>
+
+      {msg && <p className="text-xs text-ball">{msg}</p>}
+
+      <p className="text-white/40 text-[11px] leading-tight">
+        💡 Ideal: foto horizontal de los 2 jugadores del podio con la copa (formato paisaje).
+        Recomendado 800×500px, jpg/png. Se recorta en 220×140 en la imagen exportada.
       </p>
     </div>
   );

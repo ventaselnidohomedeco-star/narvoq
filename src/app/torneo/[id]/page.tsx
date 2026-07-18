@@ -419,7 +419,9 @@ export default function TorneoDetalle() {
                     })),
                     champion: isFinal && campeon ? pairToPoster(campeon) : null,
                     runnerUp: isFinal && subcampeon ? pairToPoster(subcampeon) : null,
-                    sponsors: t.sponsors ?? []
+                    sponsors: t.sponsors ?? [],
+                    podiumChampionPhoto: isFinal ? (t.podium_champion_photo ?? null) : null,
+                    podiumRunnerupPhoto: isFinal ? (t.podium_runnerup_photo ?? null) : null
                   }}
                 />
               );

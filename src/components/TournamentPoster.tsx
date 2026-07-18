@@ -30,6 +30,8 @@ export type PosterInput =
       champion?: PairRow | null;
       runnerUp?: PairRow | null;
       sponsors?: Sponsor[];
+      podiumChampionPhoto?: string | null;    // foto real del podio de los campeones
+      podiumRunnerupPhoto?: string | null;    // foto real del podio de los sub-campeones
     };
 
 // Paleta NarvoQ
@@ -52,19 +54,32 @@ export default function TournamentPoster({ input, label }: { input: PosterInput;
       const sponsors = ('sponsors' in input && input.sponsors) ? input.sponsors : [];
       const avatarUrls = collectAvatarUrls(input);
 
+      // URLs opcionales de fotos del podio (si el modo es 'round' final)
+      const podium = ('mode' in input && input.mode === 'round') ? {
+        champion: (input as any).podiumChampionPhoto ?? null,
+        runnerup: (input as any).podiumRunnerupPhoto ?? null
+      } : { champion: null, runnerup: null };
+
       // Precargar todo en paralelo
-      const [logoImg, isotipoImg, sponsorImgs, avatarMap] = await Promise.all([
+      const [logoImg, isotipoImg, copaImg, sponsorImgs, avatarMap, podiumChamp, podiumRunner] = await Promise.all([
         loadImageSafe('/brand/logo.png'),
         loadImageSafe('/brand/isotipo.png'),
+        loadImageSafe('/brand/copa.png'),               // opcional — si no existe, usa la copa dibujada
         Promise.all(sponsors.map(s => loadImageSafe(s.logo_url))),
-        loadAvatars(avatarUrls)
+        loadAvatars(avatarUrls),
+        podium.champion ? loadImageSafe(podium.champion) : Promise.resolve(null),
+        podium.runnerup ? loadImageSafe(podium.runnerup) : Promise.resolve(null)
       ]);
 
       const canvas = document.createElement('canvas');
       canvas.width = 1200;
       canvas.height = 1600;
       const ctx = canvas.getContext('2d')!;
-      drawPoster(ctx, canvas.width, canvas.height, input, { logo: logoImg, isotipo: isotipoImg, sponsors: sponsorImgs, avatars: avatarMap });
+      drawPoster(ctx, canvas.width, canvas.height, input, {
+        logo: logoImg, isotipo: isotipoImg, copa: copaImg,
+        sponsors: sponsorImgs, avatars: avatarMap,
+        podiumChampion: podiumChamp, podiumRunnerup: podiumRunner
+      });
 
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
@@ -124,8 +139,11 @@ async function loadAvatars(urls: string[]): Promise<Map<string, HTMLImageElement
 interface Assets {
   logo: HTMLImageElement | null;
   isotipo: HTMLImageElement | null;
+  copa: HTMLImageElement | null;
   sponsors: (HTMLImageElement | null)[];
   avatars: Map<string, HTMLImageElement>;
+  podiumChampion: HTMLImageElement | null;
+  podiumRunnerup: HTMLImageElement | null;
 }
 
 function drawPoster(ctx: CanvasRenderingContext2D, W: number, H: number, input: PosterInput, assets: Assets) {
@@ -327,15 +345,15 @@ function drawPairEntry(
 ) {
   const rowGap = 4;
   const compact = variant === 'compact';
-  const numW = num ? (compact ? 34 : 46) : 0;
-  const numX = x + 4;
-  const contentX = x + numW + 6;
-  const maxAvatar = compact ? 26 : 42;
+  const numW = num ? (compact ? 26 : 46) : 0;
+  const numX = x + 2;
+  const contentX = x + numW + 4;
+  const maxAvatar = compact ? 22 : 42;
   const avatarSize = Math.min(maxAvatar, (h - rowGap) / 2 - 4);
 
   // Número al medio (unificando ambas filas)
   if (num !== null) {
-    ctx.font = `900 ${compact ? 26 : 32}px system-ui, sans-serif`;
+    ctx.font = `900 ${compact ? 22 : 32}px system-ui, sans-serif`;
     ctx.fillStyle = highlight ? BALL : W60;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(`${num}`, numX + numW / 2, y + h / 2);
@@ -361,14 +379,14 @@ function drawPlayerLine(
   drawAvatar(ctx, x + avatarSize / 2, y, avatarSize / 2, player, assets);
 
   // Nombre
-  const nameSize = compact ? (highlight ? 15 : 14) : (highlight ? 22 : 20);
+  const nameSize = compact ? (highlight ? 13 : 12) : (highlight ? 22 : 20);
   ctx.font = `${highlight ? 900 : 700} ${nameSize}px system-ui, sans-serif`;
   ctx.fillStyle = highlight ? BALL : WHITE;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  const nameX = x + avatarSize + 8;
+  const nameX = x + avatarSize + (compact ? 6 : 8);
   const label = suffix ? `${player.name} ${suffix}` : player.name;
-  ctx.fillText(truncateText(ctx, label, maxW - avatarSize - 14), nameX, y);
+  ctx.fillText(truncateText(ctx, label, maxW - avatarSize - (compact ? 8 : 14)), nameX, y);
 }
 
 function drawAvatar(
@@ -444,21 +462,21 @@ function drawStandingCard(ctx: CanvasRenderingContext2D, x: number, y: number, w
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(`GRUPO ${s.label}`, x + w / 2, y + 25);
 
-  // Stats de la derecha (PJ / DS / PTS) — compactado
-  const statsW = 130;
+  // Stats de la derecha (PJ / DS / PTS) — más compactado
+  const statsW = 96;
   const statsX = x + w - statsW;
 
   // Headers de columnas stats
-  const headerY = y + 72;
-  ctx.font = '800 11px system-ui, sans-serif';
+  const headerY = y + 68;
+  ctx.font = '800 10px system-ui, sans-serif';
   ctx.fillStyle = W30;
   ctx.textAlign = 'center';
-  ctx.fillText('PJ', statsX + 18, headerY);
-  ctx.fillText('DS', statsX + 60, headerY);
-  ctx.fillText('PTS', statsX + 112, headerY);
+  ctx.fillText('PJ', statsX + 14, headerY);
+  ctx.fillText('DS', statsX + 44, headerY);
+  ctx.fillText('PTS', statsX + 80, headerY);
 
-  const rowsTop = headerY + 20;
-  const rowH = (h - 98) / Math.max(1, s.rows.length);
+  const rowsTop = headerY + 18;
+  const rowH = (h - 92) / Math.max(1, s.rows.length);
 
   s.rows.forEach((r, i) => {
     const yy = rowsTop + i * rowH;
@@ -467,23 +485,23 @@ function drawStandingCard(ctx: CanvasRenderingContext2D, x: number, y: number, w
     // Fondo clasificado
     if (clasifica) {
       ctx.fillStyle = 'rgba(216,246,70,0.10)';
-      roundRect(ctx, x + 8, yy + 2, w - 16, rowH - 4, 10);
+      roundRect(ctx, x + 6, yy + 2, w - 12, rowH - 4, 10);
       ctx.fill();
     }
 
     // Pareja con formato 2 filas + número (variant compact para que entren nombres completos)
-    drawPairEntry(ctx, x + 4, yy, w - statsW - 8, rowH, r.pair, i + 1, clasifica, assets, 'compact');
+    drawPairEntry(ctx, x + 2, yy, w - statsW - 4, rowH, r.pair, i + 1, clasifica, assets, 'compact');
 
     // Stats
-    ctx.font = '800 15px system-ui, sans-serif';
+    ctx.font = '800 13px system-ui, sans-serif';
     ctx.fillStyle = clasifica ? WHITE : W60;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${r.pj}`, statsX + 18, yy + rowH / 2);
-    ctx.fillText(`${r.ds >= 0 ? '+' : ''}${r.ds}`, statsX + 60, yy + rowH / 2);
-    ctx.font = '900 22px system-ui, sans-serif';
+    ctx.fillText(`${r.pj}`, statsX + 14, yy + rowH / 2);
+    ctx.fillText(`${r.ds >= 0 ? '+' : ''}${r.ds}`, statsX + 44, yy + rowH / 2);
+    ctx.font = '900 20px system-ui, sans-serif';
     ctx.fillStyle = clasifica ? BALL : WHITE;
-    ctx.fillText(`${r.pts}`, statsX + 112, yy + rowH / 2);
+    ctx.fillText(`${r.pts}`, statsX + 80, yy + rowH / 2);
   });
 }
 
@@ -625,73 +643,99 @@ function drawFinalWithChampion(
 ) {
   const cx = W / 2;
 
-  // Copa (mas chica para dejar más espacio a campeones)
-  drawTrophy(ctx, cx, top + 130, 200);
+  // Copa (más chica, arriba)
+  drawTrophy(ctx, cx, top + 110, 170, assets.copa);
+
+  // Score
+  if (finalMatch.score) {
+    ctx.font = '900 24px system-ui, sans-serif';
+    const scoreW = ctx.measureText(finalMatch.score).width + 60;
+    ctx.fillStyle = BALL;
+    roundRect(ctx, cx - scoreW / 2, top + 220, scoreW, 48, 12);
+    ctx.fill();
+    ctx.fillStyle = '#0A0F1A';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(finalMatch.score, cx, top + 244);
+  }
+
+  // Radio unificado — campeones y sub-campeones al MISMO tamaño
+  const AVR = 55;
+  const GAP = 24;
 
   // ---------- CAMPEONES ----------
-  const champLabelY = top + 275;
-  ctx.font = '900 24px system-ui, sans-serif';
+  const champLabelY = top + 305;
+  ctx.font = '900 22px system-ui, sans-serif';
   ctx.fillStyle = BALL;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('★  C A M P E O N E S  ★', cx, champLabelY);
 
-  // Score final (pastilla lima) — arriba de los campeones para que resalte
-  if (finalMatch.score) {
-    ctx.font = '900 26px system-ui, sans-serif';
-    const scoreW = ctx.measureText(finalMatch.score).width + 60;
+  const champAvY = champLabelY + 80;
+  // Si hay FOTO DEL PODIO, la usamos en vez de los 2 avatares
+  if (assets.podiumChampion) {
+    drawPodiumPhoto(ctx, cx, champAvY, 220, 140, assets.podiumChampion);
+  } else {
+    drawAvatar(ctx, cx - AVR - GAP / 2, champAvY, AVR, champion.p1, assets);
+    drawAvatar(ctx, cx + AVR + GAP / 2, champAvY, AVR, champion.p2, assets);
+    ctx.font = '900 34px system-ui, sans-serif';
     ctx.fillStyle = BALL;
-    roundRect(ctx, cx - scoreW / 2, champLabelY + 22, scoreW, 52, 12);
-    ctx.fill();
-    ctx.fillStyle = '#0A0F1A';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(finalMatch.score, cx, champLabelY + 48);
+    ctx.fillText('&', cx, champAvY);
   }
-
-  // Avatares campeones grandes (radio 70)
-  const champAvR = 70;
-  const champGap = 30;
-  const champAvY = top + 400;
-  drawAvatar(ctx, cx - champAvR - champGap / 2, champAvY, champAvR, champion.p1, assets);
-  drawAvatar(ctx, cx + champAvR + champGap / 2, champAvY, champAvR, champion.p2, assets);
-
-  // Nombres campeones (más grandes, uno por línea)
-  ctx.font = '900 32px system-ui, sans-serif';
+  // Nombres campeones
+  ctx.font = '900 26px system-ui, sans-serif';
   ctx.fillStyle = WHITE;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(truncateText(ctx, champion.p1.name, W - 100), cx - champAvR - champGap / 2, champAvY + champAvR + 30);
-  ctx.fillText(truncateText(ctx, champion.p2.name, W - 100), cx + champAvR + champGap / 2, champAvY + champAvR + 30);
-
-  // "&" al medio
-  ctx.font = '900 40px system-ui, sans-serif';
-  ctx.fillStyle = BALL;
-  ctx.fillText('&', cx, champAvY);
+  const champNameY = champAvY + (assets.podiumChampion ? 100 : AVR + 30);
+  ctx.fillText(truncateText(ctx, `${champion.p1.name}  &  ${champion.p2.name}`, W - 100), cx, champNameY);
 
   // ---------- SUB-CAMPEONES ----------
   if (runnerUp) {
-    const subLabelY = top + 555;
-    ctx.font = '900 18px system-ui, sans-serif';
+    const subLabelY = champNameY + 60;
+    ctx.font = '900 22px system-ui, sans-serif';
     ctx.fillStyle = W60;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('SUB - CAMPEONES', cx, subLabelY);
+    ctx.fillText('S U B - C A M P E O N E S', cx, subLabelY);
 
-    // Avatares sub-campeones (radio 45)
-    const subAvR = 45;
-    const subGap = 20;
-    const subAvY = subLabelY + 50;
-    drawAvatar(ctx, cx - subAvR - subGap / 2, subAvY, subAvR, runnerUp.p1, assets);
-    drawAvatar(ctx, cx + subAvR + subGap / 2, subAvY, subAvR, runnerUp.p2, assets);
-
-    // Nombres sub-campeones
-    ctx.font = '800 22px system-ui, sans-serif';
+    const subAvY = subLabelY + 80;
+    if (assets.podiumRunnerup) {
+      drawPodiumPhoto(ctx, cx, subAvY, 220, 140, assets.podiumRunnerup);
+    } else {
+      drawAvatar(ctx, cx - AVR - GAP / 2, subAvY, AVR, runnerUp.p1, assets);
+      drawAvatar(ctx, cx + AVR + GAP / 2, subAvY, AVR, runnerUp.p2, assets);
+      ctx.font = '900 34px system-ui, sans-serif';
+      ctx.fillStyle = BALL;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('&', cx, subAvY);
+    }
+    // Nombres sub-campeones (MISMO tamaño que campeones)
+    ctx.font = '900 26px system-ui, sans-serif';
     ctx.fillStyle = W80;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(truncateText(ctx, runnerUp.p1.name, W / 2 - 60), cx - subAvR - subGap / 2, subAvY + subAvR + 22);
-    ctx.fillText(truncateText(ctx, runnerUp.p2.name, W / 2 - 60), cx + subAvR + subGap / 2, subAvY + subAvR + 22);
-
-    ctx.font = '900 26px system-ui, sans-serif';
-    ctx.fillStyle = W60;
-    ctx.fillText('&', cx, subAvY);
+    const subNameY = subAvY + (assets.podiumRunnerup ? 100 : AVR + 30);
+    ctx.fillText(truncateText(ctx, `${runnerUp.p1.name}  &  ${runnerUp.p2.name}`, W - 100), cx, subNameY);
   }
+}
+
+// Foto rectangular del podio con máscara redondeada y ring lima
+function drawPodiumPhoto(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number, w: number, h: number,
+  img: HTMLImageElement
+) {
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 14);
+  ctx.clip();
+  // Cover fit
+  const ratio = Math.max(w / img.width, h / img.height);
+  const dw = img.width * ratio, dh = img.height * ratio;
+  ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+  ctx.restore();
+  ctx.strokeStyle = BALL;
+  ctx.lineWidth = 3;
+  roundRect(ctx, x, y, w, h, 14);
+  ctx.stroke();
 }
 
 // ==================== Auspiciantes ====================
@@ -749,7 +793,15 @@ function drawSponsors(
 
 // ==================== Copa ====================
 
-function drawTrophy(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number) {
+function drawTrophy(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, customImg?: HTMLImageElement | null) {
+  // Si hay una copa custom cargada, la usamos y salimos.
+  if (customImg) {
+    const ratio = customImg.width / customImg.height;
+    let dh = size, dw = size * ratio;
+    if (dw > size * 1.4) { dw = size * 1.4; dh = dw / ratio; }
+    ctx.drawImage(customImg, cx - dw / 2, cy - dh / 2, dw, dh);
+    return;
+  }
   const scale = size / 200;
   ctx.save();
   ctx.translate(cx, cy);
