@@ -314,22 +314,28 @@ function drawGroupCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 //  [num]  [avatar1] Nombre1 &
 //         [avatar2] Nombre2
 // El número aparece centrado verticalmente unificando ambas filas.
+// `variant` cambia el sizing:
+//   - 'default': para grupos → avatares grandes, texto grande
+//   - 'compact': para posiciones → avatares chicos, texto chico (entra nombre completo)
 function drawPairEntry(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number,
   pair: PairRow, num: number | null,
   highlight: boolean,
-  assets: Assets
+  assets: Assets,
+  variant: 'default' | 'compact' = 'default'
 ) {
   const rowGap = 4;
-  const numW = num ? 46 : 0;
-  const numX = x + 6;
+  const compact = variant === 'compact';
+  const numW = num ? (compact ? 34 : 46) : 0;
+  const numX = x + 4;
   const contentX = x + numW + 6;
-  const avatarSize = Math.min(30, (h - rowGap) / 2 - 4);
+  const maxAvatar = compact ? 26 : 42;
+  const avatarSize = Math.min(maxAvatar, (h - rowGap) / 2 - 4);
 
   // Número al medio (unificando ambas filas)
   if (num !== null) {
-    ctx.font = '900 30px system-ui, sans-serif';
+    ctx.font = `900 ${compact ? 26 : 32}px system-ui, sans-serif`;
     ctx.fillStyle = highlight ? BALL : W60;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(`${num}`, numX + numW / 2, y + h / 2);
@@ -338,8 +344,8 @@ function drawPairEntry(
   const player1Y = y + h / 2 - avatarSize / 2 - rowGap / 2;
   const player2Y = y + h / 2 + avatarSize / 2 + rowGap / 2;
 
-  drawPlayerLine(ctx, contentX, player1Y, w - numW - 12, avatarSize, pair.p1, highlight, '&', assets);
-  drawPlayerLine(ctx, contentX, player2Y, w - numW - 12, avatarSize, pair.p2, highlight, null, assets);
+  drawPlayerLine(ctx, contentX, player1Y, w - numW - 12, avatarSize, pair.p1, highlight, '&', assets, compact);
+  drawPlayerLine(ctx, contentX, player2Y, w - numW - 12, avatarSize, pair.p2, highlight, null, assets, compact);
 }
 
 function drawPlayerLine(
@@ -348,19 +354,21 @@ function drawPlayerLine(
   player: Player,
   highlight: boolean,
   suffix: string | null,
-  assets: Assets
+  assets: Assets,
+  compact: boolean = false
 ) {
   // Avatar
   drawAvatar(ctx, x + avatarSize / 2, y, avatarSize / 2, player, assets);
 
   // Nombre
-  ctx.font = highlight ? '900 20px system-ui, sans-serif' : '700 18px system-ui, sans-serif';
+  const nameSize = compact ? (highlight ? 15 : 14) : (highlight ? 22 : 20);
+  ctx.font = `${highlight ? 900 : 700} ${nameSize}px system-ui, sans-serif`;
   ctx.fillStyle = highlight ? BALL : WHITE;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  const nameX = x + avatarSize + 10;
+  const nameX = x + avatarSize + 8;
   const label = suffix ? `${player.name} ${suffix}` : player.name;
-  ctx.fillText(truncateText(ctx, label, maxW - avatarSize - 20), nameX, y);
+  ctx.fillText(truncateText(ctx, label, maxW - avatarSize - 14), nameX, y);
 }
 
 function drawAvatar(
@@ -436,21 +444,21 @@ function drawStandingCard(ctx: CanvasRenderingContext2D, x: number, y: number, w
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(`GRUPO ${s.label}`, x + w / 2, y + 25);
 
-  // Stats de la derecha (PJ / DS / PTS)
-  const statsW = 190;
+  // Stats de la derecha (PJ / DS / PTS) — compactado
+  const statsW = 130;
   const statsX = x + w - statsW;
 
   // Headers de columnas stats
-  const headerY = y + 74;
-  ctx.font = '800 12px system-ui, sans-serif';
+  const headerY = y + 72;
+  ctx.font = '800 11px system-ui, sans-serif';
   ctx.fillStyle = W30;
   ctx.textAlign = 'center';
-  ctx.fillText('PJ', statsX + 30, headerY);
-  ctx.fillText('DS', statsX + 90, headerY);
-  ctx.fillText('PTS', statsX + 160, headerY);
+  ctx.fillText('PJ', statsX + 18, headerY);
+  ctx.fillText('DS', statsX + 60, headerY);
+  ctx.fillText('PTS', statsX + 112, headerY);
 
-  const rowsTop = headerY + 22;
-  const rowH = (h - 100) / Math.max(1, s.rows.length);
+  const rowsTop = headerY + 20;
+  const rowH = (h - 98) / Math.max(1, s.rows.length);
 
   s.rows.forEach((r, i) => {
     const yy = rowsTop + i * rowH;
@@ -463,19 +471,19 @@ function drawStandingCard(ctx: CanvasRenderingContext2D, x: number, y: number, w
       ctx.fill();
     }
 
-    // Pareja con formato 2 filas + número
-    drawPairEntry(ctx, x + 4, yy, w - statsW - 8, rowH, r.pair, i + 1, clasifica, assets);
+    // Pareja con formato 2 filas + número (variant compact para que entren nombres completos)
+    drawPairEntry(ctx, x + 4, yy, w - statsW - 8, rowH, r.pair, i + 1, clasifica, assets, 'compact');
 
     // Stats
-    ctx.font = '800 18px system-ui, sans-serif';
+    ctx.font = '800 15px system-ui, sans-serif';
     ctx.fillStyle = clasifica ? WHITE : W60;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${r.pj}`, statsX + 30, yy + rowH / 2);
-    ctx.fillText(`${r.ds >= 0 ? '+' : ''}${r.ds}`, statsX + 90, yy + rowH / 2);
-    ctx.font = '900 24px system-ui, sans-serif';
+    ctx.fillText(`${r.pj}`, statsX + 18, yy + rowH / 2);
+    ctx.fillText(`${r.ds >= 0 ? '+' : ''}${r.ds}`, statsX + 60, yy + rowH / 2);
+    ctx.font = '900 22px system-ui, sans-serif';
     ctx.fillStyle = clasifica ? BALL : WHITE;
-    ctx.fillText(`${r.pts}`, statsX + 160, yy + rowH / 2);
+    ctx.fillText(`${r.pts}`, statsX + 112, yy + rowH / 2);
   });
 }
 
@@ -515,7 +523,7 @@ function drawRound(
   const gap = 20;
   const marginX = matches.length === 1 ? 120 : 50;
   const cardW = (W - marginX * 2 - gap * (cols - 1)) / cols;
-  const cardH = Math.min(200, (areaH - gap * (rows - 1)) / rows);
+  const cardH = Math.min(230, (areaH - gap * (rows - 1)) / rows);
 
   matches.forEach((m, i) => {
     const col = i % cols;
@@ -595,18 +603,18 @@ function drawTeamInMatch(
     return;
   }
   const isLoser = decided && !isWinner;
-  const avatarSize = Math.min(32, h / 2 - 4);
+  const avatarSize = Math.min(50, h - 8);
   const av1x = x + avatarSize / 2 + 4;
-  const av2x = av1x + avatarSize + 4;
-  // Avatares
+  const av2x = av1x + avatarSize - 8;   // ligeramente superpuestos (-space-x)
+  // Avatares (más grandes)
   drawAvatar(ctx, av1x, y + h / 2, avatarSize / 2, pair.p1, assets);
   drawAvatar(ctx, av2x, y + h / 2, avatarSize / 2, pair.p2, assets);
 
   // Nombres
-  ctx.font = isWinner ? '900 20px system-ui, sans-serif' : '700 18px system-ui, sans-serif';
+  ctx.font = isWinner ? '900 22px system-ui, sans-serif' : '700 20px system-ui, sans-serif';
   ctx.fillStyle = isWinner ? BALL : isLoser ? W30 : WHITE;
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  const nameX = av2x + avatarSize / 2 + 12;
+  const nameX = av2x + avatarSize / 2 + 14;
   const nameW = w - (nameX - x) - 8;
   ctx.fillText(truncateText(ctx, `${pair.p1.name}  &  ${pair.p2.name}`, nameW), nameX, y + h / 2);
 }
@@ -617,46 +625,72 @@ function drawFinalWithChampion(
 ) {
   const cx = W / 2;
 
-  // Copa
-  drawTrophy(ctx, cx, top + 200, 260);
+  // Copa (mas chica para dejar más espacio a campeones)
+  drawTrophy(ctx, cx, top + 130, 200);
 
-  // Label CAMPEONES
-  ctx.font = '900 22px system-ui, sans-serif';
+  // ---------- CAMPEONES ----------
+  const champLabelY = top + 275;
+  ctx.font = '900 24px system-ui, sans-serif';
   ctx.fillStyle = BALL;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('★  C A M P E O N E S  ★', cx, top + 400);
+  ctx.fillText('★  C A M P E O N E S  ★', cx, champLabelY);
 
-  // Avatares de campeones grandes
-  const avR = 48;
-  const gap = 20;
-  const totalAvW = avR * 4 + gap;
-  const avStartX = cx - totalAvW / 2 + avR;
-  drawAvatar(ctx, avStartX, top + 470, avR, champion.p1, assets);
-  drawAvatar(ctx, avStartX + avR * 2 + gap, top + 470, avR, champion.p2, assets);
-
-  // Nombres campeones
-  ctx.font = '900 36px system-ui, sans-serif';
-  ctx.fillStyle = WHITE;
-  wrappedText(ctx, `${champion.p1.name}  &  ${champion.p2.name}`, cx, top + 530, W - 120, 42, 2);
-
-  // Score final
+  // Score final (pastilla lima) — arriba de los campeones para que resalte
   if (finalMatch.score) {
-    ctx.font = '900 24px system-ui, sans-serif';
-    const w = ctx.measureText(finalMatch.score).width + 44;
+    ctx.font = '900 26px system-ui, sans-serif';
+    const scoreW = ctx.measureText(finalMatch.score).width + 60;
     ctx.fillStyle = BALL;
-    roundRect(ctx, cx - w / 2, top + 620, w, 48, 10);
+    roundRect(ctx, cx - scoreW / 2, champLabelY + 22, scoreW, 52, 12);
     ctx.fill();
     ctx.fillStyle = '#0A0F1A';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(finalMatch.score, cx, top + 644);
+    ctx.fillText(finalMatch.score, cx, champLabelY + 48);
   }
 
-  // Sub-campeones
+  // Avatares campeones grandes (radio 70)
+  const champAvR = 70;
+  const champGap = 30;
+  const champAvY = top + 400;
+  drawAvatar(ctx, cx - champAvR - champGap / 2, champAvY, champAvR, champion.p1, assets);
+  drawAvatar(ctx, cx + champAvR + champGap / 2, champAvY, champAvR, champion.p2, assets);
+
+  // Nombres campeones (más grandes, uno por línea)
+  ctx.font = '900 32px system-ui, sans-serif';
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(truncateText(ctx, champion.p1.name, W - 100), cx - champAvR - champGap / 2, champAvY + champAvR + 30);
+  ctx.fillText(truncateText(ctx, champion.p2.name, W - 100), cx + champAvR + champGap / 2, champAvY + champAvR + 30);
+
+  // "&" al medio
+  ctx.font = '900 40px system-ui, sans-serif';
+  ctx.fillStyle = BALL;
+  ctx.fillText('&', cx, champAvY);
+
+  // ---------- SUB-CAMPEONES ----------
   if (runnerUp) {
-    ctx.font = '700 18px system-ui, sans-serif';
+    const subLabelY = top + 555;
+    ctx.font = '900 18px system-ui, sans-serif';
     ctx.fillStyle = W60;
-    ctx.textAlign = 'center';
-    ctx.fillText(`Sub-campeones: ${runnerUp.p1.name}  &  ${runnerUp.p2.name}`, cx, top + 700);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('SUB - CAMPEONES', cx, subLabelY);
+
+    // Avatares sub-campeones (radio 45)
+    const subAvR = 45;
+    const subGap = 20;
+    const subAvY = subLabelY + 50;
+    drawAvatar(ctx, cx - subAvR - subGap / 2, subAvY, subAvR, runnerUp.p1, assets);
+    drawAvatar(ctx, cx + subAvR + subGap / 2, subAvY, subAvR, runnerUp.p2, assets);
+
+    // Nombres sub-campeones
+    ctx.font = '800 22px system-ui, sans-serif';
+    ctx.fillStyle = W80;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(truncateText(ctx, runnerUp.p1.name, W / 2 - 60), cx - subAvR - subGap / 2, subAvY + subAvR + 22);
+    ctx.fillText(truncateText(ctx, runnerUp.p2.name, W / 2 - 60), cx + subAvR + subGap / 2, subAvY + subAvR + 22);
+
+    ctx.font = '900 26px system-ui, sans-serif';
+    ctx.fillStyle = W60;
+    ctx.fillText('&', cx, subAvY);
   }
 }
 
