@@ -40,7 +40,7 @@ export default function Banner() {
   // ----- Modo IMAGEN -----
   if (banner.image_url) {
     const inner = (
-      <div className="relative w-full max-w-md mx-auto overflow-hidden">
+      <div className="relative w-full overflow-hidden">
         <img
           src={banner.image_url}
           alt={banner.title ?? ''}
@@ -66,7 +66,7 @@ export default function Banner() {
       </div>
     );
     return (
-      <div className="bg-[#0A1020] border-b border-ball/20 sticky top-0 z-50">
+      <div className="bg-black border-b border-ball/20 sticky top-0 z-50 w-full">
         {banner.link_url ? <a href={banner.link_url} target="_blank" rel="noopener">{inner}</a> : inner}
       </div>
     );

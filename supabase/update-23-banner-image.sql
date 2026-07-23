@@ -4,3 +4,6 @@
 -- con la imagen; si es null, sigue como barra de texto con emoji.
 
 alter table banners add column if not exists image_url text;
+
+-- Un banner puede ser SOLO imagen (sin título). Quitamos el NOT NULL.
+alter table banners alter column title drop not null;
