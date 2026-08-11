@@ -35,8 +35,6 @@ export default function Planes() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  // Modal de advertencia: pareja (plan, userEmail) cuando el usuario clickeó Suscribirme
-  const [confirmPlan, setConfirmPlan] = useState<Plan | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -56,8 +54,9 @@ export default function Planes() {
     })();
   }, []);
 
-  // Click en "Suscribirme": si no está logueado va a login, sino abre modal
-  // de advertencia con el email (para que verifique que su cuenta MP coincida).
+  // Click en "Suscribirme": si no está logueado va a login, sino redirige
+  // directo a MP. Con Preapproval Plans, MP acepta cualquier cuenta MP —
+  // no valida email — así que no hace falta el modal de confirmación.
   async function subscribe(plan: Plan) {
     setError('');
     const { data: { user } } = await supabase.auth.getUser();
@@ -65,13 +64,7 @@ export default function Planes() {
       router.push('/login?next=/planes');
       return;
     }
-    setConfirmPlan(plan);
-  }
-
-  // Después del modal: hace la llamada real a MP.
-  async function doSubscribe(plan: Plan) {
-    setBusy(plan.id); setError('');
-    setConfirmPlan(null);
+    setBusy(plan.id);
     try {
       const res = await fetch('/api/mp/create-subscription', {
         method: 'POST',
@@ -176,96 +169,7 @@ export default function Planes() {
         </div>
       </section>
 
-      {/* Modal de advertencia antes de ir a MP */}
-      {confirmPlan && userEmail && (
-        <MpConfirmModal
-          plan={confirmPlan}
-          userEmail={userEmail}
-          busy={busy === confirmPlan.id}
-          onConfirm={() => doSubscribe(confirmPlan)}
-          onCancel={() => setConfirmPlan(null)}
-        />
-      )}
     </main>
-  );
-}
-
-// Modal que muestra el email del usuario y advierte que su cuenta MP debe
-// tener el mismo email. Sin esto MP rechaza el pago con
-// "Tu e-mail no coincide con el de la suscripción".
-function MpConfirmModal({ plan, userEmail, busy, onConfirm, onCancel }: {
-  plan: Plan; userEmail: string; busy: boolean;
-  onConfirm: () => void; onCancel: () => void;
-}) {
-  const isYearly = plan.billing_period === 'yearly';
-  const roleLabel = plan.role === 'player' ? 'Jugador' : plan.role === 'coach' ? 'Entrenador' : 'Complejo';
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onCancel}>
-      <div
-        onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-[#0F141D] border-t-2 sm:border-2 border-ball rounded-t-3xl sm:rounded-3xl overflow-hidden">
-        {/* Header */}
-        <div className="p-6 bg-gradient-to-b from-ball/20 to-transparent">
-          <p className="text-ball text-xs font-black tracking-widest">CONFIRMÁ TU EMAIL DE MP</p>
-          <h3 className="font-display font-black text-2xl mt-2 leading-tight">
-            Antes de pagar, revisá esto
-          </h3>
-        </div>
-
-        {/* Body */}
-        <div className="px-6 pb-5 space-y-4">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-white/60 text-xs font-bold uppercase">Vas a suscribirte con este email:</p>
-            <p className="font-display font-black text-lg mt-1 break-all">{userEmail}</p>
-          </div>
-
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-            <p className="text-yellow-200 font-black text-sm">⚠️ Muy importante</p>
-            <p className="text-white/85 text-sm mt-2 leading-snug">
-              Tu cuenta de <b>Mercado Pago debe tener el mismo email</b> (<b className="text-ball">{userEmail}</b>).
-              Si es distinto, MP no te va a dejar pagar.
-            </p>
-          </div>
-
-          <div className="text-white/60 text-xs leading-snug">
-            <p>💡 <b>¿No tenés cuenta de MP con ese email?</b></p>
-            <a
-              href="https://www.mercadopago.com.ar/registration"
-              target="_blank" rel="noopener"
-              className="text-ball font-bold underline mt-1 inline-block">
-              Creá una gratis acá →
-            </a>
-            {' '}(usá el mismo email: <b>{userEmail}</b>)
-          </div>
-
-          <div className="pt-2 border-t border-white/10">
-            <p className="text-white/60 text-xs">Suscripción:</p>
-            <p className="font-display font-black">
-              NarvoQ Verificado - {roleLabel} {isYearly ? 'Anual' : 'Mensual'}
-              <span className="text-ball ml-2">${plan.price_ars.toLocaleString('es-AR')}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* CTAs */}
-        <div className="px-6 pb-6 space-y-2">
-          <button
-            onClick={onConfirm}
-            disabled={busy}
-            className="w-full bg-ball text-courtdark font-display font-black rounded-2xl py-4 text-base disabled:opacity-50 active:scale-[0.98]">
-            {busy ? 'Redirigiendo a MP…' : `Sí, mi MP usa ${userEmail.length > 25 ? 'ese email' : userEmail}`}
-          </button>
-          <button
-            onClick={onCancel}
-            disabled={busy}
-            className="w-full py-3 text-white/70 font-bold text-sm">
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 

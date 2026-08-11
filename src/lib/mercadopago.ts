@@ -2,7 +2,7 @@
 // SOLO se usa desde el server (endpoints /api/mp/*). No exponer el
 // MP_ACCESS_TOKEN al cliente.
 
-import { MercadoPagoConfig, PreApproval } from 'mercadopago';
+import { MercadoPagoConfig, PreApproval, PreApprovalPlan } from 'mercadopago';
 
 function getAccessToken(): string {
   const token = process.env.MP_ACCESS_TOKEN;
@@ -73,4 +73,55 @@ export async function getPreApproval(id: string) {
 export async function cancelPreApproval(id: string) {
   const preapproval = new PreApproval(getMpClient());
   return preapproval.update({ id, body: { status: 'cancelled' } });
+}
+
+// ==================== PreApproval Plans (nuevo flow) ====================
+// Un plan de MP es una plantilla reutilizable. Cualquier usuario puede
+// suscribirse al mismo plan visitando su init_point, con cualquier cuenta MP.
+
+export async function createPlan(opts: {
+  reason: string;
+  amount: number;
+  periodMonths: number;   // 1 = mensual, 12 = anual
+  backUrl: string;
+}): Promise<{ id: string; init_point: string }> {
+  const plan = new PreApprovalPlan(getMpClient());
+  const body = {
+    reason: opts.reason,
+    back_url: opts.backUrl,
+    auto_recurring: {
+      frequency: opts.periodMonths,
+      frequency_type: 'months' as const,
+      transaction_amount: opts.amount,
+      currency_id: 'ARS' as const
+    }
+  };
+  const result = await plan.create({ body });
+  if (!result.id || !result.init_point) {
+    throw new Error('MP no devolvió init_point al crear el plan.');
+  }
+  return { id: result.id, init_point: result.init_point };
+}
+
+export async function updatePlan(id: string, opts: {
+  reason?: string;
+  amount?: number;
+  periodMonths?: number;
+}): Promise<{ id: string; init_point: string }> {
+  const plan = new PreApprovalPlan(getMpClient());
+  const body: any = {};
+  if (opts.reason) body.reason = opts.reason;
+  if (opts.amount || opts.periodMonths) {
+    body.auto_recurring = {};
+    if (opts.amount) {
+      body.auto_recurring.transaction_amount = opts.amount;
+      body.auto_recurring.currency_id = 'ARS';
+    }
+    if (opts.periodMonths) {
+      body.auto_recurring.frequency = opts.periodMonths;
+      body.auto_recurring.frequency_type = 'months';
+    }
+  }
+  const result = await plan.update({ id, updatePreApprovalPlanRequest: body });
+  return { id: result.id ?? id, init_point: result.init_point ?? '' };
 }

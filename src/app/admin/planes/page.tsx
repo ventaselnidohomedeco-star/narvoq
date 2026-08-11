@@ -58,7 +58,22 @@ export default function AdminPlanes() {
       features: plan.features
     }).eq('id', plan.id);
     if (error) { setMsg(`Error: ${error.message}`); return; }
-    setMsg(`✓ Guardado ${ROLE_LABEL[plan.role]} ${plan.billing_period}`);
+    setMsg(`✓ Guardado ${ROLE_LABEL[plan.role]} ${plan.billing_period}. Sincronizando con Mercado Pago…`);
+
+    // Sincronizar con MP (crea el plan en MP si no existía, o actualiza el precio)
+    try {
+      const res = await fetch('/api/mp/sync-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: plan.id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMsg(`✓ Guardado y sincronizado con MP.`);
+      load();  // refresca los mp_plan_id
+    } catch (e: any) {
+      setMsg(`Guardado, pero falló la sincronización con MP: ${e.message}. Los usuarios no van a poder suscribirse hasta sincronizarlo.`);
+    }
   }
 
   if (loading) return <main className="p-8 text-white/60">Cargando planes…</main>;
