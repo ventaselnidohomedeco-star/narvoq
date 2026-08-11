@@ -36,17 +36,73 @@ export default function Admin() {
     setOk(true);
     const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
     setBanners(data ?? []);
+
+    // --- MÉTRICAS AMPLIADAS ---
     const count = async (t: string, filter?: [string, unknown]) => {
       let q: any = supabase.from(t).select('*', { count: 'exact', head: true });
       if (filter) q = q.eq(filter[0], filter[1]);
       return (await q).count ?? 0;
     };
+    const countByDate = async (t: string, sinceIso: string) => {
+      const { count: c } = await supabase.from(t).select('*', { count: 'exact', head: true }).gte('created_at', sinceIso);
+      return c ?? 0;
+    };
+    const now = Date.now();
+    const d7 = new Date(now - 7 * 24 * 3600 * 1000).toISOString();
+    const d30 = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
+
+    // Users
+    const [jugadores, profes, complejos, jNuevos7, jNuevos30, profNuevos7, cxNuevos7] = await Promise.all([
+      count('profiles', ['role', 'player']),
+      count('profiles', ['role', 'coach']),
+      count('complexes'),
+      countByDate('profiles', d7),
+      countByDate('profiles', d30),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'coach').gte('created_at', d7).then(r => r.count ?? 0),
+      countByDate('complexes', d7)
+    ]);
+
+    // Actividad
+    const [reservas, reservas7, posts, posts7] = await Promise.all([
+      count('bookings'),
+      countByDate('bookings', d7),
+      count('posts'),
+      countByDate('posts', d7)
+    ]);
+
+    // Suscripciones
+    const { data: activeSubs } = await supabase.from('subscriptions')
+      .select('id, status, plan_id, expires_at, cancelled_at, plan:subscription_plans(role, billing_period, price_ars)')
+      .in('status', ['active', 'trial']);
+    const { data: allSubs } = await supabase.from('subscriptions').select('id, status, created_at, cancelled_at');
+
+    const premiumJugadores = (activeSubs ?? []).filter((s: any) => s.plan?.role === 'player').length;
+    const premiumProfes = (activeSubs ?? []).filter((s: any) => s.plan?.role === 'coach').length;
+    const premiumComplejos = (activeSubs ?? []).filter((s: any) => s.plan?.role === 'complex_admin').length;
+
+    const mrr = (activeSubs ?? []).reduce((sum: number, s: any) => {
+      if (!s.plan) return sum;
+      return sum + (s.plan.billing_period === 'monthly' ? s.plan.price_ars : s.plan.price_ars / 12);
+    }, 0);
+    const arr = mrr * 12;
+
+    const totalUsers = jugadores + profes + complejos;
+    const totalPremium = premiumJugadores + premiumProfes + premiumComplejos;
+    const conversion = totalUsers > 0 ? (totalPremium / totalUsers) * 100 : 0;
+
+    // Churn: canceladas en últimos 30 días / activas al principio del mes
+    const churn30 = (allSubs ?? []).filter(s =>
+      s.status === 'cancelled' && s.cancelled_at && new Date(s.cancelled_at).getTime() > now - 30 * 24 * 3600 * 1000
+    ).length;
+
     setStats({
-      jugadores: await count('profiles', ['role', 'player']),
-      profes: await count('profiles', ['role', 'coach']),
-      complejos: await count('complexes'),
-      reservas: await count('bookings'),
-      posts: await count('posts')
+      jugadores, profes, complejos, reservas, posts,
+      jNuevos7, jNuevos30, profNuevos7, cxNuevos7,
+      reservas7, posts7,
+      premiumJugadores, premiumProfes, premiumComplejos, totalPremium,
+      mrr: Math.round(mrr), arr: Math.round(arr),
+      conversion: conversion.toFixed(1),
+      churn30
     });
   }
   useEffect(() => { load(); }, []);
@@ -106,29 +162,86 @@ export default function Admin() {
   );
 
   return (
-    <main className="min-h-dvh max-w-md mx-auto px-5 py-8">
-      <h1 className="font-display font-black text-2xl">Panel CEO</h1>
+    <main className="min-h-dvh max-w-5xl mx-auto px-5 py-8">
+      <h1 className="font-display font-black text-3xl">Panel CEO</h1>
+      <p className="text-white/50 text-sm mt-1">Métricas globales, tráfico y suscripciones.</p>
 
       {/* Accesos rápidos */}
-      <section className="mt-4 grid grid-cols-2 gap-2">
-        <a href="/admin/planes"
-          className="card !p-3 flex items-center gap-2 hover:bg-white/5">
+      <section className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2">
+        <a href="/admin/planes" className="card !p-3 flex items-center gap-2 hover:bg-white/5">
           <span className="text-2xl">💎</span>
           <div className="min-w-0">
-            <p className="font-black text-sm truncate">Planes y suscripciones</p>
-            <p className="text-white/40 text-[10px]">Precios + NarvoQ Verificado</p>
+            <p className="font-black text-sm truncate">Planes</p>
+            <p className="text-white/40 text-[10px]">Precios y features</p>
+          </div>
+        </a>
+        <a href="/admin/suscripciones" className="card !p-3 flex items-center gap-2 hover:bg-white/5">
+          <span className="text-2xl">💳</span>
+          <div className="min-w-0">
+            <p className="font-black text-sm truncate">Suscripciones</p>
+            <p className="text-white/40 text-[10px]">Lista + acciones</p>
+          </div>
+        </a>
+        <a href="/admin/estadisticas" className="card !p-3 flex items-center gap-2 hover:bg-white/5">
+          <span className="text-2xl">📈</span>
+          <div className="min-w-0">
+            <p className="font-black text-sm truncate">Estadísticas</p>
+            <p className="text-white/40 text-[10px]">Gráficos + tendencias</p>
+          </div>
+        </a>
+        <a href="#banners" className="card !p-3 flex items-center gap-2 hover:bg-white/5">
+          <span className="text-2xl">📢</span>
+          <div className="min-w-0">
+            <p className="font-black text-sm truncate">Banners y promos</p>
+            <p className="text-white/40 text-[10px]">Contenido</p>
           </div>
         </a>
       </section>
 
-      <section className="mt-4 grid grid-cols-5 gap-2">
-        {Object.entries(stats).map(([k, v]: any) => (
-          <div key={k} className="card !p-2 text-center">
-            <p className="font-display font-black text-lg text-ball">{v}</p>
-            <p className="text-white/40 text-[9px] font-bold uppercase">{k}</p>
-          </div>
-        ))}
+      {/* KPIs principales — Ingresos y Suscriptores */}
+      <section className="mt-6">
+        <h2 className="text-ball text-[11px] font-black tracking-widest">INGRESOS Y CONVERSIÓN</h2>
+        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+          <BigKpi label="MRR" value={`$${(stats.mrr ?? 0).toLocaleString('es-AR')}`} sub="Ingresos mensuales" />
+          <BigKpi label="ARR" value={`$${(stats.arr ?? 0).toLocaleString('es-AR')}`} sub="Proyección anual" />
+          <BigKpi label="Suscriptores" value={String(stats.totalPremium ?? 0)} sub={`${stats.conversion ?? 0}% conversión`} />
+          <BigKpi label="Bajas 30d" value={String(stats.churn30 ?? 0)} sub="Churn del mes" tone={stats.churn30 > 5 ? 'warn' : 'ok'} />
+        </div>
       </section>
+
+      {/* Distribución de premium por rol */}
+      <section className="mt-5">
+        <h2 className="text-ball text-[11px] font-black tracking-widest">PREMIUM POR ROL</h2>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <MiniKpi label="🎾 Jugadores" value={String(stats.premiumJugadores ?? 0)} total={stats.jugadores} />
+          <MiniKpi label="🎓 Profes" value={String(stats.premiumProfes ?? 0)} total={stats.profes} />
+          <MiniKpi label="🏟️ Complejos" value={String(stats.premiumComplejos ?? 0)} total={stats.complejos} />
+        </div>
+      </section>
+
+      {/* Usuarios */}
+      <section className="mt-5">
+        <h2 className="text-ball text-[11px] font-black tracking-widest">USUARIOS</h2>
+        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+          <MiniKpi label="Jugadores" value={String(stats.jugadores ?? 0)} sub={`+${stats.jNuevos7 ?? 0} esta semana`} />
+          <MiniKpi label="Entrenadores" value={String(stats.profes ?? 0)} sub={`+${stats.profNuevos7 ?? 0} esta semana`} />
+          <MiniKpi label="Complejos" value={String(stats.complejos ?? 0)} sub={`+${stats.cxNuevos7 ?? 0} esta semana`} />
+          <MiniKpi label="Nuevos 30d" value={String(stats.jNuevos30 ?? 0)} sub="Total registros" />
+        </div>
+      </section>
+
+      {/* Actividad */}
+      <section className="mt-5">
+        <h2 className="text-ball text-[11px] font-black tracking-widest">ACTIVIDAD</h2>
+        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+          <MiniKpi label="Reservas total" value={String(stats.reservas ?? 0)} sub={`+${stats.reservas7 ?? 0} esta semana`} />
+          <MiniKpi label="Posts en feed" value={String(stats.posts ?? 0)} sub={`+${stats.posts7 ?? 0} esta semana`} />
+        </div>
+      </section>
+
+      <div id="banners" className="mt-8 pt-6 border-t border-white/10">
+        <h2 className="font-display font-black text-xl">Contenido y branding</h2>
+      </div>
 
       <section className="card mt-5 space-y-3">
         <p className="font-display font-bold text-ball text-sm">Publicar promo en el feed</p>
@@ -238,5 +351,33 @@ export default function Admin() {
         ))}
       </section>
     </main>
+  );
+}
+
+// KPI grande (para ingresos y suscriptores)
+function BigKpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: 'ok' | 'warn' }) {
+  return (
+    <div className="card !p-4 border border-white/10">
+      <p className="text-white/50 text-[10px] font-black uppercase tracking-wider">{label}</p>
+      <p className={`font-display font-black text-2xl md:text-3xl mt-1 leading-none ${tone === 'warn' ? 'text-orange-300' : 'text-ball'}`}>
+        {value}
+      </p>
+      {sub && <p className="text-white/40 text-[11px] mt-1">{sub}</p>}
+    </div>
+  );
+}
+
+// KPI mini (para grillas de detalle)
+function MiniKpi({ label, value, sub, total }: { label: string; value: string; sub?: string; total?: number }) {
+  const pct = total && Number(value) > 0 ? ((Number(value) / total) * 100).toFixed(0) : null;
+  return (
+    <div className="card !p-3">
+      <p className="text-white/50 text-[10px] font-bold uppercase tracking-wide truncate">{label}</p>
+      <div className="flex items-baseline gap-2 mt-1">
+        <p className="font-display font-black text-xl text-white leading-none">{value}</p>
+        {pct && <span className="text-ball text-[10px] font-black">({pct}%)</span>}
+      </div>
+      {sub && <p className="text-white/40 text-[10px] mt-1 truncate">{sub}</p>}
+    </div>
   );
 }
