@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
+import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
 
 export default function TrainingRegistro() {
   const router = useRouter();
@@ -44,7 +45,13 @@ export default function TrainingRegistro() {
       <p className="font-display font-black text-ball text-sm tracking-widest">TRAINING</p>
       <h1 className="font-display font-black text-3xl mt-1">Crear cuenta de profe</h1>
       <p className="text-white/50 mt-1">Registrá alumnos, cargá sesiones y compartí sus dashboards.</p>
-      <form onSubmit={submit} className="mt-6 space-y-4">
+
+      <div className="mt-6">
+        <GoogleAuthButton role="coach" label="Registrarme con Google" />
+      </div>
+      <AuthDivider />
+
+      <form onSubmit={submit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div><label className="label">Nombre</label><input className="input" value={f.first_name} onChange={set('first_name')} required /></div>
           <div><label className="label">Apellido</label><input className="input" value={f.last_name} onChange={set('last_name')} required /></div>

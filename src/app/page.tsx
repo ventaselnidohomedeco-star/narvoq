@@ -1,354 +1,238 @@
+'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Brand from '@/components/Brand';
-import InstallButton from '@/components/InstallButton';
+import { supabase } from '@/lib/supabase/client';
+
+// Landing minimalista. Arriba del pliegue: SOLO logo + frase + 3 CTAs por rol.
+// Al clickear un rol se abre un drawer con las funciones + Google + email.
+
+type Role = 'player' | 'coach' | 'complex';
+
+const ROLE_INFO: Record<Role, {
+  title: string;
+  emoji: string;
+  color: string;
+  loginHref: string;
+  registerHref: string;
+  features: { emoji: string; title: string; text: string }[];
+}> = {
+  player: {
+    title: 'Soy jugador',
+    emoji: '🎾',
+    color: 'from-ball/40 via-ball/10 to-transparent',
+    loginHref: '/login',
+    registerHref: '/registro',
+    features: [
+      { emoji: '🎾', title: 'Reservá canchas en 3 toques', text: 'Buscás por ciudad, ves horarios libres y reservás sin llamar.' },
+      { emoji: '🤝', title: 'Armá partido con amigos', text: 'Compartís un link y tus amigos se suman al turno.' },
+      { emoji: '🥇', title: 'Torneos con fixture automático', text: 'La app arma zonas, cruces y bracket sola.' },
+      { emoji: '📊', title: 'Ranking real de tu zona', text: 'Ganás torneos, subís puntos. Filtrás por categoría y ciudad.' },
+      { emoji: '🎓', title: 'Clases con tu profe', text: 'Tu profe te carga la sesión y vos seguís tu progreso.' },
+    ],
+  },
+  coach: {
+    title: 'Soy entrenador',
+    emoji: '🎓',
+    color: 'from-ball/40 via-ball/10 to-transparent',
+    loginHref: '/training/login',
+    registerHref: '/training/registro',
+    features: [
+      { emoji: '👨‍🏫', title: 'Un dashboard por alumno', text: 'Registrás cada sesión: foco, tarea y evaluación 0–10.' },
+      { emoji: '📈', title: 'Progreso del grupo', text: 'Métricas de los últimos 30 días: sesiones, minutos, intensidad.' },
+      { emoji: '📤', title: 'Compartís por WhatsApp', text: 'Un botón y el alumno ve su progreso en su propia cuenta.' },
+      { emoji: '🏆', title: 'Creás tus propios torneos', text: 'Fixture, standings y bracket totalmente automático.' },
+    ],
+  },
+  complex: {
+    title: 'Tengo un complejo',
+    emoji: '🏟️',
+    color: 'from-ball/40 via-ball/10 to-transparent',
+    loginHref: '/complejo/login',
+    registerHref: '/complejo/registro',
+    features: [
+      { emoji: '📅', title: 'Calendario 7 días × canchas', text: 'Todos los turnos en una sola grilla, cargás bloqueos manuales.' },
+      { emoji: '✅', title: 'Aprobás transferencias con un tap', text: 'El jugador sube el comprobante, vos lo aprobás en 1 segundo.' },
+      { emoji: '🏆', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixto… elegís y ya. Se abre inscripción.' },
+      { emoji: '👥', title: 'Membresías y socios', text: 'Planes de socio, cobrás por transferencia, controlás vencimientos.' },
+      { emoji: '📢', title: 'Publicás promos al feed', text: 'Happy hour, evento o torneo abierto: tus clientes lo ven en el feed.' },
+    ],
+  },
+};
 
 export default function Landing() {
+  const [role, setRole] = useState<Role | null>(null);
+
   return (
-    <main className="min-h-dvh bg-[#0B0F16] text-white overflow-x-hidden">
-      {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-[#0B0F16]/95 backdrop-blur border-b border-white/5">
-        <div className="max-w-md mx-auto flex items-center justify-between px-5 py-3">
-          <Brand variant="inline" size={26} />
-          <div className="flex items-center gap-2">
-            <InstallButton variant="ghost" />
-            <Link href="/login" className="text-white/60 text-sm font-bold px-3 py-2">Entrar</Link>
-          </div>
-        </div>
-      </header>
+    <main className="min-h-dvh bg-[#0B0F16] text-white flex flex-col">
+      {/* HERO minimalista — TODO arriba del pliegue */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden">
+        {/* Decoración lima muy sutil */}
+        <div className="absolute -right-14 -top-16 w-14 h-[380px] bg-ball rotate-[24deg] opacity-80 pointer-events-none" />
+        <div className="absolute right-8 -top-16 w-4 h-[240px] bg-ball/30 rotate-[24deg] pointer-events-none" />
+        <div className="absolute -left-24 -bottom-24 w-72 h-72 rounded-full opacity-30 pointer-events-none"
+          style={{ background: 'radial-gradient(circle at 32% 30%, #F4FF9E 0%, #DCEF52 35%, #A8C22E 72%, transparent 100%)' }} />
 
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="absolute -right-10 -top-16 w-16 h-[420px] bg-ball rotate-[24deg] opacity-90" />
-        <div className="absolute right-14 -top-16 w-5 h-[320px] bg-ball/40 rotate-[24deg]" />
-        <div className="absolute -left-16 bottom-10 w-56 h-56 rounded-full opacity-70"
-          style={{ background: 'radial-gradient(circle at 32% 30%, #F4FF9E 0%, #DCEF52 35%, #A8C22E 72%, #5F7414 100%)' }} />
+        {/* Logo grande */}
+        <img
+          src="/brand/logo.png?v=5"
+          alt="NarvoQ"
+          className="relative z-10"
+          style={{ height: 140, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }}
+        />
 
-        <div className="relative max-w-md mx-auto px-6 pt-8 pb-10">
-          <span className="font-display font-bold text-white/40 text-xs tracking-[0.3em]">ELEVÁ TU JUEGO · ELEVÁ TU NIVEL</span>
-          <h1 className="font-display font-black text-5xl leading-[1.05] mt-4 uppercase">
-            Reservá.<br />Jugá.<br /><span className="text-ball">Subí en el ranking.</span>
-          </h1>
-          <p className="mt-4 text-white/70 text-base max-w-sm">
-            Canchas, partidos con amigos, torneos con fixture automático, entrenamientos y ranking de tu ciudad.
-            Todo en una app.
-          </p>
-          <div className="mt-6 flex flex-col gap-3">
-            <InstallButton variant="primary" className="w-full !justify-center" />
-            <Link href="/registro" className="bg-white/10 text-white font-display font-black rounded-xl px-5 py-3 text-center">Crear cuenta gratis</Link>
-          </div>
-        </div>
-      </section>
+        {/* Frase corta */}
+        <h1 className="relative z-10 font-display font-black text-3xl mt-6 text-center leading-tight">
+          Elevá tu juego.
+        </h1>
+        <p className="relative z-10 text-white/60 text-base mt-2 text-center max-w-xs">
+          Reservá, jugá, subí en el ranking.
+        </p>
 
-      {/* SEPARADOR TIPO REVISTA — PARA PLAYERS */}
-      <SectionDivider tag="01 · Para vos" title="PARA PLAYERS" subtitle="Reservás. Jugás. Subís." accent="left" />
-
-      {/* JUGADOR */}
-      <section className="max-w-md mx-auto px-6 pt-4 pb-10">
-        <div className="mt-2 space-y-4">
-          <Beneficio emoji="🎾" title="Reservá tu cancha en 3 toques" text="Buscá por ciudad y complejo, ves qué horarios están libres y reservás sin llamar ni escribir." />
-          <Beneficio emoji="🤝" title="Armá el partido con tus amigos" text="Compartís un link, tus amigos se suman y quedan avisados del turno. Lista de espera automática." />
-          <Beneficio emoji="🥇" title="Torneos con fixture automático" text="Anotate en cualquier torneo de tu zona. La app arma zonas y cruces sola." />
-          <Beneficio emoji="📊" title="Ranking real de tu localidad" text="Ganás torneos, subís puntos. Filtrás por categoría, sexo, ciudad o complejo." />
-          <Beneficio emoji="🎓" title="Entrenamientos con tu profe" text="Tu profe carga la sesión: foco, tarea y evaluación. Vos lo ves y seguís tu progreso." />
-          <Beneficio emoji="🛒" title="Marketplace de la comunidad" text="Vendé o comprá paletas, ropa y accesorios directo entre jugadores." />
+        {/* 3 CTAs por rol */}
+        <div className="relative z-10 w-full max-w-sm mt-10 space-y-3">
+          <button
+            onClick={() => setRole('player')}
+            className="w-full bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition">
+            <span className="text-2xl">🎾</span>
+            Soy jugador
+          </button>
+          <button
+            onClick={() => setRole('coach')}
+            className="w-full bg-white/10 border border-white/15 text-white font-display font-black rounded-2xl py-5 text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition">
+            <span className="text-2xl">🎓</span>
+            Soy entrenador
+          </button>
+          <button
+            onClick={() => setRole('complex')}
+            className="w-full bg-white/10 border border-white/15 text-white font-display font-black rounded-2xl py-5 text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition">
+            <span className="text-2xl">🏟️</span>
+            Tengo un complejo
+          </button>
         </div>
 
-        {/* Stats headline visual */}
-        <div className="mt-8 grid grid-cols-3 gap-2">
-          <StatBox n="+2.000" l="Reservas" />
-          <StatBox n="+150" l="Torneos" />
-          <StatBox n="+50" l="Clubes" />
-        </div>
+        {/* Ya tengo cuenta */}
+        <p className="relative z-10 text-white/50 text-sm mt-8">
+          ¿Ya tenés cuenta?{' '}
+          <Link href="/login" className="text-ball font-bold underline">Entrar</Link>
+        </p>
+      </div>
 
-        <div className="mt-8 space-y-3">
-          <MockTitle>Ejemplos de lo que vas a ver:</MockTitle>
-          <MockReserva />
-          <MockRanking />
-          <MockStats />
-          <MockFixture />
-        </div>
-      </section>
-
-      {/* SEPARADOR — PARA COMPLEJOS */}
-      <SectionDivider tag="02 · Para tu club" title="PARA COMPLEJOS" subtitle="Menos WhatsApp. Más ocupación." accent="right" />
-
-      {/* COMPLEJO — hero section grande e ilustrada */}
-      <section className="max-w-md mx-auto px-6 pt-4 pb-10">
-        <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-ball/20 via-ball/5 to-transparent border border-ball/30 p-6">
-          <div className="flex justify-center">
-            <ComplexIllustration />
-          </div>
-          <p className="text-ball text-xs font-black tracking-widest text-center mt-4">SI TENÉS COMPLEJO</p>
-          <h2 className="font-display font-black text-4xl mt-2 leading-tight text-center uppercase">
-            Menos WhatsApp.<br />
-            <span className="text-ball">Más canchas llenas.</span>
-          </h2>
-          <p className="text-white/70 text-center mt-3 text-base">
-            El portal de gestión que tu complejo estaba esperando.
-          </p>
-        </div>
-
-        {/* Stats visuales complejo */}
-        <div className="mt-8 grid grid-cols-3 gap-2">
-          <StatBox n="+68%" l="Ocupación media" />
-          <StatBox n="-4h" l="Menos WhatsApps/día" />
-          <StatBox n="24/7" l="Reservas online" />
-        </div>
-
-        <div className="mt-6 space-y-4">
-          <Beneficio emoji="📅" title="Calendario 7 días × canchas" text="Ves todos los turnos de tu complejo en una sola grilla. Cargás bloqueos y reservas manuales." />
-          <Beneficio emoji="✅" title="Aprobás pagos por transferencia" text="El jugador sube el comprobante, vos lo mirás y aprobás con un tap. Se avisa solo." />
-          <Beneficio emoji="🏆" title="Publicás torneos con plantillas" text="Suma 13, Cat. 4ta, mixto… Elegís y ya. Se abre inscripción y llegan los pagos." />
-          <Beneficio emoji="👥" title="Membresías y socios" text="Planes de socio con beneficios, cobrás por transferencia, controlás vencimientos." />
-          <Beneficio emoji="📢" title="Publicás promos al feed" text="Happy hour, evento, torneo abierto. Tus clientes lo ven en el feed y se anotan." />
-        </div>
-
-        <Link href="/complejo/login"
-          className="mt-6 block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-lg">
-          Entrar al portal de complejos →
-        </Link>
-      </section>
-
-      {/* SEPARADOR — PARA ENTRENADORES */}
-      <SectionDivider tag="03 · Para el que enseña" title="PARA ENTRENADORES" subtitle="Un dashboard por alumno." accent="left" />
-
-      {/* PROFE — hero section grande e ilustrada */}
-      <section className="max-w-md mx-auto px-6 pt-4 pb-10">
-        <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-ball/20 via-ball/5 to-transparent border border-ball/30 p-6">
-          <div className="flex justify-center">
-            <CoachIllustration />
-          </div>
-          <p className="text-ball text-xs font-black tracking-widest text-center mt-4">SI SOS PROFE</p>
-          <h2 className="font-display font-black text-4xl mt-2 leading-tight text-center uppercase">
-            Un dashboard<br />
-            <span className="text-ball">por cada alumno.</span>
-          </h2>
-          <p className="text-white/70 text-center mt-3 text-base">
-            Tus clases, tu progreso, tus alumnos. Todo ordenado.
-          </p>
-        </div>
-
-        {/* Stats visuales profe */}
-        <div className="mt-8 grid grid-cols-3 gap-2">
-          <StatBox n="+30" l="Alumnos activos" />
-          <StatBox n="90%" l="Retención" />
-          <StatBox n="+10hs" l="Ganás por semana" />
-        </div>
-
-        <div className="mt-6 space-y-4">
-          <Beneficio emoji="👨‍🏫" title="Registrás sesiones por alumno" text="Tipo de clase, foco técnico, tarea y evaluación 0-10 en técnica, táctica y físico." />
-          <Beneficio emoji="📈" title="Ves el progreso del grupo" text="Métricas de los últimos 30 días: sesiones, minutos, promedio de intensidad y balance técnico." />
-          <Beneficio emoji="📤" title="Compartís el dashboard con tu alumno" text="Un botón: le mandás su progreso al alumno por WhatsApp o link. Él lo ve en su propia cuenta." />
-        </div>
-
-        <Link href="/training/login"
-          className="mt-6 block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-lg">
-          Entrar al portal Training →
-        </Link>
-      </section>
-
-      {/* CTA final */}
-      <section className="max-w-md mx-auto px-6 py-10 border-t border-white/5 text-center">
-        <p className="font-display font-black text-3xl leading-tight">Instalá NarvoQ y arrancá.</p>
-        <p className="text-white/60 text-sm mt-2">Gratis. Sin descargar de tienda. Ocupa lo mismo que 3 fotos.</p>
-        <div className="mt-6 flex flex-col gap-3">
-          <InstallButton variant="primary" className="w-full !justify-center" />
-          <Link href="/registro" className="bg-white/10 text-white font-display font-black rounded-xl px-5 py-3">Crear cuenta gratis</Link>
-          <Link href="/login" className="text-white/60 text-sm underline">Ya tengo cuenta</Link>
-        </div>
-      </section>
-
-      <footer className="max-w-md mx-auto px-6 py-6 text-center text-white/30 text-xs border-t border-white/5">
-        © {new Date().getFullYear()} NarvoQ · Elevá tu juego. Elevá tu nivel.
-      </footer>
+      {/* Drawer al elegir rol */}
+      {role && <RoleDrawer role={role} onClose={() => setRole(null)} />}
     </main>
   );
 }
 
-// Divider tipo revista con número de sección, título grande y línea lima.
-function SectionDivider({ tag, title, subtitle, accent = 'left' }: { tag: string; title: string; subtitle: string; accent?: 'left' | 'right' }) {
+// ==================== Drawer del rol ====================
+
+function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
+  const info = ROLE_INFO[role];
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  // ESC + bloquear scroll de body mientras el drawer está abierto
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  async function loginWithGoogle() {
+    setGoogleBusy(true); setError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?role=${role}`
+      }
+    });
+    if (error) {
+      setError(`No se pudo iniciar con Google: ${error.message}. Puede ser que Google Auth no esté configurado en Supabase todavía.`);
+      setGoogleBusy(false);
+    }
+    // Si arrancó bien, Supabase te redirige a Google y después vuelve al callback
+  }
+
   return (
-    <section className="max-w-md mx-auto px-6 pt-16 pb-2">
-      <div className={`flex items-center gap-4 ${accent === 'right' ? 'flex-row-reverse text-right' : ''}`}>
-        <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-ball to-ball rounded-full" />
-        <div className={accent === 'right' ? 'text-right' : ''}>
-          <p className="text-ball text-[10px] font-black tracking-widest">{tag}</p>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}>
+      <div
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-md bg-[#0F141D] border-t-2 sm:border-2 border-ball rounded-t-3xl sm:rounded-3xl max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+        {/* Handle drawer */}
+        <div className="pt-3 pb-1 flex justify-center sm:hidden">
+          <div className="w-10 h-1 bg-white/30 rounded-full" />
+        </div>
+
+        <div className={`p-6 bg-gradient-to-b ${info.color}`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-5xl">{info.emoji}</span>
+              <h2 className="font-display font-black text-3xl mt-2 leading-tight">{info.title}</h2>
+            </div>
+            <button onClick={onClose} className="text-white/60 text-2xl font-bold w-10 h-10 flex items-center justify-center">✕</button>
+          </div>
+          <p className="text-white/70 text-sm mt-2">Con NarvoQ vas a poder:</p>
+        </div>
+
+        {/* Features */}
+        <div className="px-6 space-y-4 pb-6">
+          {info.features.map((f, i) => (
+            <div key={i} className="flex gap-3">
+              <span className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-2xl shrink-0">{f.emoji}</span>
+              <div className="flex-1">
+                <p className="font-display font-black text-base leading-tight">{f.title}</p>
+                <p className="text-white/60 text-sm mt-0.5">{f.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* CTAs */}
+        <div className="px-6 pb-8 space-y-3 border-t border-white/10 pt-5">
+          {/* Continuar con Google */}
+          <button
+            onClick={loginWithGoogle}
+            disabled={googleBusy}
+            className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-4 text-base flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
+            <GoogleIcon />
+            {googleBusy ? 'Redirigiendo…' : 'Continuar con Google'}
+          </button>
+
+          {/* Crear cuenta con email */}
+          <Link
+            href={info.registerHref}
+            className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-4 text-base active:scale-[0.98] transition">
+            Crear cuenta con email
+          </Link>
+
+          {/* Ya tengo cuenta */}
+          <Link
+            href={info.loginHref}
+            className="w-full block text-center text-white/70 font-bold py-3 underline">
+            Ya tengo cuenta · Entrar
+          </Link>
+
+          {error && (
+            <p className="text-red-400 text-xs text-center pt-2">{error}</p>
+          )}
         </div>
       </div>
-      <h2 className="font-display font-black text-5xl leading-[0.95] uppercase mt-4">
-        {title}
-      </h2>
-      <p className="text-white/60 text-lg mt-2 font-semibold">{subtitle}</p>
-    </section>
-  );
-}
-
-// Caja de estadística grande estilo revista.
-function StatBox({ n, l }: { n: string; l: string }) {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
-      <p className="font-display font-black text-2xl text-ball leading-none">{n}</p>
-      <p className="text-white/60 text-[10px] font-bold uppercase mt-1 tracking-wider">{l}</p>
     </div>
   );
 }
 
-function Beneficio({ emoji, title, text }: { emoji: string; title: string; text: string }) {
+// Ícono de Google (SVG oficial, colores originales)
+function GoogleIcon() {
   return (
-    <div className="flex gap-3">
-      <span className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-2xl shrink-0">{emoji}</span>
-      <div>
-        <p className="font-display font-black text-base">{title}</p>
-        <p className="text-white/60 text-sm mt-0.5">{text}</p>
-      </div>
-    </div>
-  );
-}
-
-// Ilustración del complejo: cancha de padel con red y logo del club.
-function ComplexIllustration() {
-  return (
-    <svg viewBox="0 0 220 140" width="200" height="130">
-      {/* Piso oscuro */}
-      <rect x="10" y="70" width="200" height="60" rx="4" fill="#0F141D" stroke="#D8F646" strokeOpacity="0.5" strokeWidth="1.5" />
-      {/* Cancha superior */}
-      <rect x="30" y="40" width="160" height="60" rx="2" fill="none" stroke="#D8F646" strokeWidth="2" />
-      {/* Red */}
-      <line x1="110" y1="40" x2="110" y2="100" stroke="#D8F646" strokeWidth="2.5" strokeDasharray="4 3" />
-      {/* Líneas de saque */}
-      <line x1="60" y1="40" x2="60" y2="100" stroke="#D8F646" strokeWidth="1" strokeOpacity="0.5" />
-      <line x1="160" y1="40" x2="160" y2="100" stroke="#D8F646" strokeWidth="1" strokeOpacity="0.5" />
-      {/* Techo */}
-      <path d="M 15 40 L 110 8 L 205 40" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Logo del club (letra C simulada) */}
-      <circle cx="110" cy="24" r="8" fill="#D8F646" />
-      <text x="110" y="28" textAnchor="middle" fontSize="10" fontWeight="900" fill="#0B0F16">🏢</text>
-      {/* Pelota jugando */}
-      <circle cx="80" cy="70" r="4" fill="#D8F646" />
-      <path d="M 76 68 Q 80 66 84 68" fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="0.8" />
+    <svg width="22" height="22" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
     </svg>
-  );
-}
-
-// Ilustración del profe: silbato + planilla con tildes de sesión.
-function CoachIllustration() {
-  return (
-    <svg viewBox="0 0 220 140" width="200" height="130">
-      {/* Planilla */}
-      <rect x="20" y="20" width="90" height="110" rx="6" fill="#0F141D" stroke="#D8F646" strokeWidth="2" />
-      <rect x="42" y="12" width="46" height="14" rx="3" fill="#D8F646" />
-      <rect x="52" y="14" width="26" height="10" rx="2" fill="#0F141D" />
-      {/* Líneas de la planilla */}
-      <line x1="30" y1="42" x2="100" y2="42" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
-      <line x1="30" y1="58" x2="100" y2="58" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
-      <line x1="30" y1="74" x2="100" y2="74" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
-      <line x1="30" y1="90" x2="100" y2="90" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
-      <line x1="30" y1="106" x2="100" y2="106" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.5" />
-      {/* Tildes en lima */}
-      <path d="M 34 40 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M 34 56 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M 34 72 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M 34 88 l 3 4 l 6 -6" stroke="#D8F646" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Pelota */}
-      <circle cx="160" cy="50" r="26" fill="#D8F646" />
-      <path d="M 138 42 Q 160 30 182 42" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M 138 58 Q 160 70 182 58" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-      {/* Silbato */}
-      <rect x="140" y="95" width="40" height="18" rx="9" fill="#0F141D" stroke="#D8F646" strokeWidth="2" />
-      <circle cx="150" cy="104" r="4" fill="#D8F646" />
-      <rect x="176" y="102" width="14" height="4" rx="2" fill="#D8F646" />
-    </svg>
-  );
-}
-
-function MockTitle({ children }: any) {
-  return <p className="font-display font-black text-ball text-xs tracking-widest">{children}</p>;
-}
-
-/* ===== MOCKS: cards que representan lo que verá el usuario adentro ===== */
-
-function MockReserva() {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#141A24] p-4">
-      <p className="text-white/40 text-[10px] font-bold uppercase">Reservar cancha · San Miguel del Monte</p>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-        {['19:00', '20:30', '21:00'].map((h, i) => (
-          <div key={h} className={`py-3 rounded-xl font-display font-black text-sm
-            ${i === 2 ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/60'}`}>
-            {h}
-          </div>
-        ))}
-      </div>
-      <p className="text-white/50 text-xs mt-2">Cancha 2 · Techada · $18.000 · Hoy</p>
-    </div>
-  );
-}
-
-function MockRanking() {
-  const players = [
-    { n: 'JP', name: 'Juan P.', pts: 342, cat: 3 },
-    { n: 'MG', name: 'María G.', pts: 298, cat: 3 },
-    { n: 'FR', name: 'Fede R.', pts: 271, cat: 4 }
-  ];
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#141A24] p-4">
-      <p className="text-white/40 text-[10px] font-bold uppercase">Ranking zonal · Cat. 3–4</p>
-      <div className="mt-3 space-y-2">
-        {players.map((p, i) => (
-          <div key={p.n} className="flex items-center gap-3">
-            <span className={`font-display font-black w-6 text-center ${i === 0 ? 'text-ball' : 'text-white/60'}`}>{i + 1}</span>
-            <span className="w-8 h-8 rounded-full bg-grafito text-ball flex items-center justify-center text-xs font-black">{p.n}</span>
-            <span className="flex-1 text-sm font-semibold">{p.name}</span>
-            <span className="text-ball font-display font-black text-sm">{p.pts} pts</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MockStats() {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#141A24] p-4">
-      <p className="text-white/40 text-[10px] font-bold uppercase">Tus estadísticas · últimos 30 días</p>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <Stat n="18" l="Jugados" />
-        <Stat n="12" l="Ganados" />
-        <Stat n="342" l="Pts. torneo" />
-      </div>
-      <div className="mt-4">
-        <div className="flex justify-between text-[10px] font-bold text-white/60"><span>TÉCNICA</span><span>7/10</span></div>
-        <div className="mt-1 h-2 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-ball" style={{ width: '70%' }} /></div>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ n, l }: any) {
-  return (
-    <div className="text-center bg-white/5 rounded-xl py-2">
-      <p className="font-display font-black text-2xl text-ball">{n}</p>
-      <p className="text-white/50 text-[9px] font-bold uppercase">{l}</p>
-    </div>
-  );
-}
-
-function MockFixture() {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#141A24] p-4">
-      <p className="text-white/40 text-[10px] font-bold uppercase">Torneo Suma 13 · Zona A</p>
-      <div className="mt-3 space-y-2">
-        {[
-          { a: 'Juan & Mati', b: 'Fede & Pablo', score: '6-4  6-2' },
-          { a: 'Sofi & Cami', b: 'Nico & Lucho', score: '6-1  6-3' }
-        ].map((m, i) => (
-          <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 text-xs">
-            <span className="flex-1 font-semibold">{m.a}</span>
-            <span className="text-ball font-display font-black">{m.score}</span>
-            <span className="flex-1 text-right text-white/50">{m.b}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

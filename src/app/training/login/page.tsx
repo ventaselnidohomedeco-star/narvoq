@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
+import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
 
 export default function TrainingLogin() {
   const router = useRouter();
@@ -31,7 +32,13 @@ export default function TrainingLogin() {
       <p className="font-display font-black text-ball text-sm tracking-widest">TRAINING</p>
       <h1 className="font-display font-black text-3xl mt-1">Portal profes</h1>
       <p className="text-white/50 mt-1">Dashboards por alumno y del grupo entero.</p>
-      <form onSubmit={submit} className="mt-6 space-y-4">
+
+      <div className="mt-6">
+        <GoogleAuthButton role="coach" />
+      </div>
+      <AuthDivider />
+
+      <form onSubmit={submit} className="space-y-4">
         <div><label className="label">Email</label>
           <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
         <div><label className="label">Contraseña</label>

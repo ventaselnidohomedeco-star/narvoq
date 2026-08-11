@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
+import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
 
 export default function LoginComplejo() {
   const router = useRouter();
@@ -28,7 +29,13 @@ export default function LoginComplejo() {
       <Brand variant="full" size={36} className="mb-6" />
       <h1 className="font-display font-black text-3xl">Portal de complejos</h1>
       <p className="text-white/70 mt-1">Administrá canchas, reservas y torneos.</p>
-      <form onSubmit={submit} className="mt-8 space-y-4">
+
+      <div className="mt-8">
+        <GoogleAuthButton role="complex" />
+      </div>
+      <AuthDivider />
+
+      <form onSubmit={submit} className="space-y-4">
         <input className="input" type="email" placeholder="Email"
           value={email} onChange={e => setEmail(e.target.value)} required />
         <input className="input" type="password" placeholder="Contraseña"
