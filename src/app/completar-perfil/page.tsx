@@ -54,15 +54,41 @@ export default function CompletarPerfil() {
     if (!f.username.trim()) { setError('Elegí un nombre de usuario.'); setSaving(false); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
-    const { error: err } = await supabase.from('profiles').update({
-      phone: f.phone.trim(),
-      age: Number(f.age),
-      sex: f.sex,
-      city_id: f.city_id,
-      zone: f.zone.trim() || null,
-      category: Number(f.category),
-      username: f.username.toLowerCase().trim()
-    }).eq('id', user!.id);
+
+    // Si el profile ya existe → update. Si NO existe (caso raro: fila nunca
+    // creada) → insert con datos mínimos de auth + los del form.
+    let err: any = null;
+    if (profile) {
+      const r = await supabase.from('profiles').update({
+        phone: f.phone.trim(),
+        age: Number(f.age),
+        sex: f.sex,
+        city_id: f.city_id,
+        zone: f.zone.trim() || null,
+        category: Number(f.category),
+        username: f.username.toLowerCase().trim()
+      }).eq('id', user!.id);
+      err = r.error;
+    } else {
+      const meta = user!.user_metadata ?? {};
+      const fullName: string = meta.full_name ?? meta.name ?? '';
+      const [firstName, ...rest] = fullName.split(' ');
+      const r = await supabase.from('profiles').insert({
+        id: user!.id,
+        role: 'player',
+        username: f.username.toLowerCase().trim(),
+        first_name: firstName || 'Usuario',
+        last_name: rest.join(' ') || '',
+        avatar_url: meta.avatar_url ?? meta.picture ?? null,
+        phone: f.phone.trim(),
+        age: Number(f.age),
+        sex: f.sex,
+        city_id: f.city_id,
+        zone: f.zone.trim() || null,
+        category: Number(f.category)
+      });
+      err = r.error;
+    }
     setSaving(false);
 
     if (err) {
