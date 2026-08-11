@@ -70,6 +70,24 @@ export async function middleware(req: NextRequest) {
         return redirect(res, req, '/jugador/dashboard');
     }
   }
+
+  // Perfil incompleto — SI el usuario está logueado y el perfil no tiene los
+  // campos críticos (ciudad, celular, categoría, edad), forzamos a completarlo.
+  // Excepciones: /admin (super_admin puede seguir sin completar) y la propia
+  // página /completar-perfil.
+  if (user && !path.startsWith('/admin') && path !== '/completar-perfil') {
+    const { data: profile } = await supabase
+      .from('profiles').select('phone, city_id, category, age, role')
+      .eq('id', user.id).maybeSingle();
+    if (profile) {
+      // Complex_admin no necesita categoría ni edad personal — solo teléfono
+      const isComplex = profile.role === 'complex_admin';
+      const incomplete = !profile.phone || profile.phone === '-' ||
+        (!isComplex && (!profile.city_id || !profile.category || !profile.age));
+      if (incomplete) return redirect(res, req, '/completar-perfil');
+    }
+  }
+
   return res;
 }
 
