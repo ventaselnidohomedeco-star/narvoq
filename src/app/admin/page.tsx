@@ -109,6 +109,18 @@ export default function Admin() {
     <main className="min-h-dvh max-w-md mx-auto px-5 py-8">
       <h1 className="font-display font-black text-2xl">Panel CEO</h1>
 
+      {/* Accesos rápidos */}
+      <section className="mt-4 grid grid-cols-2 gap-2">
+        <a href="/admin/planes"
+          className="card !p-3 flex items-center gap-2 hover:bg-white/5">
+          <span className="text-2xl">💎</span>
+          <div className="min-w-0">
+            <p className="font-black text-sm truncate">Planes y suscripciones</p>
+            <p className="text-white/40 text-[10px]">Precios + NarvoQ Verificado</p>
+          </div>
+        </a>
+      </section>
+
       <section className="mt-4 grid grid-cols-5 gap-2">
         {Object.entries(stats).map(([k, v]: any) => (
           <div key={k} className="card !p-2 text-center">

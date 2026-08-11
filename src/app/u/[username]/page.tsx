@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { DonutChart } from '@/components/Charts';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 // Perfil público completo: /u/juanperez
 // Muestra dashboard con winrate, ranking zonal, seguidores, sesiones de
@@ -148,7 +149,10 @@ export default function PerfilPublico() {
                 {p.first_name?.[0]}
               </span>}
           <div className="flex-1 min-w-0">
-            <h1 className="font-display font-black text-2xl leading-tight truncate">{p.first_name} {p.last_name}</h1>
+            <h1 className="font-display font-black text-2xl leading-tight truncate">
+              {p.first_name} {p.last_name}
+              <VerifiedBadge show={(p as any)?.is_premium} size="md" />
+            </h1>
             <p className="text-white/70 text-sm truncate">@{p.username}{p.age ? ` · ${p.age}` : ''}</p>
             {p.role === 'coach' && (
               <p className="text-ball text-sm font-black mt-1">

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import PlacaButton from '@/components/PlacaButton';
 import { DonutChart, ChartLegend, BarChart } from '@/components/Charts';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import type { Profile } from '@/lib/types';
 
 export default function Dashboard() {
@@ -62,7 +63,9 @@ export default function Dashboard() {
         <div className="flex-1 min-w-0">
           <p className="text-white/60 text-sm">Hola,</p>
           <h1 className="font-display font-black text-2xl leading-tight truncate">
-            {profile?.first_name ?? '…'} 👋
+            {profile?.first_name ?? '…'}
+            <VerifiedBadge show={(profile as any)?.is_premium} size="lg" />
+            {' 👋'}
           </h1>
           {profile && (
             <p className="text-ball text-sm font-bold mt-0.5">Categoría {profile.category}</p>
