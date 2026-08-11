@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -8,6 +8,15 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 
 // /mi-suscripcion — Vista del usuario para ver su plan actual, próxima
 // renovación, historial y cancelar.
+// El wrapper con Suspense es requerido por Next 14 cuando se usa
+// useSearchParams(), sino falla el build estático.
+export default function MiSuscripcionPage() {
+  return (
+    <Suspense fallback={<main className="p-8 text-white/60">Cargando…</main>}>
+      <MiSuscripcion />
+    </Suspense>
+  );
+}
 
 type Sub = {
   id: string;
@@ -24,7 +33,7 @@ type Sub = {
   } | null;
 };
 
-export default function MiSuscripcion() {
+function MiSuscripcion() {
   const params = useSearchParams();
   const justSubscribed = params.get('ref');   // viene de MP back_url
 
