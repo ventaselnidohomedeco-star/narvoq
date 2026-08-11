@@ -43,7 +43,7 @@ create table if not exists subscriptions (
   user_id uuid references auth.users(id) on delete cascade,      -- usuario que suscribe (jugador/coach)
   complex_id uuid references complexes(id) on delete cascade,    -- si aplica al complejo entero
   plan_id uuid references subscription_plans(id) on delete restrict,
-  status text not null check (status in ('trial', 'active', 'past_due', 'cancelled', 'expired')),
+  status text not null check (status in ('pending', 'trial', 'active', 'past_due', 'cancelled', 'expired')),
   starts_at timestamptz default now() not null,
   expires_at timestamptz not null,
   cancelled_at timestamptz,
@@ -93,10 +93,27 @@ create policy "subs read own" on subscriptions for select using (
   or (select role from profiles where id = auth.uid()) = 'super_admin'
 );
 
+-- FIX: los usuarios normales necesitan poder crear/actualizar SUS propias
+-- suscripciones (para suscribirse via /planes → /api/mp/create-subscription).
 drop policy if exists "subs write admin only" on subscriptions;
-create policy "subs write admin only" on subscriptions for all
-  using ((select role from profiles where id = auth.uid()) = 'super_admin')
-  with check ((select role from profiles where id = auth.uid()) = 'super_admin');
+drop policy if exists "subs insert own" on subscriptions;
+drop policy if exists "subs update own" on subscriptions;
+drop policy if exists "subs delete admin" on subscriptions;
+
+create policy "subs insert own" on subscriptions for insert with check (
+  user_id = auth.uid()
+  or complex_id in (select id from complexes where owner_id = auth.uid())
+);
+
+create policy "subs update own" on subscriptions for update using (
+  user_id = auth.uid()
+  or complex_id in (select id from complexes where owner_id = auth.uid())
+  or (select role from profiles where id = auth.uid()) = 'super_admin'
+);
+
+create policy "subs delete admin" on subscriptions for delete using (
+  (select role from profiles where id = auth.uid()) = 'super_admin'
+);
 
 -- ============ Helper para sincronizar is_premium ============
 -- Cuando cambia una suscripción, actualiza el flag rápido en profiles/complexes.
