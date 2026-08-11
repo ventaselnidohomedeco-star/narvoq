@@ -70,11 +70,15 @@ export default function CompletarPerfil() {
       return;
     }
 
-    // Redirigir al dashboard del rol correspondiente
+    // Redirigir al dashboard del rol correspondiente.
+    // Usamos window.location (full reload) para forzar que el middleware
+    // corra fresh contra el perfil recién actualizado. Con router.push()
+    // Next.js reutilizaría la respuesta cacheada del middleware anterior
+    // (que aún ve el perfil como "incompleto") y volvería a rebotar acá.
     const dest = profile?.role === 'coach' ? '/training/dashboard'
       : profile?.role === 'complex_admin' ? '/complejo/dashboard'
       : '/jugador/dashboard';
-    router.push(dest);
+    window.location.href = dest;
   }
 
   if (loading) return <main className="min-h-dvh flex items-center justify-center text-white/60">Cargando…</main>;
