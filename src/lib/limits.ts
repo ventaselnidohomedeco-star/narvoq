@@ -3,10 +3,16 @@
 
 export const FREE_LIMITS = {
   player: {
+    // Plan Free MÍNIMO: perfil visible (sin stats), reservar canchas,
+    // tabla de posiciones, jugar amistosos y torneos. Todo lo demás es premium.
     reservation_days_ahead: 7,          // vs premium: 30
     ranking_top_visible: 100,            // vs premium: sin límite
     smash_history_hours: 24,             // vs premium: 720 (30 días)
-    smash_photos_per_chat: 5             // vs premium: ilimitado
+    smash_photos_per_chat: 5,            // vs premium: ilimitado
+    stats_visible: false,                // vs premium: true (dashboard con winrate, gráficos, evolución)
+    activity_charts: false,              // vs premium: true (gráficos temporales)
+    friends_advanced: false,             // vs premium: true (comparar stats con amigos, sugerencias)
+    marketplace_publish: false           // vs premium: true (publicar en marketplace)
   },
   coach: {
     students_max: 10,                    // vs premium: ilimitado
@@ -14,7 +20,7 @@ export const FREE_LIMITS = {
     academy_enabled: false               // vs premium: true
   },
   complex_admin: {
-    courts_max: 3,                       // vs premium: ilimitado
+    courts_max: 4,                       // vs premium: ilimitado
     tournaments_active_max: 1,           // vs premium: ilimitado
     employees_max: 0,                    // vs premium: ilimitado (0 = no puede crear)
     promos_to_feed: false,               // vs premium: true
@@ -68,6 +74,22 @@ export const FEATURE_INFO: Record<string, { title: string; description: string }
   reservation_days_ahead: {
     title: 'Reservas con 30 días de anticipación',
     description: 'Free: solo hasta 7 días adelante. Premium: 30 días adelante.'
+  },
+  stats_visible: {
+    title: 'Estadísticas de tu juego',
+    description: 'Winrate, partidos ganados/perdidos, evolución técnica y gráficos de tu rendimiento. Solo Premium.'
+  },
+  activity_charts: {
+    title: 'Gráficos de actividad',
+    description: 'Ver tu evolución mes a mes, tendencias y análisis detallado. Solo Premium.'
+  },
+  friends_advanced: {
+    title: 'Comparar con amigos',
+    description: 'Ver stats de tus amigos, comparar y sugerencia de compañero. Solo Premium.'
+  },
+  marketplace_publish: {
+    title: 'Vender en Marketplace',
+    description: 'Podés comprar en el marketplace desde el plan Free. Para publicar tus propias paletas/ropa/accesorios necesitás Premium.'
   }
 };
 

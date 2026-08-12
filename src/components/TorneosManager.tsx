@@ -50,6 +50,8 @@ export default function TorneosManager({ owner }: { owner: { type: 'complex' | '
       status: 'inscripcion',
       starts_on: f.starts_on || null,
       price: Number(f.price) || 0,
+      entry_fee_ars: Number(f.price) || 0,   // nuevo campo (compatibilidad)
+      platform_commission_pct: 2,             // NarvoQ retiene 2% por inscripción
       engine: 'v2',
       owner_type: owner.type,
       match_format: f.match_format,
@@ -183,9 +185,16 @@ function NuevoTorneo({ f, setF, onCancelar, onCrear, msg }: any) {
         <div className="grid grid-cols-2 gap-2 mt-3">
           <div><label className="label">Fecha inicio</label>
             <input className="input" type="date" value={f.starts_on} onChange={set('starts_on')} /></div>
-          <div><label className="label">Inscripción $</label>
-            <input className="input" type="number" min={0} value={f.price} onChange={set('price')} /></div>
+          <div><label className="label">Inscripción $ (por pareja)</label>
+            <input className="input" type="number" min={0} value={f.price} onChange={set('price')} placeholder="0 = gratis" /></div>
         </div>
+        {Number(f.price) > 0 && (
+          <div className="mt-2 text-white/50 text-[11px] leading-snug bg-white/5 rounded-lg p-2">
+            💡 NarvoQ retiene <b className="text-ball">2%</b> por inscripción cobrada
+            (${Math.round(Number(f.price) * 0.02)} por pareja).
+            Vos recibís <b>${Math.round(Number(f.price) * 0.98).toLocaleString('es-AR')}</b> por cada inscripción.
+          </div>
+        )}
       </div>
 
       {msg && <p className="text-red-500 text-sm">{msg}</p>}

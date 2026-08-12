@@ -108,11 +108,24 @@ export default function DashboardComplejo() {
       .neq('status', 'cancelada').order('starts_at');
     setToday(bks ?? []);
 
-    // ---- Resultados por validar ----
+    // ---- Resultados por validar (SOLO torneos creados por este complejo) ----
+    // Los amistosos NO pasan por acá — son autónomos entre jugadores.
+    // Solo validamos partidos que forman parte de un torneo cuyo owner
+    // es este complejo (o cuyo owner_coach_id es un profe del complejo).
     const { data: res } = await supabase.from('results')
-      .select('*, match:matches(booking:bookings!inner(court_id, court:courts(name)))')
-      .eq('status', 'pendiente');
-    setPending((res ?? []).filter((r: any) => courtIds.includes(r.match?.booking?.court_id)));
+      .select(`
+        *,
+        match:matches!inner(
+          tournament_match_id,
+          tournament_match:tournament_matches!inner(
+            round,
+            tournament:tournaments!inner(id, name, complex_id)
+          )
+        )
+      `)
+      .eq('status', 'pendiente')
+      .eq('match.tournament_match.tournament.complex_id', complex.id);
+    setPending(res ?? []);
 
     // ---- Reservas de jugadores pendientes de aprobar ----
     const { data: reservasPend } = await supabase.from('bookings')
@@ -359,13 +372,21 @@ export default function DashboardComplejo() {
 
       <PromoBox cxId={cx.id} />
 
-      {/* Resultados por validar */}
+      {/* Resultados por validar — SOLO torneos del complejo */}
       <section className="mt-6">
-        <h2 className="font-display font-bold text-ball">Resultados por validar ({pending.length})</h2>
+        <h2 className="font-display font-bold text-ball">Resultados de torneos por validar ({pending.length})</h2>
+        {pending.length === 0 && (
+          <p className="text-white/40 text-xs mt-2">Solo aparecen partidos de torneos organizados por tu complejo. Los amistosos no requieren tu validación.</p>
+        )}
         <div className="mt-3 space-y-2">
           {pending.map(r => (
             <div key={r.id} className="bg-white/5 rounded-2xl p-3">
-              <p className="font-semibold">{r.match?.booking?.court?.name}</p>
+              <p className="font-semibold">
+                {r.match?.tournament_match?.tournament?.name ?? 'Torneo'}
+                {r.match?.tournament_match?.round && (
+                  <span className="text-ball text-xs ml-2">· {r.match.tournament_match.round}</span>
+                )}
+              </p>
               <p className="text-white/50 text-sm">
                 Ganó equipo {r.winner_team} · {r.sets.map((s: any) => `${s.t1}-${s.t2}`).join(' / ')}
               </p>

@@ -211,6 +211,9 @@ export default function TorneoDetalle() {
               : 'Completo'
           }</Tag>
           {t.sum_target && <Tag>Suma {t.sum_target}</Tag>}
+          {(t.entry_fee_ars ?? t.price ?? 0) > 0 && (
+            <Tag>💰 ${(t.entry_fee_ars ?? t.price).toLocaleString('es-AR')} inscripción</Tag>
+          )}
           {t.sex && <Tag>{t.sex === 'X' ? 'Mixto' : t.sex === 'F' ? 'Femenino' : 'Masculino'}</Tag>}
         </div>
       </header>

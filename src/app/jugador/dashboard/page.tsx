@@ -86,8 +86,8 @@ export default function Dashboard() {
         ))}
       </section>
 
-      {/* Chart: winrate y balance */}
-      {stats.played > 0 && (
+      {/* Chart: winrate y balance — SOLO Premium */}
+      {stats.played > 0 && (profile as any)?.is_premium && (
         <section className="card mt-4 !p-5">
           <p className="font-display font-black text-ball text-xs tracking-widest">TU BALANCE</p>
           <div className="mt-3 flex items-center gap-5">
@@ -109,6 +109,19 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Teaser Premium para free */}
+      {!(profile as any)?.is_premium && stats.played > 0 && (
+        <Link href="/planes?f=stats_visible"
+          className="card mt-4 !p-4 flex items-center gap-3 border border-ball/40 bg-ball/5">
+          <VerifiedBadge show size="lg" />
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-black text-sm">Desbloqueá tus estadísticas</p>
+            <p className="text-white/60 text-xs">Winrate, evolución mensual, gráficos avanzados con Premium</p>
+          </div>
+          <span className="text-ball text-xl">→</span>
+        </Link>
       )}
 
       <div className="court-divider my-6" />
