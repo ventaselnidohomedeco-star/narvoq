@@ -3,18 +3,26 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
+import { canAddMore, FREE_LIMITS } from '@/lib/limits';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 export default function Alumnos() {
   const [me, setMe] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
   const [q, setQ] = useState('');
   const [candidates, setCandidates] = useState<any[]>([]);
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState('');
 
+  const studentLimit = FREE_LIMITS.coach.students_max;
+  const canAdd = canAddMore('coach', 'students_max', rows.length, isPremium);
+
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setMe(user.id);
+    const { data: prof } = await supabase.from('profiles').select('is_premium').eq('id', user.id).maybeSingle();
+    setIsPremium(!!prof?.is_premium);
     const { data } = await supabase.from('coach_students')
       .select('nickname, player:profiles!player_id(id, username, first_name, last_name, avatar_url, category)')
       .eq('coach_id', user.id)
@@ -36,6 +44,10 @@ export default function Alumnos() {
   async function agregar(p: any) {
     setError('');
     if (!me) return;
+    if (!canAdd) {
+      setError(`Tu plan Free permite hasta ${studentLimit} alumnos. Actualizá a Premium para alumnos ilimitados.`);
+      return;
+    }
     const { error: err } = await supabase.from('coach_students').insert({ coach_id: me, player_id: p.id });
     if (err) return setError(err.code === '23505' ? 'Ese alumno ya está en tu lista.' : err.message);
     const { data: coach } = await supabase.from('profiles').select('first_name, last_name').eq('id', me).single();
@@ -57,7 +69,24 @@ export default function Alumnos() {
 
   return (
     <main className="px-5 py-6">
-      <h1 className="font-display font-black text-2xl">Alumnos</h1>
+      <h1 className="font-display font-black text-2xl">
+        Alumnos ({rows.length}{!isPremium && `/${studentLimit}`})
+      </h1>
+
+      {/* Aviso de límite alcanzado */}
+      {!isPremium && !canAdd && (
+        <div className="mt-4 card !p-4 border border-ball/40 bg-ball/5 flex items-center gap-3">
+          <VerifiedBadge show size="md" />
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-sm">Alcanzaste el límite de {studentLimit} alumnos</p>
+            <p className="text-white/60 text-xs">Actualizá a Premium para alumnos ilimitados</p>
+          </div>
+          <Link href="/planes?f=students_max"
+            className="bg-ball text-courtdark font-black text-xs px-3 py-2 rounded-lg shrink-0">
+            Ver planes
+          </Link>
+        </div>
+      )}
       <p className="text-white/50 text-sm">Vinculá jugadores de la app para registrarles sesiones y compartir su dashboard.</p>
 
       <section className="card mt-4">

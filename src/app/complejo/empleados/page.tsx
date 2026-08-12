@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import BackButton from '@/components/BackButton';
 import { notify } from '@/lib/notify';
+import PremiumGate from '@/components/PremiumGate';
 
 const Avatar = ({ url, name, size = 'w-11 h-11' }: any) => url
   ? <img src={url} alt="" className={`${size} rounded-full object-cover shrink-0`} />
@@ -89,6 +90,17 @@ export default function Empleados() {
   }
 
   if (!cx) return <main className="p-8 text-white/70">Cargando…</main>;
+
+  // Gate premium: solo suscriptores pueden gestionar empleados
+  if (!cx.is_premium) return (
+    <main className="px-5 py-10">
+      <BackButton fallbackHref="/complejo/mas" label="Más" />
+      <h1 className="font-display font-black text-2xl mb-6 mt-4">Empleados</h1>
+      <PremiumGate isPremium={false} feature="employees_max">
+        <div />
+      </PremiumGate>
+    </main>
+  );
 
   return (
     <main className="px-5 py-6 pb-24">

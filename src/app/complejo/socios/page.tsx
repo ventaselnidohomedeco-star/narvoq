@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
+import PremiumGate from '@/components/PremiumGate';
 
 export default function Socios() {
   const [cx, setCx] = useState<any>(null);
@@ -75,6 +76,16 @@ export default function Socios() {
   }
 
   if (!cx) return <main className="p-8 text-white/70">Cargando...</main>;
+
+  // Gate premium: solo suscriptores pueden gestionar membresías/socios
+  if (!cx.is_premium) return (
+    <main className="px-5 py-10">
+      <h1 className="font-display font-black text-2xl mb-6">Socios y membresías</h1>
+      <PremiumGate isPremium={false} feature="memberships">
+        <div />
+      </PremiumGate>
+    </main>
+  );
 
   return (
     <main className="px-5 py-6">

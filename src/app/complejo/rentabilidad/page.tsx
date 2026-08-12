@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import PremiumGate from '@/components/PremiumGate';
 
 const DAYS = [
   { k: 1, l: 'Lun' }, { k: 2, l: 'Mar' }, { k: 3, l: 'Mié' },
@@ -101,6 +102,16 @@ export default function Rentabilidad() {
   }), { turnos: 0, plata: 0, libres: 0 }), [porCancha]);
 
   if (!cx) return <main className="p-8 text-white/70">Cargando…</main>;
+
+  // Gate premium: solo suscriptores ven la sección
+  if (!cx.is_premium) return (
+    <main className="px-5 py-10">
+      <h1 className="font-display font-black text-2xl mb-6">Rentabilidad</h1>
+      <PremiumGate isPremium={false} feature="financial_reports">
+        <div />
+      </PremiumGate>
+    </main>
+  );
 
   return (
     <main className="px-5 py-6 pb-24">

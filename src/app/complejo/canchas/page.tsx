@@ -1,7 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { uploadImage } from '@/lib/upload';
+import { canAddMore, FREE_LIMITS } from '@/lib/limits';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 const SURFACES = ['cemento', 'sintetico', 'cristal'];
 
@@ -9,6 +12,10 @@ export default function Canchas() {
   const [cx, setCx] = useState<any>(null);
   const [courts, setCourts] = useState<any[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const isPremium = !!cx?.is_premium;
+  const courtLimit = FREE_LIMITS.complex_admin.courts_max;
+  const canAdd = canAddMore('complex_admin', 'courts_max', courts.length, isPremium);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -34,6 +41,10 @@ export default function Canchas() {
   }
 
   async function agregar() {
+    if (!canAdd) {
+      alert(`Tu plan Free permite hasta ${courtLimit} canchas. Actualizá a Premium para canchas ilimitadas.`);
+      return;
+    }
     await supabase.from('courts').insert({
       complex_id: cx.id, name: `Cancha ${courts.length + 1}`,
       price_per_slot: courts[0]?.price_per_slot ?? 0
@@ -46,9 +57,29 @@ export default function Canchas() {
   return (
     <main className="px-5 py-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display font-black text-xl">Mis canchas ({courts.length})</h1>
-        <button onClick={agregar} className="btn-ball text-sm">+ Agregar</button>
+        <h1 className="font-display font-black text-xl">
+          Mis canchas ({courts.length}{!isPremium && `/${courtLimit}`})
+        </h1>
+        <button onClick={agregar} disabled={!canAdd}
+          className={`text-sm font-black px-4 py-2 rounded-lg ${canAdd ? 'bg-ball text-courtdark' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}>
+          + Agregar
+        </button>
       </div>
+
+      {/* Aviso de límite alcanzado */}
+      {!isPremium && !canAdd && (
+        <div className="mt-4 card !p-4 border border-ball/40 bg-ball/5 flex items-center gap-3">
+          <VerifiedBadge show size="md" />
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-sm">Alcanzaste el límite de {courtLimit} canchas</p>
+            <p className="text-white/60 text-xs">Actualizá a Premium para canchas ilimitadas</p>
+          </div>
+          <Link href="/planes?f=courts_max"
+            className="bg-ball text-courtdark font-black text-xs px-3 py-2 rounded-lg shrink-0">
+            Ver planes
+          </Link>
+        </div>
+      )}
 
       <div className="mt-4 space-y-4">
         {courts.map(c => (
