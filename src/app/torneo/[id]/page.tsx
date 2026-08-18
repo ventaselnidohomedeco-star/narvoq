@@ -218,6 +218,26 @@ export default function TorneoDetalle() {
         </div>
       </header>
 
+      {/* Botón: descargar imagen promocional del torneo */}
+      <div className="mt-4">
+        <TournamentPoster
+          label="Descargar imagen promo del torneo"
+          input={{
+            mode: 'promo',
+            tournamentName: t.name,
+            category: t.sum_target ? `Suma ${t.sum_target}` : (Array.isArray(t.categories) && t.categories.length ? `Cat ${t.categories[0]}` : undefined),
+            startsOn: t.starts_on ?? null,
+            cityName: t.complex?.city?.name ?? undefined,
+            organizerName: t.complex?.name ?? (t.owner_coach_id ? 'Profe organizador' : undefined),
+            entryFee: t.entry_fee_ars ?? t.price ?? 0,
+            pairsRegistered: pairs.filter((p: any) => p.status === 'aprobada').length,
+            pairsMax: t.max_pairs ?? 32,
+            registrationOpen: t.status === 'inscripcion',
+            sponsors: t.sponsors ?? []
+          }}
+        />
+      </div>
+
       {/* Campeón — con logo NarvoQ + copa */}
       {campeon && (
         <section className="mt-6 rounded-2xl bg-gradient-to-br from-ball/25 via-ball/10 to-transparent border-2 border-ball/50 p-6 text-center shadow-[0_0_40px_rgba(216,246,70,0.25)]">

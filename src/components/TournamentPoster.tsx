@@ -32,6 +32,21 @@ export type PosterInput =
       sponsors?: Sponsor[];
       podiumChampionPhoto?: string | null;    // foto real del podio de los campeones
       podiumRunnerupPhoto?: string | null;    // foto real del podio de los sub-campeones
+    }
+  // Modo PROMO: card promocional del torneo para compartir en redes ANTES
+  // de que arranque. Muestra nombre, fecha, categoría, precio, cupos, organizador.
+  | {
+      mode: 'promo';
+      tournamentName: string;
+      category?: string;
+      startsOn?: string | null;              // "2026-09-15" o similar
+      cityName?: string;
+      organizerName?: string;                // ej: "Complejo Padel Center" o "Profe Juan"
+      entryFee?: number;                     // en ARS. 0 = gratis
+      pairsRegistered?: number;
+      pairsMax?: number;
+      registrationOpen?: boolean;
+      sponsors?: Sponsor[];
     };
 
 // Paleta NarvoQ
@@ -86,6 +101,7 @@ export default function TournamentPoster({ input, label }: { input: PosterInput;
       const safeName = input.tournamentName.replace(/[^\w\-]+/g, '_');
       const suffix = input.mode === 'groups' ? 'grupos'
         : input.mode === 'standings' ? 'posiciones'
+        : input.mode === 'promo' ? 'promo'
         : input.roundLabel.toLowerCase().replace(/\s+/g, '_');
       a.href = url;
       a.download = `NarvoQ_${safeName}_${suffix}.png`;
@@ -119,11 +135,12 @@ function collectAvatarUrls(input: PosterInput): string[] {
   };
   if (input.mode === 'groups') input.groups.forEach(g => g.members.forEach(pushPair));
   else if (input.mode === 'standings') input.standings.forEach(s => s.rows.forEach(r => pushPair(r.pair)));
-  else {
-    input.matches.forEach(m => { pushPair(m.pair1); pushPair(m.pair2); });
+  else if (input.mode === 'round') {
+    input.matches.forEach((m: RoundMatch) => { pushPair(m.pair1); pushPair(m.pair2); });
     if (input.champion) pushPair(input.champion);
     if (input.runnerUp) pushPair(input.runnerUp);
   }
+  // mode 'promo' no tiene avatares — no hacemos nada
   return Array.from(new Set(urls));
 }
 
@@ -183,6 +200,7 @@ function drawPoster(ctx: CanvasRenderingContext2D, W: number, H: number, input: 
 
   if (input.mode === 'groups') drawGroups(ctx, W, contentTop, contentBottom, input.groups, assets);
   else if (input.mode === 'standings') drawStandings(ctx, W, contentTop, contentBottom, input.standings, assets);
+  else if (input.mode === 'promo') drawPromo(ctx, W, contentTop, contentBottom, input, assets);
   else drawRound(ctx, W, contentTop, contentBottom, input.roundLabel, input.matches, input.champion, input.runnerUp, assets);
 
   drawSponsors(ctx, W, H, footerH, input.sponsors ?? [], assets.sponsors);
@@ -736,6 +754,134 @@ function drawPodiumPhoto(
   ctx.lineWidth = 3;
   roundRect(ctx, x, y, w, h, 14);
   ctx.stroke();
+}
+
+// ==================== Modo PROMO (card promocional del torneo) ====================
+
+function drawPromo(
+  ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number,
+  input: Extract<PosterInput, { mode: 'promo' }>, assets: Assets
+) {
+  const cx = W / 2;
+  let y = top + 30;
+
+  // Título "INSCRIPCIÓN ABIERTA" o "TORNEO CONFIRMADO"
+  const label = input.registrationOpen === false ? 'TORNEO CONFIRMADO' : 'INSCRIPCIÓN ABIERTA';
+  ctx.font = '900 24px system-ui, sans-serif';
+  ctx.fillStyle = BALL;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`◆  ${label}  ◆`, cx, y);
+  y += 60;
+
+  // Isotipo grande al centro
+  if (assets.isotipo) {
+    const iSize = 110;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(assets.isotipo, cx - iSize / 2, y - iSize / 2, iSize, iSize);
+    ctx.restore();
+  }
+  y += 90;
+
+  // Nombre del torneo (grande)
+  ctx.font = '900 68px system-ui, sans-serif';
+  ctx.fillStyle = WHITE;
+  wrappedText(ctx, input.tournamentName.toUpperCase(), cx, y, W - 80, 72, 2);
+  y += 90;
+
+  // Categoría en pastilla lima
+  if (input.category) {
+    ctx.font = '900 22px system-ui, sans-serif';
+    const w = ctx.measureText(input.category.toUpperCase()).width + 50;
+    ctx.fillStyle = BALL;
+    roundRect(ctx, cx - w / 2, y - 20, w, 40, 20);
+    ctx.fill();
+    ctx.fillStyle = '#0A0F1A';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(input.category.toUpperCase(), cx, y);
+    y += 60;
+  }
+
+  // Divider
+  ctx.strokeStyle = 'rgba(216,246,70,0.3)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx - 200, y); ctx.lineTo(cx + 200, y); ctx.stroke();
+  y += 40;
+
+  // Bloques de info (icono + label + valor)
+  const rowH = 74;
+  const rowW = Math.min(720, W - 120);
+  const rowX = cx - rowW / 2;
+
+  const rows: { emoji: string; label: string; value: string }[] = [];
+  if (input.startsOn) {
+    const d = new Date(input.startsOn);
+    const fmt = d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    rows.push({ emoji: '📅', label: 'Fecha', value: fmt });
+  }
+  if (input.cityName) rows.push({ emoji: '📍', label: 'Ciudad', value: input.cityName });
+  if (input.organizerName) rows.push({ emoji: '🏆', label: 'Organiza', value: input.organizerName });
+  if (typeof input.entryFee === 'number') {
+    rows.push({
+      emoji: '💰', label: 'Inscripción',
+      value: input.entryFee === 0 ? 'GRATIS' : `$${input.entryFee.toLocaleString('es-AR')} por pareja`
+    });
+  }
+  if (typeof input.pairsMax === 'number') {
+    const reg = input.pairsRegistered ?? 0;
+    rows.push({
+      emoji: '🎾', label: 'Cupos',
+      value: `${reg}/${input.pairsMax} parejas anotadas`
+    });
+  }
+
+  rows.forEach((r, i) => {
+    const rowY = y + i * (rowH + 12);
+    // Fondo del row
+    ctx.fillStyle = CARD;
+    roundRect(ctx, rowX, rowY, rowW, rowH, 14);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(216,246,70,0.25)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Emoji
+    ctx.font = '40px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(r.emoji, rowX + 44, rowY + rowH / 2);
+
+    // Label
+    ctx.font = '900 13px system-ui, sans-serif';
+    ctx.fillStyle = BALL;
+    ctx.textAlign = 'left';
+    ctx.fillText(r.label.toUpperCase(), rowX + 90, rowY + 24);
+
+    // Value
+    ctx.font = '900 22px system-ui, sans-serif';
+    ctx.fillStyle = WHITE;
+    ctx.fillText(truncateText(ctx, r.value, rowW - 110), rowX + 90, rowY + 50);
+  });
+
+  const rowsBottom = y + rows.length * (rowH + 12) + 20;
+
+  // CTA
+  const ctaY = rowsBottom + 40;
+  if (ctaY + 60 < bottom) {
+    ctx.font = '900 26px system-ui, sans-serif';
+    const ctaText = input.registrationOpen === false ? '¡NOS VEMOS EN LA CANCHA!' : '¡ANOTATE YA!';
+    const ctaW = ctx.measureText(ctaText).width + 80;
+    ctx.fillStyle = BALL;
+    roundRect(ctx, cx - ctaW / 2, ctaY, ctaW, 60, 30);
+    ctx.fill();
+    ctx.fillStyle = '#0A0F1A';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ctaText, cx, ctaY + 30);
+
+    // URL debajo
+    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.fillStyle = W60;
+    ctx.fillText('narvoq.vercel.app', cx, ctaY + 90);
+  }
 }
 
 // ==================== Auspiciantes ====================
