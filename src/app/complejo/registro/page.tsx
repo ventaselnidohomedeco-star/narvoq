@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
+import { trialProfileFields, trialComplexFields, TRIAL_DAYS } from '@/lib/trial';
 
 export default function RegistroComplejo() {
   const router = useRouter();
@@ -28,12 +29,14 @@ export default function RegistroComplejo() {
       username: `cx_${f.name.toLowerCase().replace(/\W+/g, '')}`.slice(0, 24),
       first_name: f.responsible.split(' ')[0] ?? f.responsible,
       last_name: f.responsible.split(' ').slice(1).join(' ') || '-',
-      phone: f.phone, age: 30, sex: 'X', category: 8
+      phone: f.phone, age: 30, sex: 'X', category: 8,
+      ...trialProfileFields()   // 🎁 Trial Premium 60 días
     });
     const { data: cx, error: cErr } = await supabase.from('complexes').insert({
       owner_id: data.user.id, name: f.name, responsible: f.responsible,
       phone: f.phone, email: f.email, city_id: f.city_id, address: f.address,
-      open_time: f.open_time, close_time: f.close_time, slot_minutes: Number(f.slot_minutes)
+      open_time: f.open_time, close_time: f.close_time, slot_minutes: Number(f.slot_minutes),
+      ...trialComplexFields()   // 🎁 Trial Premium 60 días
     }).select().single();
     if (cErr) { setError('Revisá los datos del complejo.'); setLoading(false); return; }
 

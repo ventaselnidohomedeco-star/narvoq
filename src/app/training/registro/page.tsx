@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
 import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
+import { trialProfileFields } from '@/lib/trial';
 
 export default function TrainingRegistro() {
   const router = useRouter();
@@ -30,7 +31,8 @@ export default function TrainingRegistro() {
       first_name: f.first_name, last_name: f.last_name, phone: f.phone,
       age: Number(f.age), sex: f.sex, city_id: f.city_id || null,
       zone: f.zone, category: 4, bio: f.bio || null,
-      academy_name: f.academy_name.trim() || null
+      academy_name: f.academy_name.trim() || null,
+      ...trialProfileFields()   // 🎁 Trial Premium 60 días
     });
     if (pErr) {
       setError(pErr.code === '23505' ? 'Ese usuario ya está en uso.' : pErr.message);

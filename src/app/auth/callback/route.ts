@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { trialProfileFields } from '@/lib/trial';
 
 type CookieToSet = {
   name: string;
@@ -66,7 +67,8 @@ export async function GET(req: NextRequest) {
         username,
         first_name: firstName || 'Usuario',
         last_name: lastName || '',
-        avatar_url: meta.avatar_url ?? meta.picture ?? null
+        avatar_url: meta.avatar_url ?? meta.picture ?? null,
+        ...trialProfileFields()   // 🎁 Trial Premium 60 días
       });
       // Perfil recién creado → obligatoriamente falta completar
       return redirectPreservingCookies(res, origin, '/completar-perfil');

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
 import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
+import { trialProfileFields, TRIAL_DAYS } from '@/lib/trial';
 
 const CATS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -33,7 +34,8 @@ function RegistroForm() {
       id: data.user.id, role: 'player', username: f.username.toLowerCase(),
       first_name: f.first_name, last_name: f.last_name, phone: f.phone,
       age: Number(f.age), sex: f.sex, city_id: f.city_id || null,
-      zone: f.zone, category: Number(f.category)
+      zone: f.zone, category: Number(f.category),
+      ...trialProfileFields()   // 🎁 Trial Premium automático 60 días
     });
     if (pErr) {
       setError(pErr.code === '23505' ? 'Ese nombre de usuario ya está en uso.' : 'Revisá los datos e intentá de nuevo.');

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import PlacaButton from '@/components/PlacaButton';
 import { DonutChart, ChartLegend, BarChart } from '@/components/Charts';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import TrialCountdown from '@/components/TrialCountdown';
 import type { Profile } from '@/lib/types';
 
 export default function Dashboard() {
@@ -70,6 +71,9 @@ export default function Dashboard() {
           {profile && (
             <p className="text-ball text-sm font-bold mt-0.5">Categoría {profile.category}</p>
           )}
+          <div className="mt-2">
+            <TrialCountdown premiumExpiresAt={(profile as any)?.premium_expires_at} />
+          </div>
         </div>
       </header>
 

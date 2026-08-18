@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
+import { trialProfileFields } from '@/lib/trial';
 
 // Página que pide los datos que faltan del perfil (ciudad, celular, categoría, etc.).
 // Se muestra sí o sí después de entrar con Google la primera vez, o cuando
@@ -85,7 +86,8 @@ export default function CompletarPerfil() {
         sex: f.sex,
         city_id: f.city_id,
         zone: f.zone.trim() || null,
-        category: Number(f.category)
+        category: Number(f.category),
+        ...trialProfileFields()   // 🎁 Trial Premium 60 días
       });
       err = r.error;
     }
