@@ -168,6 +168,13 @@ export default function Admin() {
 
       {/* Accesos rápidos */}
       <section className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2">
+        <a href="/admin/complejos" className="card !p-3 flex items-center gap-2 hover:bg-white/5 border border-yellow-500/40">
+          <span className="text-2xl">🏟️</span>
+          <div className="min-w-0">
+            <p className="font-black text-sm truncate">Aprobar complejos</p>
+            <p className="text-yellow-300 text-[10px]">Pending review · Suspender · Rechazar</p>
+          </div>
+        </a>
         <a href="/admin/planes" className="card !p-3 flex items-center gap-2 hover:bg-white/5">
           <span className="text-2xl">💎</span>
           <div className="min-w-0">

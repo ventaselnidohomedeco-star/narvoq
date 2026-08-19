@@ -78,7 +78,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase.from('complexes')
-        .select('id, name, logo_url, is_premium')
+        .select('id, name, logo_url, is_premium, status, rejection_reason')
         .eq('owner_id', user.id).maybeSingle();
       setCx(data);
     })();
@@ -99,9 +99,29 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
     router.push('/');
   }
 
+  // Banner de estado del complejo: pending_review, suspended o rejected.
+  // Solo se muestra al dueño (aparece en TODAS sus páginas).
+  const statusBanner = cx && cx.status !== 'active' ? (
+    <div className={`w-full px-5 py-3 text-sm font-bold text-center
+      ${cx.status === 'pending_review' ? 'bg-yellow-500/20 border-b-2 border-yellow-500/50 text-yellow-100'
+        : cx.status === 'suspended' ? 'bg-orange-500/20 border-b-2 border-orange-500/50 text-orange-100'
+        : 'bg-red-500/20 border-b-2 border-red-500/50 text-red-100'}`}>
+      {cx.status === 'pending_review' && (
+        <>⏳ <b>Tu complejo está en revisión</b>. Podés completar tu perfil y canchas, pero todavía no aparece a los jugadores.</>
+      )}
+      {cx.status === 'suspended' && (
+        <>⚠️ <b>Tu complejo está suspendido</b>. Escribinos para reactivarlo.</>
+      )}
+      {cx.status === 'rejected' && (
+        <>❌ <b>Tu complejo fue rechazado</b>. {cx.rejection_reason ? `Motivo: ${cx.rejection_reason}` : 'Contactá al soporte para más info.'}</>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="min-h-dvh bg-black text-white pb-32 lg:pb-0 lg:pl-72">
       <Banner />
+      {statusBanner}
 
       {/* ==================== SIDEBAR DESKTOP ==================== */}
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-black border-r border-white/10 flex-col z-40 overflow-y-auto">

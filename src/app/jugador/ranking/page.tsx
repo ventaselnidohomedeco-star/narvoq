@@ -39,7 +39,9 @@ export default function Ranking() {
     (async () => {
       const { data } = await supabase.from('cities').select('id,name');
       setCities(data ?? []);
-      const { data: cxs } = await supabase.from('complexes').select('id,name,city_id').eq('active', true);
+      // Solo complejos aprobados por admin
+      const { data: cxs } = await supabase.from('complexes').select('id,name,city_id')
+        .eq('active', true).eq('status', 'active');
       setComplexes(cxs ?? []);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {

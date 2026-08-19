@@ -19,6 +19,12 @@ export default function ClubPublico() {
     const { data: complex } = await supabase.from('complexes')
       .select('*, courts(*)')
       .eq('id', id).single();
+    // Solo mostrar públicamente si está APROBADO por admin.
+    // Los dueños ven su propio complejo desde /complejo/* (otro flujo).
+    if (complex && complex.status !== 'active') {
+      setCx({ _notActive: true, status: complex.status });
+      return;
+    }
     setCx(complex);
     const { data } = await supabase.from('memberships')
       .select('*, members:membership_members(status, payment_status, player_id, payment_proof_url)')
@@ -63,6 +69,22 @@ export default function ClubPublico() {
   }
 
   if (!cx) return <main className="min-h-dvh bg-courtdark text-white p-8">Cargando...</main>;
+  if (cx._notActive) return (
+    <main className="min-h-dvh bg-courtdark text-white flex flex-col items-center justify-center p-8 text-center">
+      <p className="text-6xl mb-4">🔒</p>
+      <p className="font-display font-black text-2xl">Complejo no disponible</p>
+      <p className="text-white/60 mt-2 max-w-md">
+        {cx.status === 'pending_review'
+          ? 'Este complejo está en revisión por nuestro equipo. Volvé pronto.'
+          : cx.status === 'suspended'
+          ? 'Este complejo está temporalmente fuera de servicio.'
+          : 'Este complejo no está disponible en NarvoQ.'}
+      </p>
+      <Link href="/jugador/dashboard" className="mt-6 bg-ball text-courtdark font-black rounded-2xl px-5 py-3">
+        Ir al inicio
+      </Link>
+    </main>
+  );
   const services = String(cx.services ?? '').split(',').map((s: string) => s.trim()).filter(Boolean);
 
   return (

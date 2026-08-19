@@ -30,7 +30,9 @@ export default function Reservar() {
 
   useEffect(() => {
     if (!cityId) return setComplexes([]);
-    supabase.from('complexes').select('*').eq('city_id', cityId).eq('active', true)
+    // Solo complejos APROBADOS por admin (status='active') y operativos (active=true)
+    supabase.from('complexes').select('*')
+      .eq('city_id', cityId).eq('active', true).eq('status', 'active')
       .then(({ data }) => setComplexes(data ?? []));
   }, [cityId]);
 
