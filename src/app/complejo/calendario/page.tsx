@@ -35,6 +35,31 @@ export default function Calendario() {
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
     setCx(complex);
     if (!complex) return;
+
+    // Auto-cancelar reservas cuyo deadline de pago venció.
+    // Llamamos a la función SQL cancel_expired_bookings() que hace el UPDATE y
+    // devuelve la lista de bookings cancelados para notificar a los jugadores.
+    try {
+      const { data: expired } = await supabase.rpc('cancel_expired_bookings');
+      if (expired && expired.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log('[calendario] auto-canceladas por deadline:', expired.length);
+        for (const b of expired as any[]) {
+          if (b.complex_id !== complex.id) continue;   // solo notificar por nuestro complejo
+          if (!b.player_id) continue;
+          const when = new Date(b.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+          await notify({
+            user_id: b.player_id, kind: 'reserva_ok',
+            title: `⏰ Reserva cancelada por vencimiento`,
+            body: `No subiste el comprobante a tiempo. Tu turno del ${when} quedó libre.`,
+            link: '/jugador/reservas'
+          });
+        }
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[calendario] cancel_expired_bookings error:', e);
+    }
     const to = new Date(day); to.setDate(to.getDate() + 1);
     const { data, error } = await supabase.from('bookings')
       .select('*, player:profiles!player_id(first_name, last_name, phone, avatar_url)')
@@ -272,9 +297,18 @@ export default function Calendario() {
                       {sel.booking.player?.phone ?? sel.booking.guest_phone ?? ''}
                     </p>
                     {sel.booking.type !== 'block' && (
-                      <p className={`text-xs font-bold mt-1 ${sel.booking.payment_status === 'pagado' ? 'text-green-400' : 'text-yellow-300'}`}>
-                        Pago: {sel.booking.payment_status === 'pagado' ? 'pagado y confirmado' : sel.booking.payment_proof_url ? 'comprobante en revision' : 'pendiente'}
-                      </p>
+                      <>
+                        <p className={`text-xs font-bold mt-1 ${sel.booking.payment_status === 'pagado' ? 'text-green-400' : 'text-yellow-300'}`}>
+                          Pago: {sel.booking.payment_status === 'pagado' ? 'pagado y confirmado' : sel.booking.payment_proof_url ? 'comprobante en revision' : 'pendiente'}
+                        </p>
+                        {sel.booking.payment_status !== 'pagado' && sel.booking.payment_deadline_at && (
+                          <p className="text-white/50 text-[11px] mt-1">
+                            {new Date(sel.booking.payment_deadline_at) > new Date()
+                              ? `Deadline: ${new Date(sel.booking.payment_deadline_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} hs`
+                              : '⏰ Deadline vencido — se cancela sola'}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

@@ -29,7 +29,7 @@ export const PREMIUM_FEATURES: Record<'player' | 'coach' | 'complex_admin', stri
   player: [
     'Badge NarvoQ Verificado',
     'Reservar canchas hasta 15 días de anticipación',
-    'Buscador inteligente de canchas libres por zona y horario (próximamente)',
+    'Buscador inteligente de canchas libres por zona y horario',
     'Ver ranking sin límite',
     'Publicar sin límite en el Feed',
     'Iniciar chats con cualquiera en Smashe@',

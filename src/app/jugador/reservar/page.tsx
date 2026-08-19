@@ -35,7 +35,12 @@ export default function Reservar() {
     return d.toISOString().slice(0, 10);
   })();
 
-  useEffect(() => { supabase.from('cities').select('*').eq('active', true).then(({ data }) => setCities(data ?? [])); }, []);
+  useEffect(() => {
+    supabase.from('cities').select('*').eq('active', true).then(({ data }) => setCities(data ?? []));
+    // Auto-liberar slots de reservas con deadline vencido (para que aparezcan
+    // como libres al jugador). Es idempotente y barato.
+    supabase.rpc('cancel_expired_bookings').then(() => {});
+  }, []);
   useEffect(() => { (async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -111,10 +116,14 @@ export default function Reservar() {
     const { data: { user } } = await supabase.auth.getUser();
     const rule = ruleFor(slot.start, offpeakRules);
     const finalPrice = priceWithRule(Number(court.price_per_slot), rule);
+    // Fase 1: deadline para subir comprobante. Usa la config del complejo.
+    const timeoutHours = (complex as any)?.booking_payment_timeout_hours ?? 2;
+    const deadline = new Date(Date.now() + timeoutHours * 60 * 60 * 1000);
     const { data: booking, error: bErr } = await supabase.from('bookings').insert({
       court_id: court.id, player_id: user!.id, status: 'pendiente', payment_status: 'pendiente',
       starts_at: slot.start.toISOString(), ends_at: slot.end.toISOString(),
-      price: finalPrice
+      price: finalPrice,
+      payment_deadline_at: deadline.toISOString()
     }).select().single();
     if (bErr) { setError('Ese turno acaba de ocuparse. Elegí otro.'); setSaving(false); return; }
 
@@ -301,6 +310,11 @@ export default function Reservar() {
                 <Link href="/planes" className="mt-1 block text-[11px] text-ball font-bold">
                   🔒 Con Premium reservás hasta 15 días adelante
                 </Link>
+              )}
+              {isPremium && (
+                <Link href="/jugador/buscar" className="mt-2 block text-[12px] text-ball font-black underline">
+                  🔍 Buscar canchas libres en toda la ciudad →
+                </Link>
               )}</div>
           </>
         )}
@@ -311,6 +325,12 @@ export default function Reservar() {
             <p className="text-white/60 text-sm mt-1">
               Tu turno queda reservado mientras el complejo revisa el comprobante. Cuando lo marque como pagado, pasa a confirmada.
             </p>
+            {pending.booking.payment_deadline_at && (
+              <div className="mt-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/40 p-3 text-sm">
+                <p className="text-yellow-300 font-black">⏰ Tenés hasta las {new Date(pending.booking.payment_deadline_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} hs para subir el comprobante.</p>
+                <p className="text-white/70 text-xs mt-1">Si no lo subís, la reserva se cancela automáticamente y otro jugador puede tomar el turno.</p>
+              </div>
+            )}
             <div className="mt-3 rounded-2xl bg-white/5 p-3 text-sm space-y-1">
               <p><b>{pending.complex?.name}</b> · {pending.court?.name}</p>
               <p>{pending.slot.start.toLocaleDateString('es-AR')} · {pending.slot.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs</p>

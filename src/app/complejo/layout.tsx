@@ -52,6 +52,7 @@ const DESKTOP_SECTIONS: Section[] = [
   {
     label: 'Comunidad',
     items: [
+      { href: '/jugador/feed', label: 'Feed', icon: '📰' },
       { href: '/smash', label: 'Smashe@', icon: '💬' },
       { href: '/complejo/amigos', label: 'Comunidad', icon: '🌐' },
       { href: '/marketplace', label: 'Marketplace', icon: '🛒' }

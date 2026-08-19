@@ -40,6 +40,13 @@ const DESKTOP_SECTIONS = [
     ]
   },
   {
+    label: 'Comunidad',
+    items: [
+      { href: '/jugador/feed', label: 'Feed', icon: '📰' },
+      { href: '/smash', label: 'Smashe@', icon: '💬' }
+    ]
+  },
+  {
     label: 'Configuración',
     items: [
       { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '⚙️' },

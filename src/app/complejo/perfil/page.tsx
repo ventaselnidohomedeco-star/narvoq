@@ -137,6 +137,15 @@ export default function PerfilComplejo() {
         <div className="mt-3"><label className="label text-white/60">Cancelación gratis hasta (horas antes)</label>
           <input type="number" className="input" defaultValue={cx.cancel_hours}
             onBlur={e => save({ cancel_hours: Number(e.target.value) })} /></div>
+        <div className="mt-3">
+          <label className="label text-white/60">⏰ Horas para que el jugador suba el comprobante</label>
+          <input type="number" min={1} max={72} className="input"
+            defaultValue={cx.booking_payment_timeout_hours ?? 2}
+            onBlur={e => save({ booking_payment_timeout_hours: Math.max(1, Math.min(72, Number(e.target.value) || 2)) })} />
+          <p className="text-white/50 text-xs mt-1">
+            Si no sube comprobante en ese tiempo, la reserva se cancela sola. Default: 2 horas.
+          </p>
+        </div>
       </div>
 
       {/* Galería de fotos */}
