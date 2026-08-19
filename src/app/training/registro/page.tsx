@@ -7,6 +7,14 @@ import Brand from '@/components/Brand';
 import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
 import { trialProfileFields } from '@/lib/trial';
 
+// Registro de entrenador con manejo robusto:
+//  - No deja usuarios "huérfanos" en auth: si falla el insert de profile,
+//    se cierra sesión inmediatamente para que el usuario pueda reintentar
+//    (usando esas mismas credenciales) sin recibir "email ya registrado".
+//  - Si el email ya existía en auth pero NO en profiles, hace signIn
+//    con la contraseña y crea el profile al vuelo (reintento limpio).
+//  - Mensajes de error en español, claros y accionables.
+//  - Sanitiza el username y valida antes de tocar la base.
 export default function TrainingRegistro() {
   const router = useRouter();
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
@@ -21,23 +29,102 @@ export default function TrainingRegistro() {
   useEffect(() => { supabase.from('cities').select('id,name').then(({ data }) => setCities(data ?? [])); }, []);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
 
+  // Construye el payload del profile una sola vez para reusar en signUp y en el reintento.
+  function buildProfilePayload(userId: string) {
+    return {
+      id: userId,
+      role: 'coach',
+      username: f.username.toLowerCase().trim(),
+      first_name: f.first_name.trim(),
+      last_name: f.last_name.trim(),
+      phone: f.phone.trim(),
+      age: Number(f.age),
+      sex: f.sex,
+      city_id: f.city_id || null,
+      zone: f.zone.trim() || null,
+      category: 4,
+      bio: f.bio.trim() || null,
+      academy_name: f.academy_name.trim() || null,
+      ...trialProfileFields()   // 🎁 Trial Premium 60 días
+    };
+  }
+
+  // Traduce errores de Supabase a mensajes humanos.
+  function humanError(err: any): string {
+    const msg: string = err?.message ?? '';
+    const code: string = err?.code ?? '';
+    if (code === '23505' || /duplicate key/i.test(msg)) {
+      if (/username/i.test(msg)) return 'Ese nombre de usuario ya está en uso, probá otro.';
+      if (/email/i.test(msg)) return 'Ese email ya está registrado. Probá iniciar sesión.';
+      return 'Algún dato duplicado. Cambiá usuario o email.';
+    }
+    if (/schema cache/i.test(msg)) {
+      return 'La base de datos necesita una migración pendiente. Contactá al soporte (update-30 sin correr).';
+    }
+    if (/invalid.*email/i.test(msg)) return 'El email no es válido.';
+    if (/password/i.test(msg) && /short|weak|character/i.test(msg))
+      return 'La contraseña es muy corta (mínimo 6 caracteres).';
+    return msg || 'Ocurrió un error. Probá de nuevo.';
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError('');
-    const { data, error } = await supabase.auth.signUp({ email: f.email, password: f.password });
-    if (error || !data.user) { setError(error?.message ?? 'No pudimos crear la cuenta.'); setLoading(false); return; }
-    const { error: pErr } = await supabase.from('profiles').insert({
-      id: data.user.id, role: 'coach', username: f.username.toLowerCase(),
-      first_name: f.first_name, last_name: f.last_name, phone: f.phone,
-      age: Number(f.age), sex: f.sex, city_id: f.city_id || null,
-      zone: f.zone, category: 4, bio: f.bio || null,
-      academy_name: f.academy_name.trim() || null,
-      ...trialProfileFields()   // 🎁 Trial Premium 60 días
-    });
-    if (pErr) {
-      setError(pErr.code === '23505' ? 'Ese usuario ya está en uso.' : pErr.message);
+
+    // Validaciones básicas ANTES de tocar la base
+    if (!f.username.trim() || !/^[a-z0-9_.-]{3,24}$/.test(f.username.toLowerCase().trim())) {
+      setError('El nombre de usuario debe tener 3-24 letras/números (sin espacios).');
       setLoading(false); return;
     }
+    if (f.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      setLoading(false); return;
+    }
+
+    // 1) Intentar signUp
+    const { data, error: signErr } = await supabase.auth.signUp({
+      email: f.email.trim(),
+      password: f.password
+    });
+
+    let userId: string | null = data?.user?.id ?? null;
+
+    // 1.a) Si el email YA está registrado, probamos signIn (recuperación de intento previo fallido)
+    if (signErr && /already registered|already been registered/i.test(signErr.message)) {
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+        email: f.email.trim(), password: f.password
+      });
+      if (signInErr || !signInData?.user) {
+        setError('Este email ya está registrado. Si es tuyo, andá a "Entrá acá" y usá tu contraseña o recuperala.');
+        setLoading(false); return;
+      }
+      userId = signInData.user.id;
+
+      // Si ya tenía profile, avisar que use login normal
+      const { data: existing } = await supabase.from('profiles').select('id, role').eq('id', userId).maybeSingle();
+      if (existing) {
+        await supabase.auth.signOut();
+        setError('Este email ya tiene una cuenta activa. Entrá desde "Ya sos profe? Entrá acá".');
+        setLoading(false); return;
+      }
+      // Si no tiene profile, seguimos y creamos su profile abajo.
+    } else if (signErr || !userId) {
+      setError(humanError(signErr));
+      setLoading(false); return;
+    }
+
+    // 2) Insertar profile — si falla, cerrar sesión y NO dejar user huérfano usable
+    const { error: pErr } = await supabase.from('profiles').insert(buildProfilePayload(userId!));
+
+    if (pErr) {
+      // Cerramos sesión para que el usuario pueda reintentar con esas mismas credenciales
+      // (nuestro flujo detecta el user existente y le da otra chance de crear el profile).
+      await supabase.auth.signOut();
+      setError(humanError(pErr) + ' Los datos de acceso quedaron guardados, podés reintentar con el mismo email y contraseña.');
+      setLoading(false); return;
+    }
+
+    // 3) Todo OK
     router.push('/training/dashboard');
   }
 
@@ -75,10 +162,16 @@ export default function TrainingRegistro() {
         <div><label className="label">Bio corta</label>
           <input className="input" value={f.bio} onChange={set('bio')} placeholder="Especialidad, categoría, años de experiencia…" /></div>
         <div className="court-divider my-2" />
-        <div><label className="label">Usuario</label><input className="input" value={f.username} onChange={set('username')} required /></div>
+        <div><label className="label">Usuario (3-24 letras/números)</label>
+          <input className="input" value={f.username} onChange={set('username')} required
+            pattern="[a-zA-Z0-9_.-]{3,24}" /></div>
         <div><label className="label">Email</label><input className="input" type="email" value={f.email} onChange={set('email')} required /></div>
         <div><label className="label">Contraseña</label><input className="input" type="password" minLength={6} value={f.password} onChange={set('password')} required /></div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+            <p className="text-red-300 text-sm">{error}</p>
+          </div>
+        )}
         <button className="btn-ball w-full text-lg" disabled={loading}>{loading ? 'Creando…' : 'Crear cuenta de profe'}</button>
       </form>
       <p className="mt-6 text-white/50">
