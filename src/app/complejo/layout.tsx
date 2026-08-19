@@ -104,7 +104,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
       <Banner />
 
       {/* ==================== SIDEBAR DESKTOP ==================== */}
-      <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-[#0D1320] border-r border-white/10 flex-col z-40 overflow-y-auto">
+      <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-black border-r border-white/10 flex-col z-40 overflow-y-auto">
         {/* Header sidebar: logo NarvoQ */}
         <div className="px-5 pt-6 pb-4 border-b border-white/10">
           <Link href="/complejo/dashboard" className="block">
@@ -233,7 +233,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
       </div>
 
       {/* ==================== BOTTOM NAV MOBILE ==================== */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-[#0D1320] border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-black border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
         <div className="max-w-3xl mx-auto grid grid-cols-5 h-[80px]">
           {MOBILE_ITEMS.map(i => {
             const active = path.startsWith(i.href);

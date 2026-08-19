@@ -71,7 +71,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
       <Banner />
 
       {/* Sidebar desktop */}
-      <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-60 bg-[#0D1320] border-r border-white/10 flex-col py-6 z-40">
+      <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-60 bg-black border-r border-white/10 flex-col py-6 z-40">
         <div className="px-5 mb-6">
           <Link href="/training/dashboard" className="block">
             <img src="/brand/logo.png?v=5" alt="NarvoQ" style={{ height: 64, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
@@ -135,7 +135,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
         {children}
       </div>
 
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-[#0D1320] border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-black border-t border-white/10 pb-[env(safe-area-inset-bottom)] z-40">
         <div className="max-w-3xl mx-auto grid grid-cols-5 h-[92px]">
           {items.map(i => {
             const active = path.startsWith(i.href);

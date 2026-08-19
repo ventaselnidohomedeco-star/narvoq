@@ -62,14 +62,14 @@ export default function Dashboard() {
           </Link>
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-white/60 text-sm">Hola,</p>
-          <h1 className="font-display font-black text-2xl leading-tight truncate">
+          <p className="text-white/60 text-base">Hola,</p>
+          <h1 className="font-display font-black text-3xl md:text-4xl leading-tight truncate">
             {profile?.first_name ?? '…'}
             <VerifiedBadge show={(profile as any)?.is_premium} size="lg" />
             {' 👋'}
           </h1>
           {profile && (
-            <p className="text-ball text-sm font-bold mt-0.5">Categoría {profile.category}</p>
+            <p className="text-ball text-base font-bold mt-1">Categoría {profile.category}</p>
           )}
           <div className="mt-2">
             <TrialCountdown premiumExpiresAt={(profile as any)?.premium_expires_at} />
@@ -84,8 +84,8 @@ export default function Dashboard() {
           { n: stats.points, l: 'Pts. ranking', href: '/jugador/ranking' }
         ].map(s => (
           <Link key={s.l} href={s.href} className="card !p-4 text-center active:scale-95 transition">
-            <p className="font-display font-black text-3xl text-ball">{s.n}</p>
-            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mt-1">{s.l}</p>
+            <p className="font-display font-black text-4xl md:text-5xl text-ball">{s.n}</p>
+            <p className="text-white/70 text-sm font-bold uppercase tracking-wider mt-2">{s.l}</p>
           </Link>
         ))}
       </section>
