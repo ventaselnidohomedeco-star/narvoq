@@ -69,6 +69,17 @@ export async function getPreApproval(id: string) {
   return preapproval.get({ id });
 }
 
+// Busca preapprovals por external_reference (nuestro subscription.id).
+// Útil para reconciliar cuando el webhook no llegó.
+export async function searchPreApprovalsByExternalRef(externalRef: string) {
+  const token = getAccessToken();
+  const url = `https://api.mercadopago.com/preapproval/search?external_reference=${encodeURIComponent(externalRef)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`MP search error ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return (data.results ?? []) as Array<{ id: string; status: string; next_payment_date?: string }>;
+}
+
 // Cancela una PreApproval.
 export async function cancelPreApproval(id: string) {
   const preapproval = new PreApproval(getMpClient());

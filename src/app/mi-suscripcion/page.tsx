@@ -35,24 +35,73 @@ type Sub = {
 
 function MiSuscripcion() {
   const params = useSearchParams();
-  const justSubscribed = params.get('ref');   // viene de MP back_url
+  // MP redirige al back_url y agrega ?preapproval_id=... ?collection_status=... etc.
+  // También aceptamos ?ref=... por si se fuerza manualmente.
+  const justSubscribed = params.get('preapproval_id') || params.get('collection_status') || params.get('ref');
 
   const [subs, setSubs] = useState<Sub[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState('');
+
+  async function reload() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from('subscriptions')
+      .select(`*, plan:subscription_plans(role, billing_period, price_ars, features)`)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    setSubs((data as any) ?? []);
+  }
+
+  async function verificarPago(silent = false) {
+    setSyncing(true);
+    if (!silent) setMsg('');
+    try {
+      const res = await fetch('/api/mp/sync-my-subscription', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.alreadyActive || data.status === 'active') {
+          if (!silent) setMsg('✓ ¡Suscripción activa! Ya sos NarvoQ Verificado.');
+          await reload();
+        } else if (!silent) {
+          setMsg(`Estado en MP: ${data.mpStatus ?? 'pendiente'}. Probá de nuevo en 1 minuto.`);
+        }
+      } else if (!silent) {
+        setMsg(data.error ?? 'No pudimos verificar el pago.');
+      }
+    } catch (e: any) {
+      if (!silent) setMsg(`Error: ${e.message}`);
+    }
+    setSyncing(false);
+  }
 
   useEffect(() => {
     (async () => {
+      await reload();
+      setLoading(false);
+      // Auto-sync silencioso: si hay una sub pending, o el usuario llega con
+      // params de MP (?preapproval_id=..., ?collection_status=...), consultamos
+      // a MP con reintentos suaves. Así aunque el webhook falle, se activa sola.
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from('subscriptions')
-        .select(`*, plan:subscription_plans(role, billing_period, price_ars, features)`)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      setSubs((data as any) ?? []);
-      setLoading(false);
+      const { data: pendingSub } = await supabase.from('subscriptions')
+        .select('id').eq('user_id', user.id).eq('status', 'pending').maybeSingle();
+      if (pendingSub || justSubscribed) {
+        await verificarPago(true);
+        for (const delay of [3000, 6000, 12000]) {
+          await new Promise(r => setTimeout(r, delay));
+          const { data: s } = await supabase.from('subscriptions')
+            .select('status').eq('user_id', user.id)
+            .eq('status', 'active').limit(1).maybeSingle();
+          if (s) { await reload(); break; }
+          await verificarPago(true);
+        }
+        await reload();
+      }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function cancel(sub: Sub) {
@@ -163,8 +212,14 @@ function MiSuscripcion() {
               Esperando confirmación de Mercado Pago
             </p>
             <p className="text-white/60 text-sm mt-2">
-              Ya creamos tu suscripción. Cuando MP confirme el primer cobro, se activa automáticamente.
+              Si ya pagaste, tocá el botón para verificar el pago con Mercado Pago.
             </p>
+            <button
+              onClick={() => verificarPago(false)}
+              disabled={syncing}
+              className="mt-4 w-full py-3 rounded-xl bg-ball text-courtdark font-black text-sm disabled:opacity-50">
+              {syncing ? 'Consultando Mercado Pago…' : '🔄 Ya pagué — Verificar pago'}
+            </button>
           </div>
         ) : (
           <div className="mt-6 card !p-6 text-center">
