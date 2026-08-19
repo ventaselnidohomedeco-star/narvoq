@@ -129,17 +129,19 @@ export default function Dashboard() {
 
       <div className="court-divider my-6" />
 
-      <section className="grid grid-cols-4 gap-2 mb-6">
+      <section className="grid grid-cols-5 gap-2 mb-6">
         {[
           { href: '/jugador/reservar', emoji: '🎾', label: 'Reservar' },
+          { href: '/jugador/buscar', emoji: '🔍', label: 'Buscar', accent: true },
           { href: '/smash', emoji: '💬', label: 'Smashe@' },
           { href: '/marketplace', emoji: '🛒', label: 'Market' },
           { href: '/jugador/amigos', emoji: '👥', label: 'Amigos' }
         ].map(a => (
           <Link key={a.href} href={a.href}
-            className="bg-grafito rounded-2xl py-4 px-2 text-center flex flex-col items-center gap-1 active:scale-95 transition">
+            className={`rounded-2xl py-4 px-2 text-center flex flex-col items-center gap-1 active:scale-95 transition
+              ${a.accent ? 'bg-ball/15 border border-ball/40' : 'bg-grafito'}`}>
             <span className="text-3xl leading-none">{a.emoji}</span>
-            <span className="text-[13px] font-black text-white">{a.label}</span>
+            <span className={`text-[12px] font-black ${a.accent ? 'text-ball' : 'text-white'}`}>{a.label}</span>
           </Link>
         ))}
       </section>

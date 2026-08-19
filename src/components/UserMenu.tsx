@@ -67,12 +67,6 @@ export default function UserMenu() {
             <span className="text-lg">🔔</span>
             <span>Notificaciones</span>
           </Link>
-          {role === 'player' && (
-            <Link href="/jugador/buscar" onClick={() => setOpen(false)} className={item}>
-              <span className="text-lg">🔍</span>
-              <span>Buscar canchas libres</span>
-            </Link>
-          )}
           <Link href="/mi-suscripcion" onClick={() => setOpen(false)} className={item}>
             <span className="text-lg">💎</span>
             <span>Mi suscripción</span>
