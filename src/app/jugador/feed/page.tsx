@@ -200,6 +200,17 @@ export default function Feed() {
         body: txt.slice(0, 80),
         link: '/jugador/feed', ref_id: p.id
       });
+    } else if (p.complex?.id) {
+      // Comentario en post de complejo → notificar al dueño
+      const { data: cx } = await supabase.from('complexes').select('owner_id').eq('id', p.complex.id).maybeSingle();
+      if (cx?.owner_id) {
+        await notify({
+          user_id: cx.owner_id, kind: 'comment',
+          title: `💬 ${me.first_name} comentó tu publicación`,
+          body: txt.slice(0, 80),
+          link: '/complejo/dashboard', ref_id: p.id
+        });
+      }
     }
     setComment(''); load();
   }

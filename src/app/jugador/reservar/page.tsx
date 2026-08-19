@@ -59,11 +59,18 @@ export default function Reservar() {
       .then(({ data }) => setOffpeakRules(data ?? []));
   }, [complex]);
 
+  // Validar formato de fecha; si el usuario tipeó algo inválido no crashear.
+  const dateIsValid = (() => {
+    const d = new Date(date + 'T00:00:00');
+    return !isNaN(d.getTime());
+  })();
+
   useEffect(() => {
     if (!court) { setMyWaitlist([]); return; }
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      if (!dateIsValid) return;
       const from = new Date(date + 'T00:00:00');
       const to = new Date(from); to.setDate(to.getDate() + 1);
       const { data } = await supabase.from('booking_waitlist')
@@ -76,6 +83,7 @@ export default function Reservar() {
 
   useEffect(() => {
     if (!court || !complex) return setSlots([]);
+    if (!dateIsValid) return setSlots([]);
     const day = new Date(date + 'T00:00:00');
     const from = new Date(day); const to = new Date(day); to.setDate(to.getDate() + 1);
     supabase.from('bookings').select('*')
@@ -86,6 +94,19 @@ export default function Reservar() {
 
   async function reservar(slot: Slot) {
     if (!court || saving) return;
+    // Validar límite de días de anticipación (protección extra por si el
+    // browser permite tipear fecha fuera del max)
+    const daysDiff = Math.floor((slot.start.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > MAX_DAYS) {
+      setError(isPremium
+        ? `Solo podés reservar hasta ${MAX_DAYS} días adelante.`
+        : `Con Free podés reservar hasta ${MAX_DAYS} días adelante. Con Premium: 15 días.`);
+      return;
+    }
+    if (!slot.start || isNaN(slot.start.getTime())) {
+      setError('Hora inválida. Elegí otro turno.');
+      return;
+    }
     setSaving(true); setError('');
     const { data: { user } } = await supabase.auth.getUser();
     const rule = ruleFor(slot.start, offpeakRules);
@@ -262,7 +283,20 @@ export default function Reservar() {
               <input className="input" type="date" value={date}
                 min={new Date().toISOString().slice(0, 10)}
                 max={maxDate}
-                onChange={e => setDate(e.target.value)} />
+                onChange={e => {
+                  const v = e.target.value;
+                  if (!v) return;
+                  // Snap a maxDate si el usuario tipea una fecha fuera de rango
+                  if (v > maxDate) {
+                    setDate(maxDate);
+                    setError(isPremium
+                      ? `Solo podés reservar hasta ${MAX_DAYS} días adelante.`
+                      : `Con Free podés reservar hasta ${MAX_DAYS} días adelante. Suscribite a Premium para 15 días.`);
+                    return;
+                  }
+                  setError('');
+                  setDate(v);
+                }} />
               {!isPremium && (
                 <Link href="/planes" className="mt-1 block text-[11px] text-ball font-bold">
                   🔒 Con Premium reservás hasta 15 días adelante

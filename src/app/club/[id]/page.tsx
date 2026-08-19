@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { uploadImage } from '@/lib/upload';
+import { notify } from '@/lib/notify';
 
 export default function ClubPublico() {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +51,21 @@ export default function ClubPublico() {
     });
     setBusy(null);
     if (error) return setMsg('Ya solicitaste o tenes esta membresia.');
+
+    // Avisar al complejo que hay una solicitud nueva
+    if (cx?.owner_id) {
+      const { data: prof } = await supabase.from('profiles')
+        .select('first_name, last_name').eq('id', user.id).maybeSingle();
+      const nombre = prof ? `${prof.first_name} ${prof.last_name ?? ''}`.trim() : 'Un jugador';
+      await notify({
+        user_id: cx.owner_id, kind: 'membresia_ok',
+        title: '📝 Nueva solicitud de membresía',
+        body: `${nombre} pidió "${plan.name}"${url ? ' + comprobante' : ''}.`,
+        link: '/complejo/socios',
+        ref_id: plan.id
+      });
+    }
+
     setMsg('Solicitud enviada. El complejo la activa cuando confirma el pago.');
     load();
   }
@@ -64,6 +80,21 @@ export default function ClubPublico() {
       payment_proof_url: url,
       payment_uploaded_at: new Date().toISOString()
     }).eq('membership_id', plan.id).eq('player_id', me);
+
+    // Avisar al dueño del complejo que hay un comprobante para revisar
+    if (cx?.owner_id) {
+      const { data: prof } = await supabase.from('profiles')
+        .select('first_name, last_name').eq('id', me).maybeSingle();
+      const nombre = prof ? `${prof.first_name} ${prof.last_name ?? ''}`.trim() : 'Un jugador';
+      await notify({
+        user_id: cx.owner_id, kind: 'membresia_ok',
+        title: '💳 Comprobante de membresía',
+        body: `${nombre} subió el comprobante de "${plan.name}". Revisalo para activarla.`,
+        link: '/complejo/socios',
+        ref_id: plan.id
+      });
+    }
+
     setBusy(null); setMsg('Comprobante enviado.');
     load();
   }

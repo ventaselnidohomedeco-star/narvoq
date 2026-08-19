@@ -78,6 +78,18 @@ export default function Calendario() {
   async function cancelar(b: any) {
     if (!confirm('¿Cancelar esta reserva?')) return;
     await supabase.from('bookings').update({ status: 'cancelada' }).eq('id', b.id);
+
+    // Avisar al jugador que su reserva fue cancelada por el complejo
+    if (b.player_id && b.type === 'reserva') {
+      const when = new Date(b.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const court = cx?.courts?.find((c: any) => c.id === b.court_id);
+      await notify({
+        user_id: b.player_id, kind: 'reserva_ok',
+        title: `❌ Tu reserva fue cancelada`,
+        body: `${cx?.name ?? 'El complejo'} canceló tu turno del ${when} en ${court?.name ?? 'la cancha'}. Contactalos para más info.`,
+        link: '/jugador/reservas'
+      });
+    }
     // Aviso al primero en lista de espera de ese turno
     if (b.type === 'reserva') {
       const { data: wl } = await supabase.from('booking_waitlist')
