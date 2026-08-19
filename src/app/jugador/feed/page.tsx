@@ -147,6 +147,17 @@ export default function Feed() {
           title: `A ${me.first_name} le gustó tu publicación`,
           link: '/jugador/feed', ref_id: p.id
         });
+      } else if (p.complex?.id) {
+        // Post de complejo → notificar al dueño del complejo
+        const { data: cx } = await supabase.from('complexes').select('owner_id').eq('id', p.complex.id).maybeSingle();
+        if (cx?.owner_id) {
+          await notify({
+            user_id: cx.owner_id, kind: 'like',
+            title: `❤️ Nuevo like`,
+            body: `A ${me.first_name} le gustó tu publicación`,
+            link: '/complejo/dashboard', ref_id: p.id
+          });
+        }
       }
     }
   }

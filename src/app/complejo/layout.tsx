@@ -237,12 +237,13 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2 text-white/50 text-xs">
+          <div className="flex items-center gap-3">
             {cx && (
-              <span className="font-bold">
+              <span className="font-bold text-white/50 text-xs">
                 {cx.name} · {cx.is_premium ? '⭐ Premium' : 'Free'}
               </span>
             )}
+            <Bell />
           </div>
         </header>
 
