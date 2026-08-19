@@ -87,8 +87,11 @@ function MiSuscripcion() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data: pendingSub } = await supabase.from('subscriptions')
-        .select('id').eq('user_id', user.id).eq('status', 'pending').maybeSingle();
-      if (pendingSub || justSubscribed) {
+        .select('id, created_at').eq('user_id', user.id).eq('status', 'pending').maybeSingle();
+      // Solo auto-sync si la sub es reciente (30 min) o si vino de MP.
+      // Así evitamos consumir calls a MP por usuarios que abren la página días después.
+      const isRecent = pendingSub && (Date.now() - new Date(pendingSub.created_at).getTime()) < 30 * 60 * 1000;
+      if ((pendingSub && isRecent) || justSubscribed) {
         await verificarPago(true);
         for (const delay of [3000, 6000, 12000]) {
           await new Promise(r => setTimeout(r, delay));

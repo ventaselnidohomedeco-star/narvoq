@@ -64,8 +64,14 @@ export async function POST(req: NextRequest) {
       updates.cancelled_at = new Date().toISOString();
     }
     if (pa.next_payment_date) {
-      // MP nos dice cuándo será el próximo cobro. Extendemos expires_at hasta ahí.
-      updates.expires_at = pa.next_payment_date;
+      // MP a veces devuelve next_payment_date antes del período completo (prorrateo
+      // del primer cobro). Usamos el MÁXIMO entre nuestra fecha original y la de MP
+      // para no acortar la suscripción del usuario.
+      const { data: current } = await admin.from('subscriptions')
+        .select('expires_at').eq('id', externalRef).maybeSingle();
+      const currentExp = current?.expires_at ? new Date(current.expires_at) : null;
+      const mpExp = new Date(pa.next_payment_date);
+      updates.expires_at = (currentExp && currentExp > mpExp ? currentExp : mpExp).toISOString();
     }
 
     const { error } = await admin.from('subscriptions').update(updates).eq('id', externalRef);

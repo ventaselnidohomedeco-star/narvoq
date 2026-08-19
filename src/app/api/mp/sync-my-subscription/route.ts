@@ -63,7 +63,14 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     const updates: any = { status: ourStatus, mp_preapproval_id: pa.id };
-    if (pa.next_payment_date) updates.expires_at = pa.next_payment_date;
+    if (pa.next_payment_date) {
+      // Nunca acortar la suscripción: max entre nuestra expires_at y la de MP.
+      const { data: current } = await admin.from('subscriptions')
+        .select('expires_at').eq('id', sub.id).maybeSingle();
+      const currentExp = current?.expires_at ? new Date(current.expires_at) : null;
+      const mpExp = new Date(pa.next_payment_date);
+      updates.expires_at = (currentExp && currentExp > mpExp ? currentExp : mpExp).toISOString();
+    }
     if (ourStatus === 'cancelled') updates.cancelled_at = new Date().toISOString();
 
     const { error } = await admin.from('subscriptions').update(updates).eq('id', sub.id);
