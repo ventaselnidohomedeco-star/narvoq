@@ -241,8 +241,8 @@ export default function Calendario() {
 
       {/* Panel de acción sobre una celda */}
       {sel && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setSel(null)}>
-          <div className="bg-grafitodark border-t border-white/10 rounded-t-3xl w-full max-w-lg mx-auto p-5 pb-10 relative"
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-end lg:items-center overflow-y-auto" onClick={() => setSel(null)}>
+          <div className="bg-[#0B0F16] border-2 border-white/15 rounded-t-3xl lg:rounded-2xl w-full max-w-lg mx-auto p-5 pb-10 relative shadow-2xl my-auto"
             onClick={e => e.stopPropagation()}>
             <button onClick={() => setSel(null)} aria-label="Cerrar"
               className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold flex items-center justify-center active:scale-90">
