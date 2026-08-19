@@ -3,6 +3,7 @@ import { Archivo, Inter } from 'next/font/google';
 import './globals.css';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 import PlayerShell from '@/components/PlayerShell';
+import ComplexShell from '@/components/ComplexShell';
 
 const display = Archivo({ subsets: ['latin'], variable: '--font-display', weight: ['600', '700', '900'] });
 const body = Inter({ subsets: ['latin'], variable: '--font-body' });
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className={`${display.variable} ${body.variable}`}>
         <ServiceWorkerRegister />
-        <PlayerShell>{children}</PlayerShell>
+        <PlayerShell><ComplexShell>{children}</ComplexShell></PlayerShell>
       </body>
     </html>
   );
