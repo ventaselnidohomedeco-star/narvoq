@@ -3,16 +3,21 @@
 
 export const FREE_LIMITS = {
   player: {
-    // Plan Free MÍNIMO: perfil visible (sin stats), reservar canchas,
-    // tabla de posiciones, jugar amistosos y torneos. Todo lo demás es premium.
-    reservation_days_ahead: 7,          // vs premium: 30
-    ranking_top_visible: 100,            // vs premium: sin límite
+    // Plan Free: perfil, reservar (5 días), ranking (top 30), jugar amistosos/torneos,
+    // ver feed, publicar 1 post/semana, chatear si el otro le escribió primero,
+    // comprar en marketplace. Iniciar chats, buscador de canchas, stats y publicar
+    // en marketplace son Premium.
+    reservation_days_ahead: 5,           // vs premium: 15
+    ranking_top_visible: 30,             // vs premium: sin límite
     smash_history_hours: 24,             // vs premium: 720 (30 días)
     smash_photos_per_chat: 5,            // vs premium: ilimitado
-    stats_visible: false,                // vs premium: true (dashboard con winrate, gráficos, evolución)
-    activity_charts: false,              // vs premium: true (gráficos temporales)
-    friends_advanced: false,             // vs premium: true (comparar stats con amigos, sugerencias)
-    marketplace_publish: false           // vs premium: true (publicar en marketplace)
+    smash_can_initiate: false,           // vs premium: true (iniciar chats nuevos)
+    feed_posts_per_week: 1,              // vs premium: ilimitado (0 = bloqueado, >0 = cupo semanal)
+    court_finder: false,                 // vs premium: true (buscador de canchas libres por zona/día/hora)
+    stats_visible: false,                // vs premium: true
+    activity_charts: false,              // vs premium: true
+    friends_advanced: false,             // vs premium: true
+    marketplace_publish: false           // vs premium: true (comprar sí, publicar solo premium)
   },
   coach: {
     students_max: 10,                    // vs premium: ilimitado
@@ -72,8 +77,20 @@ export const FEATURE_INFO: Record<string, { title: string; description: string }
     description: 'Vendé clases individuales o packs a jugadores que buscan profe. Solo Premium.'
   },
   reservation_days_ahead: {
-    title: 'Reservas con 30 días de anticipación',
-    description: 'Free: solo hasta 7 días adelante. Premium: 30 días adelante.'
+    title: 'Reservas con 15 días de anticipación',
+    description: 'Free: hasta 5 días adelante. Premium: 15 días adelante.'
+  },
+  smash_can_initiate: {
+    title: 'Iniciar chats en Smashe@',
+    description: 'Free podés recibir y responder mensajes. Con Premium podés iniciar chats nuevos con cualquiera.'
+  },
+  feed_posts_per_week: {
+    title: 'Publicar en el Feed sin límite',
+    description: 'Free: 1 publicación por semana. Premium: publicá todo lo que quieras.'
+  },
+  court_finder: {
+    title: 'Buscador de canchas libres',
+    description: 'Encontrá canchas disponibles por zona, día y horario en un solo lugar, sin entrar complejo por complejo. Solo Premium.'
   },
   stats_visible: {
     title: 'Estadísticas de tu juego',

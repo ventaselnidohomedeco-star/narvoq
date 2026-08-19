@@ -25,8 +25,22 @@ export default function Reservar() {
   const [offpeakRules, setOffpeakRules] = useState<OffpeakRule[]>([]);
   const [myWaitlist, setMyWaitlist] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
+  const [isPremium, setIsPremium] = useState(false);
+
+  // Free: hasta 5 días de anticipación. Premium: hasta 15 días.
+  const MAX_DAYS = isPremium ? 15 : 5;
+  const maxDate = (() => {
+    const d = new Date(); d.setDate(d.getDate() + MAX_DAYS);
+    return d.toISOString().slice(0, 10);
+  })();
 
   useEffect(() => { supabase.from('cities').select('*').eq('active', true).then(({ data }) => setCities(data ?? [])); }, []);
+  useEffect(() => { (async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from('profiles').select('is_premium').eq('id', user.id).maybeSingle();
+    setIsPremium(!!data?.is_premium);
+  })(); }, []);
 
   useEffect(() => {
     if (!cityId) return setComplexes([]);
@@ -210,7 +224,14 @@ export default function Reservar() {
               </div></div>
             <div><label className="label">Fecha</label>
               <input className="input" type="date" value={date}
-                min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} /></div>
+                min={new Date().toISOString().slice(0, 10)}
+                max={maxDate}
+                onChange={e => setDate(e.target.value)} />
+              {!isPremium && (
+                <Link href="/planes" className="mt-1 block text-[11px] text-ball font-bold">
+                  🔒 Con Premium reservás hasta 15 días adelante
+                </Link>
+              )}</div>
           </>
         )}
 

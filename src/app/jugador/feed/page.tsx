@@ -98,6 +98,21 @@ export default function Feed() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Tu sesión expiró. Cerrá y volvé a iniciar sesión.'); setBusy(false); return; }
     if (!me) { setError('Tu cuenta no tiene perfil de jugador. Recargá la página para completarlo.'); setBusy(false); return; }
+
+    // Enforcement Free: 1 post por semana. Premium: ilimitado.
+    if (!(me as any).is_premium) {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabase.from('posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_profile_id', me.id).eq('kind', 'manual')
+        .gte('created_at', weekAgo);
+      if ((count ?? 0) >= 1) {
+        setBusy(false);
+        setError('Ya publicaste esta semana. Con Premium podés publicar sin límite.');
+        return;
+      }
+    }
+
     const { error: err } = await supabase.from('posts').insert({
       author_profile_id: me.id, kind: 'manual',
       text_content: text.trim() || null, image_url: image

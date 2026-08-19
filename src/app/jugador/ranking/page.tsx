@@ -34,6 +34,8 @@ export default function Ranking() {
   const [complexId, setComplexId] = useState('');
   const [cat, setCat] = useState('Todas');
   const [sex, setSex] = useState<'Todos' | 'M' | 'F'>('Todos');
+  const [isPremium, setIsPremium] = useState(false);
+  const FREE_TOP = 30;
 
   useEffect(() => {
     (async () => {
@@ -45,8 +47,9 @@ export default function Ranking() {
       setComplexes(cxs ?? []);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: me } = await supabase.from('profiles').select('city_id').eq('id', user.id).maybeSingle();
+        const { data: me } = await supabase.from('profiles').select('city_id, is_premium').eq('id', user.id).maybeSingle();
         if (me?.city_id) setCityId(me.city_id);
+        setIsPremium(!!me?.is_premium);
       }
     })();
   }, []);
@@ -64,7 +67,8 @@ export default function Ranking() {
         const prev = agg.get(r.player_id);
         agg.set(r.player_id, prev ? { ...prev, points: prev.points + r.points } : { ...r });
       });
-      const list = Array.from(agg.values()).sort((a, b) => b.points - a.points).slice(0, 50);
+      // Free: top 30. Premium: sin límite.
+      const list = Array.from(agg.values()).sort((a, b) => b.points - a.points).slice(0, isPremium ? 500 : FREE_TOP);
       if (list.length) {
         const ids = list.map(r => r.player_id);
         const { data: avs } = await supabase.from('profiles')
@@ -74,7 +78,7 @@ export default function Ranking() {
       }
       setRows(list);
     })();
-  }, [cityId, cat, sex, complexId]);
+  }, [cityId, cat, sex, complexId, isPremium]);
 
   const filtrosActivos = complexId || (cityId && cities.length) || cat !== 'Todas' || sex !== 'Todos';
 
@@ -164,6 +168,16 @@ export default function Ranking() {
             </li>
           ))}
         </ol>
+
+        {!isPremium && rows.length >= FREE_TOP && (
+          <Link href="/planes" className="mt-4 card !p-4 flex items-center justify-between bg-ball/5 border border-ball/30">
+            <div>
+              <p className="font-black text-ball text-sm">🔒 Ranking completo con Premium</p>
+              <p className="text-white/60 text-xs mt-1">Free muestra solo el top {FREE_TOP}. Con Premium ves todo el ranking.</p>
+            </div>
+            <span className="text-ball font-black">→</span>
+          </Link>
+        )}
       </div>
     </main>
   );

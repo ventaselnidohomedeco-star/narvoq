@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { FREE_FEATURES, PREMIUM_FEATURES } from '@/lib/plan-features';
 
 // /planes — Página pública con los planes disponibles.
 // Al clickear "Suscribirme" el usuario:
@@ -21,9 +22,9 @@ type Plan = {
 };
 
 const ROLE_INFO = {
-  player: { title: 'Jugador', emoji: '🎾' },
-  coach: { title: 'Entrenador', emoji: '🎓' },
-  complex_admin: { title: 'Complejo', emoji: '🏟️' }
+  player: { title: 'Jugador', plural: 'Jugadores', emoji: '🎾' },
+  coach: { title: 'Entrenador', plural: 'Entrenadores', emoji: '🎓' },
+  complex_admin: { title: 'Complejo', plural: 'Complejos', emoji: '🏟️' }
 };
 
 export default function Planes() {
@@ -127,11 +128,39 @@ export default function Planes() {
                 <span className="text-4xl">{roleInfo.emoji}</span>
                 <div>
                   <h2 className="font-display font-black text-2xl md:text-3xl">
-                    Para {roleInfo.title.toLowerCase()}s
+                    Para {roleInfo.plural.toLowerCase()}
                   </h2>
                   {isCurrentRole && <p className="text-ball text-xs font-black">TU ROL</p>}
                 </div>
               </div>
+              {/* Comparativa Free vs Premium */}
+              <div className="card !p-5 mb-4 bg-white/[0.03]">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-white/60 text-xs font-black uppercase tracking-widest mb-3">Free — Gratis</p>
+                    <ul className="space-y-1.5 text-sm">
+                      {FREE_FEATURES[role].map((f, i) => (
+                        <li key={i} className="flex gap-2 items-start">
+                          <span className="text-white/50 font-black shrink-0">✓</span>
+                          <span className="text-white/70">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-ball text-xs font-black uppercase tracking-widest mb-3">Premium — Todo lo del Free +</p>
+                    <ul className="space-y-1.5 text-sm">
+                      {PREMIUM_FEATURES[role].map((f, i) => (
+                        <li key={i} className="flex gap-2 items-start">
+                          <span className="text-ball font-black shrink-0">★</span>
+                          <span className="text-white">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 {list.map(plan => (
                   <PlanCard
@@ -204,14 +233,9 @@ function PlanCard({ plan, yourRole, busy, onSubscribe }: {
         </p>
       )}
 
-      <ul className="mt-5 space-y-2">
-        {(plan.features ?? []).map((f, i) => (
-          <li key={i} className="flex gap-2 items-start text-sm">
-            <span className="text-ball font-black shrink-0">✓</span>
-            <span className="text-white/85">{f}</span>
-          </li>
-        ))}
-      </ul>
+      <p className="text-white/60 text-xs mt-3">
+        Todos los beneficios Premium listados arriba.
+      </p>
 
       <button
         onClick={onSubscribe}

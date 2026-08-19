@@ -68,6 +68,21 @@ export default function SmashHome() {
 
   async function abrirChat(otherId: string) {
     setError('');
+    // Enforcement: iniciar chats es Premium. Free solo puede responder si el otro le escribió.
+    if (!me?.is_premium) {
+      // ¿El otro ya me escribió alguna vez? Buscar chat existente entre ambos.
+      const { data: existing } = await supabase.from('chats')
+        .select('id')
+        .or(`and(user_a.eq.${me.id},user_b.eq.${otherId}),and(user_a.eq.${otherId},user_b.eq.${me.id})`)
+        .maybeSingle();
+      if (!existing) {
+        if (!confirm('Iniciar chats nuevos es una función Premium. ¿Ver planes?')) return;
+        router.push('/planes');
+        return;
+      }
+      router.push(`/smash/${existing.id}`);
+      return;
+    }
     const { data, error: err } = await supabase.rpc('open_chat_with', { other_id: otherId });
     if (err) return setError(`${err.message}. ¿Ejecutaste update-14-smasheq-chat.sql?`);
     router.push(`/smash/${data}`);
