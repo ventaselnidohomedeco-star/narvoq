@@ -4,6 +4,7 @@ import ProfileGuard from '@/components/ProfileGuard';
 import Banner from '@/components/Banner';
 import Bell from '@/components/Bell';
 import InstallButton from '@/components/InstallButton';
+import UserMenu from '@/components/UserMenu';
 
 export default function JugadorLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,11 +20,13 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
             <div className="flex items-center gap-2">
               <InstallButton variant="ghost" />
               <Bell />
+              <UserMenu />
             </div>
           </header>
           <header className="hidden lg:flex px-8 pt-6 pb-4 items-center justify-end gap-3">
             <InstallButton variant="ghost" />
             <Bell />
+            <UserMenu />
           </header>
           {children}
         </div>

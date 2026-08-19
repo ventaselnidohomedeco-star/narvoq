@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Banner from '@/components/Banner';
 import Bell from '@/components/Bell';
 import InstallButton from '@/components/InstallButton';
+import UserMenu from '@/components/UserMenu';
 
 const Icon = {
   group: (
@@ -113,6 +114,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-2">
             <InstallButton variant="ghost" />
             <Bell />
+            <UserMenu />
           </div>
         </header>
         <header className="hidden lg:flex px-8 pt-6 pb-4 items-center justify-between gap-3">
@@ -130,6 +132,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-3">
             <InstallButton variant="ghost" />
             <Bell />
+            <UserMenu />
           </div>
         </header>
         {children}
