@@ -94,15 +94,25 @@ export default function SmashHome() {
           <div className="mt-3 space-y-2">
             <p className="text-white/40 text-xs font-black uppercase">Resultados</p>
             {results.map(r => (
-              <button key={r.id} onClick={() => abrirChat(r.id)}
-                className="w-full card flex items-center gap-3 text-left">
-                <Avatar url={r.avatar_url} name={r.first_name} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{r.first_name} {r.last_name}</p>
-                  <p className="text-white/50 text-xs truncate">@{r.username}</p>
+              <div key={r.id} className="card !p-3">
+                <div className="flex items-center gap-3">
+                  <Avatar url={r.avatar_url} name={r.first_name} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{r.first_name} {r.last_name}</p>
+                    <p className="text-white/50 text-xs truncate">@{r.username}</p>
+                  </div>
                 </div>
-                <span className="text-ball text-xs font-black">Chatear →</span>
-              </button>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Link href={`/u/${r.username}`}
+                    className="text-center py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-black hover:bg-white/10">
+                    👤 Ver perfil
+                  </Link>
+                  <button onClick={() => abrirChat(r.id)}
+                    className="text-center py-2 rounded-lg bg-ball text-courtdark text-xs font-black">
+                    💬 Enviar mensaje
+                  </button>
+                </div>
+              </div>
             ))}
             {results.length === 0 && <p className="text-white/40 text-sm">Sin resultados.</p>}
           </div>

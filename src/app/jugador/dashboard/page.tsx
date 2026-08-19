@@ -66,7 +66,6 @@ export default function Dashboard() {
           <h1 className="font-display font-black text-3xl md:text-4xl leading-tight truncate">
             {profile?.first_name ?? '…'}
             <VerifiedBadge show={(profile as any)?.is_premium} size="lg" />
-            {' 👋'}
           </h1>
           {profile && (
             <p className="text-ball text-base font-bold mt-1">Categoría {profile.category}</p>

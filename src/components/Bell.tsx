@@ -23,9 +23,12 @@ export default function Bell({ href = '/notificaciones' }: { href?: string }) {
   }, []);
 
   return (
-    <Link href={href} className="relative inline-flex items-center justify-center w-10 h-10">
+    <Link href={href}
+      aria-label="Notificaciones"
+      title="Notificaciones"
+      className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/5 border border-white/15 hover:bg-white/10 hover:border-ball/50 transition">
       {/* Pelota de pádel */}
-      <svg viewBox="0 0 40 40" width="34" height="34" aria-label="Notificaciones">
+      <svg viewBox="0 0 40 40" width="38" height="38" aria-hidden="true">
         <defs>
           <radialGradient id="ball-grad" cx="35%" cy="30%">
             <stop offset="0%" stopColor="#F4FF9E" />

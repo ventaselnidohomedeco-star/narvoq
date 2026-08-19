@@ -25,7 +25,7 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
 }
 
-const Avatar = ({ url, name, size = 'w-10 h-10' }: { url?: string | null; name: string; size?: string }) => url
+const Avatar = ({ url, name, size = 'w-12 h-12' }: { url?: string | null; name: string; size?: string }) => url
   ? <img src={url} alt="" className={`${size} rounded-full object-cover shrink-0`} />
   : <span className={`${size} rounded-full bg-grafito text-white font-display font-black flex items-center justify-center shrink-0`}>
       {name?.[0]?.toUpperCase() ?? '?'}
@@ -203,13 +203,13 @@ export default function Feed() {
         <header className="flex items-center gap-3 px-4 pt-3">
           <AuthorLink post={p}>
             <Avatar url={p.complex ? p.complex.logo_url : p.author?.avatar_url} name={authorName}
-              size={embedded ? 'w-8 h-8' : 'w-10 h-10'} />
+              size={embedded ? 'w-10 h-10' : 'w-12 h-12'} />
           </AuthorLink>
           <div className="flex-1 min-w-0">
             <AuthorLink post={p}>
-              <p className="font-display font-black truncate text-base leading-tight">{authorName}</p>
+              <p className="font-display font-black truncate text-lg md:text-xl leading-tight">{authorName}</p>
             </AuthorLink>
-            <p className="text-white/50 text-[13px] mt-0.5">
+            <p className="text-white/50 text-sm mt-0.5">
               {subtitle}{subtitle ? ' · ' : ''}{p.created_at ? timeAgo(p.created_at) : ''}
             </p>
           </div>
@@ -219,7 +219,7 @@ export default function Feed() {
             </span>
           )}
         </header>
-        {p.text_content && <p className="px-4 pt-3 text-[17px] leading-relaxed">{p.text_content}</p>}
+        {p.text_content && <p className="px-4 pt-3 text-lg md:text-xl leading-relaxed">{p.text_content}</p>}
         {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full" />}
         {p.complex?.id && !embedded && (
           <Link href={`/club/${p.complex.id}`}
@@ -267,7 +267,7 @@ export default function Feed() {
       </div>
 
       {/* Publicaciones */}
-      <div className="mt-4 space-y-4 pb-8">
+      <div className="mt-4 space-y-5 pb-8 max-w-2xl mx-auto">
         {posts.map(p => {
           const liked = me && p.likes.some((l: any) => l.player_id === me.id);
           const isRepost = !!p.repost_of;
@@ -286,7 +286,7 @@ export default function Feed() {
                 ? <PostBody p={{ ...p.original }} embedded />
                 : <PostBody p={p} />}
 
-              <footer className="px-4 py-3 flex gap-6 text-sm font-semibold border-t border-white/5">
+              <footer className="px-4 py-4 flex gap-8 text-base font-bold border-t border-white/5">
                 <button onClick={() => like(p)}
                   className={`flex items-center gap-1 transition active:scale-125 ${liked ? 'text-red-500' : 'text-white/50'}`}>
                   {liked ? '❤️' : '🤍'} {p.likes.length > 0 && p.likes.length}
