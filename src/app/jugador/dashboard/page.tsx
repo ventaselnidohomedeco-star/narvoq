@@ -147,39 +147,18 @@ export default function Dashboard() {
         </Link>
       </section>
 
-      {/* Botones secundarios grandes con iconos premium */}
+      {/* Botones secundarios grandes con iconos premium PNG */}
       <section className="grid grid-cols-3 gap-3 mb-6">
-        <Link href="/smash"
-          className="rounded-2xl py-5 flex flex-col items-center gap-2 bg-gradient-to-br from-pink-500/20 to-red-500/10 border border-pink-500/30 active:scale-95 transition">
-          <svg viewBox="0 0 24 24" width="34" height="34" fill="url(#heartGrad)" stroke="#f472b6" strokeWidth="1.5" strokeLinejoin="round">
-            <defs>
-              <linearGradient id="heartGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#f472b6" />
-                <stop offset="100%" stopColor="#ef4444" />
-              </linearGradient>
-            </defs>
-            <path d="M12 21s-7-4.5-7-11a4.5 4.5 0 0 1 8-3 4.5 4.5 0 0 1 8 3c0 6.5-7 11-7 11z" />
-          </svg>
-          <span className="text-[13px] font-display font-black text-white">Smashe@</span>
-        </Link>
-        <Link href="/marketplace"
-          className="rounded-2xl py-5 flex flex-col items-center gap-2 bg-gradient-to-br from-purple-500/20 to-indigo-500/10 border border-purple-500/30 active:scale-95 transition">
-          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 2l1.5 3M18 2l-1.5 3M3 6h18l-1.5 12a3 3 0 01-3 2.5H7.5a3 3 0 01-3-2.5L3 6z" />
-            <path d="M8 10a4 4 0 008 0" />
-          </svg>
-          <span className="text-[13px] font-display font-black text-white">Market</span>
-        </Link>
-        <Link href="/jugador/amigos"
-          className="rounded-2xl py-5 flex flex-col items-center gap-2 bg-gradient-to-br from-cyan-500/20 to-blue-500/10 border border-cyan-500/30 active:scale-95 transition">
-          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#67e8f9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="9" cy="8" r="3.5" />
-            <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-            <circle cx="17" cy="9" r="2.5" />
-            <path d="M15 20c0-2.5 2-4.5 4-4.5" />
-          </svg>
-          <span className="text-[13px] font-display font-black text-white">Amigos</span>
-        </Link>
+        {[
+          { href: '/smash', src: '/icons/smash.png', alt: 'Smashe@' },
+          { href: '/marketplace', src: '/icons/market.png', alt: 'Market' },
+          { href: '/jugador/amigos', src: '/icons/amigos.png', alt: 'Amigos' }
+        ].map(a => (
+          <Link key={a.href} href={a.href}
+            className="aspect-square rounded-2xl bg-black border border-white/10 active:scale-95 transition shadow-lg overflow-hidden flex items-center justify-center">
+            <img src={a.src} alt={a.alt} className="w-full h-full object-contain" />
+          </Link>
+        ))}
       </section>
 
       <section>
