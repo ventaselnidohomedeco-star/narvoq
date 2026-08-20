@@ -159,13 +159,31 @@ export default function Jugadores() {
       if (inserted.length === 0) throw new Error('No se pudo leer ninguna fila válida. Verificá que la columna "nombre" tenga datos.');
       const { error } = await supabase.from('club_player_roster').insert(inserted);
       if (error) throw error;
-      setImportMsg(`✓ Importados: ${inserted.length}${skipped ? ` (${skipped} filas vacías omitidas)` : ''}`);
+
+      // Matchear con usuarios que ya están en NarvoQ (por celular / DNI / email)
+      const { data: matches } = await supabase.rpc('apply_roster_matches_for_complex', { p_complex_id: cx.id });
+      const matchedNow = Number(matches ?? 0);
+
+      setImportMsg(
+        `✓ Importados: ${inserted.length}` +
+        (matchedNow > 0 ? ` · ${matchedNow} vinculados a NarvoQ` : '') +
+        (skipped ? ` · ${skipped} filas vacías omitidas` : '')
+      );
       load();
     } catch (err: any) {
       setImportMsg(`❌ ${err.message}`);
     } finally {
       if (fileRef.current) fileRef.current.value = '';
     }
+  }
+
+  async function revincular() {
+    setImportMsg('Buscando coincidencias en NarvoQ…');
+    const { data, error } = await supabase.rpc('apply_roster_matches_for_complex', { p_complex_id: cx.id });
+    if (error) return setImportMsg(`❌ ${error.message}`);
+    const n = Number(data ?? 0);
+    setImportMsg(n > 0 ? `✓ Vinculados ${n} jugador${n > 1 ? 'es' : ''} nuevo${n > 1 ? 's' : ''}` : 'Ningún jugador nuevo para vincular.');
+    load();
   }
 
   async function eliminarRoster(id: string) {
@@ -257,6 +275,13 @@ export default function Jugadores() {
             Columnas: <b>nombre</b> · apellido · celular · dni · email · categoria · puntos · notas.
             Acepta Excel (.xlsx) y CSV.
           </p>
+
+          {roster.length > 0 && (
+            <button onClick={revincular}
+              className="mt-3 w-full py-2.5 rounded-xl border border-ball/40 bg-ball/10 text-ball font-black text-sm">
+              🔗 Re-vincular con NarvoQ (buscar cambios)
+            </button>
+          )}
 
           <section className="mt-4">
             <p className="font-display font-bold text-ball text-sm">Jugadores cargados ({roster.length})</p>
