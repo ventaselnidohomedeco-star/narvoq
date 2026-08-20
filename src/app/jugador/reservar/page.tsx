@@ -396,6 +396,43 @@ function Reservar() {
                 <p className="text-yellow-300">Este complejo todavia no cargo datos de transferencia. Contactalo antes de pagar.</p>
               )}
             </div>
+            {/* Pagar automático con Mercado Pago (si el complejo lo tiene conectado) */}
+            {(pending.complex as any)?.mp_access_token && (
+              <div className="mt-3 rounded-2xl bg-gradient-to-br from-[#009EE3]/15 to-transparent border-2 border-[#009EE3]/40 p-3">
+                <p className="font-display font-black text-white">💳 Pagar por Mercado Pago</p>
+                <p className="text-white/60 text-xs mt-0.5">La reserva se confirma automáticamente al terminar el pago.</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {(() => {
+                    const priceTotal = Number((pending.court as any)?.price_per_slot ?? 0);
+                    const deposit = (pending.court as any)?.deposit_amount != null
+                      ? Number((pending.court as any).deposit_amount) : priceTotal;
+                    const payMP = async (kind: 'seña' | 'total') => {
+                      const res = await fetch('/api/mp/pay-booking', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bookingId: pending.booking.id, kind })
+                      });
+                      const data = await res.json();
+                      if (!res.ok) return alert(data.error ?? 'Error');
+                      window.location.href = data.init_point;
+                    };
+                    return (
+                      <>
+                        <button onClick={() => payMP('seña')}
+                          className="py-3 rounded-xl bg-[#009EE3] text-white font-black text-sm active:scale-95">
+                          Seña<br/><span className="text-xs">${deposit.toLocaleString('es-AR')}</span>
+                        </button>
+                        <button onClick={() => payMP('total')}
+                          className="py-3 rounded-xl bg-ball text-courtdark font-black text-sm active:scale-95">
+                          Turno completo<br/><span className="text-xs">${priceTotal.toLocaleString('es-AR')}</span>
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+                <p className="text-white/40 text-[10px] mt-2 text-center">O bien subí comprobante de transferencia abajo ↓</p>
+              </div>
+            )}
+
             <label className="mt-3 flex items-center justify-center w-full py-3 rounded-xl bg-ball text-courtdark font-display font-black cursor-pointer">
               {uploading ? 'Subiendo...' : pending.booking.payment_proof_url ? 'Cambiar comprobante' : 'Subir comprobante'}
               <input type="file" accept="image/*" className="hidden" onChange={subirComprobante} />

@@ -95,9 +95,41 @@ export default function PerfilComplejo() {
             defaultValue={cx.services ?? ''} onBlur={e => save({ services: e.target.value })} /></div>
       </div>
 
-      {/* Datos de cobro */}
+      {/* Pagos automáticos por Mercado Pago (marketplace) */}
+      <div className="mt-4 bg-gradient-to-br from-[#009EE3]/10 to-transparent border-2 border-[#009EE3]/30 rounded-2xl p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-3xl">💳</span>
+          <div className="flex-1">
+            <p className="font-display font-black text-white">Cobrar automáticamente</p>
+            <p className="text-white/60 text-xs mt-1">
+              Conectá tu cuenta de Mercado Pago y los jugadores podrán pagar la seña o el turno completo directo desde NarvoQ. La plata cae en tu cuenta MP.
+            </p>
+          </div>
+        </div>
+        {cx.mp_connected_at ? (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-sm font-black text-center">
+              ✓ Mercado Pago conectado
+            </span>
+            <a href="/api/mp/oauth/authorize"
+              className="py-2.5 px-3 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold">
+              Reconectar
+            </a>
+          </div>
+        ) : (
+          <a href="/api/mp/oauth/authorize"
+            className="mt-3 block text-center py-3 rounded-xl bg-[#009EE3] hover:bg-[#0088c9] text-white font-black text-sm active:scale-95 transition">
+            💳 Conectar Mercado Pago
+          </a>
+        )}
+        <p className="text-white/40 text-[11px] mt-2 text-center">
+          Comisión de NarvoQ: por ahora <b className="text-ball">0%</b>. Solo pagás la comisión estándar de Mercado Pago.
+        </p>
+      </div>
+
+      {/* Datos de cobro manuales (siguen disponibles como respaldo) */}
       <div className="mt-4 bg-white/5 rounded-2xl p-4 space-y-4">
-        <p className="font-display font-bold text-ball text-sm">Datos para recibir transferencias</p>
+        <p className="font-display font-bold text-ball text-sm">Datos para recibir transferencias (respaldo manual)</p>
         <div className="grid grid-cols-2 gap-3">
           <div><label className="label text-white/60">Alias</label>
             <input className="input" placeholder="ej: club.padel.mp"

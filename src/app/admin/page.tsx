@@ -27,6 +27,9 @@ export default function Admin() {
   const [stats, setStats] = useState<any>({});
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
+  const [feePct, setFeePct] = useState<string>('0');
+  const [feeSaving, setFeeSaving] = useState(false);
+  const [feeMsg, setFeeMsg] = useState('');
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -36,6 +39,10 @@ export default function Admin() {
     setOk(true);
     const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
     setBanners(data ?? []);
+
+    const { data: fee } = await supabase.from('app_settings')
+      .select('value_num').eq('key', 'marketplace_fee_pct').maybeSingle();
+    if (fee?.value_num != null) setFeePct(String(fee.value_num));
 
     // --- MÉTRICAS AMPLIADAS ---
     const count = async (t: string, filter?: [string, unknown]) => {
@@ -165,6 +172,45 @@ export default function Admin() {
     <main className="min-h-dvh max-w-5xl mx-auto px-5 py-8">
       <h1 className="font-display font-black text-3xl">Panel CEO</h1>
       <p className="text-white/50 text-sm mt-1">Métricas globales, tráfico y suscripciones.</p>
+
+      {/* Comisión Marketplace (MP split) */}
+      <section className="mt-5 bg-gradient-to-br from-[#009EE3]/10 to-transparent border-2 border-[#009EE3]/30 rounded-2xl p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-3xl">💳</span>
+          <div className="flex-1">
+            <p className="font-display font-black">Comisión Marketplace (Mercado Pago)</p>
+            <p className="text-white/60 text-xs mt-1">
+              Porcentaje que NarvoQ retiene automáticamente de cada pago de jugador → complejo. 0% = todo va al complejo.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="relative flex-1">
+            <input type="number" step="0.01" min={0} max={30}
+              className="input pr-10 text-lg font-display font-black"
+              value={feePct} onChange={e => setFeePct(e.target.value)} />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 font-black">%</span>
+          </div>
+          <button disabled={feeSaving}
+            onClick={async () => {
+              setFeeSaving(true); setFeeMsg('');
+              const n = Number(feePct);
+              if (isNaN(n) || n < 0 || n > 30) {
+                setFeeMsg('Ingresá un valor entre 0 y 30');
+                setFeeSaving(false); return;
+              }
+              const { error } = await supabase.from('app_settings')
+                .upsert({ key: 'marketplace_fee_pct', value_num: n, updated_at: new Date().toISOString() });
+              setFeeMsg(error ? `❌ ${error.message}` : '✓ Guardado');
+              setFeeSaving(false);
+              setTimeout(() => setFeeMsg(''), 3000);
+            }}
+            className="py-3 px-5 rounded-xl bg-ball text-courtdark font-black text-sm disabled:opacity-50">
+            {feeSaving ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+        {feeMsg && <p className={`text-xs mt-2 ${feeMsg.startsWith('✓') ? 'text-ball' : 'text-red-400'}`}>{feeMsg}</p>}
+      </section>
 
       {/* Accesos rápidos */}
       <section className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2">
