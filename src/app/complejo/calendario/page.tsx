@@ -102,6 +102,21 @@ export default function Calendario() {
 
   async function cancelar(b: any) {
     if (!confirm('¿Cancelar esta reserva?')) return;
+
+    // Si tenía seña pagada, la convertimos en crédito a favor del jugador
+    if (b.payment_status === 'pagado' && b.player_id && b.price) {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('player_ledger').insert({
+        player_id: b.player_id,
+        complex_id: cx.id,
+        kind: 'refund',
+        amount: Number(b.price),
+        method: 'saldo_favor',
+        description: `Reserva cancelada: ${new Date(b.starts_at).toLocaleDateString('es-AR')} ${new Date(b.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`,
+        ref_booking_id: b.id,
+        created_by: user!.id
+      });
+    }
     await supabase.from('bookings').update({ status: 'cancelada' }).eq('id', b.id);
 
     // Avisar al jugador que su reserva fue cancelada por el complejo
@@ -149,6 +164,20 @@ export default function Calendario() {
       payment_confirmed_at: new Date().toISOString(),
       payment_confirmed_by: user!.id
     }).eq('id', b.id);
+
+    // Registrar la seña como pagada por transferencia (comprobante)
+    if (b.player_id && b.price) {
+      await supabase.from('player_ledger').insert({
+        player_id: b.player_id,
+        complex_id: cx.id,
+        kind: 'seña_paid',
+        amount: 0,  // 0 porque el jugador ya pagó al complejo, no queda saldo
+        method: 'transferencia',
+        description: `Seña ${new Date(b.starts_at).toLocaleDateString('es-AR')} ${new Date(b.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} · $${Number(b.price).toLocaleString('es-AR')}`,
+        ref_booking_id: b.id,
+        created_by: user!.id
+      });
+    }
     if (b.player_id) {
       const when = new Date(b.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
       await notify({
