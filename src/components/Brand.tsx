@@ -1,11 +1,11 @@
-// Componente de marca NarvoQ.
+﻿// Componente de marca NarvoQ.
 // Usa /public/brand/logo.png con mix-blend-mode: screen para que el fondo
 // oscuro del PNG se funda con el fondo negro de la app y solo se vean el
 // wordmark blanco y la paleta lima.
 
 type Variant = 'full' | 'mark' | 'inline';
 
-const logoSrc = '/brand/logo.png?v=5';
+const logoSrc = '/brand/logo.png?v=6';
 const iconoAppSrc = '/brand/icono-app.png?v=5';
 
 function IsotipoSvg({ size = 32 }: { size?: number }) {
@@ -50,8 +50,7 @@ export default function Brand({
         height: baseH,
         width: 'auto',
         display: 'block',
-        objectFit: 'contain',
-        mixBlendMode: 'screen'   // funde el bg oscuro del logo con el bg de la app
+        objectFit: 'contain'
       }} />
   );
 }

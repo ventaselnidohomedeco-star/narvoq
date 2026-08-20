@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -80,8 +80,8 @@ export default function Landing() {
 
   if (checking) return (
     <main className="min-h-dvh bg-[#0B0F16] flex items-center justify-center">
-      <img src="/brand/logo.png?v=5" alt="NarvoQ"
-        style={{ height: 80, width: 'auto', mixBlendMode: 'screen', opacity: 0.6 }} />
+      <img src="/brand/logo.png?v=6" alt="NarvoQ"
+        style={{ height: 80, width: 'auto', opacity: 0.6 }} />
     </main>
   );
 
@@ -97,10 +97,10 @@ export default function Landing() {
 
         {/* Logo grande — desktop más grande aún */}
         <img
-          src="/brand/logo.png?v=5"
+          src="/brand/logo.png?v=6"
           alt="NarvoQ"
           className="relative z-10"
-          style={{ height: 'clamp(120px, 20vw, 180px)', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }}
+          style={{ height: 'clamp(120px, 20vw, 180px)', width: 'auto', objectFit: 'contain' }}
         />
 
         {/* Frase corta */}
