@@ -10,6 +10,7 @@ export default function ClubPublico() {
   const { id } = useParams<{ id: string }>();
   const [cx, setCx] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
+  const [tournaments, setTournaments] = useState<any[]>([]);
   const [me, setMe] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
@@ -31,6 +32,14 @@ export default function ClubPublico() {
       .select('*, members:membership_members(status, payment_status, player_id, payment_proof_url)')
       .eq('complex_id', id).eq('active', true).order('price');
     setPlans(data ?? []);
+
+    // Torneos: activos + últimos 3 finalizados
+    const { data: torneos } = await supabase.from('tournaments')
+      .select('id, name, category, sex, status, starts_at, entry_fee')
+      .eq('complex_id', id)
+      .in('status', ['inscripcion_abierta', 'inscripcion_cerrada', 'en_curso', 'finalizado'])
+      .order('starts_at', { ascending: false }).limit(6);
+    setTournaments(torneos ?? []);
   }
   useEffect(() => { if (id) load(); }, [id]);
 
@@ -136,6 +145,30 @@ export default function ClubPublico() {
           {cx.whatsapp && <a href={`https://wa.me/${cx.whatsapp}`} target="_blank" className="text-center py-3 rounded-xl border border-white/20 font-semibold">WhatsApp</a>}
         </div>
 
+        {/* Ubicación con Google Maps */}
+        {cx.address && (
+          <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cx.address)}`}
+            target="_blank" rel="noopener"
+            className="mt-3 flex items-center gap-2 bg-white/5 rounded-xl p-3 hover:bg-white/10">
+            <span className="text-2xl">📍</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-white/50 font-black uppercase">Cómo llegar</p>
+              <p className="text-sm font-bold truncate">{cx.address}</p>
+            </div>
+            <span className="text-ball text-sm font-bold">Mapa ↗</span>
+          </a>
+        )}
+
+        {/* Horario de atención */}
+        {(cx.open_time || cx.close_time) && (
+          <section className="mt-4 bg-white/5 rounded-2xl p-3">
+            <p className="text-xs text-white/50 font-black uppercase">🕐 Horario de atención</p>
+            <p className="text-lg font-display font-black mt-1">
+              {cx.open_time?.slice(0, 5) ?? '?'} — {cx.close_time?.slice(0, 5) ?? '?'} hs
+            </p>
+          </section>
+        )}
+
         {services.length > 0 && (
           <section className="mt-5">
             <p className="font-display font-bold text-ball text-sm">Servicios</p>
@@ -163,6 +196,37 @@ export default function ClubPublico() {
           </div>
         </section>
 
+        {/* Torneos del club */}
+        {tournaments.length > 0 && (
+          <section className="mt-5">
+            <p className="font-display font-bold text-ball text-sm">🏆 Torneos</p>
+            <div className="mt-2 space-y-2">
+              {tournaments.map(t => {
+                const isActive = ['inscripcion_abierta', 'inscripcion_cerrada', 'en_curso'].includes(t.status);
+                const label = t.status === 'inscripcion_abierta' ? 'Inscripción abierta'
+                  : t.status === 'inscripcion_cerrada' ? 'Inscripción cerrada'
+                  : t.status === 'en_curso' ? 'En curso'
+                  : 'Finalizado';
+                return (
+                  <Link key={t.id} href={`/torneo/${t.id}`}
+                    className="block bg-white/5 rounded-xl p-3 hover:bg-white/10">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-display font-bold truncate flex-1">{t.name}</p>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${isActive ? 'bg-ball/20 text-ball' : 'bg-white/10 text-white/50'}`}>
+                        {label}
+                      </span>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">
+                      Cat. {t.category} · {t.sex === 'M' ? 'Masc.' : t.sex === 'F' ? 'Fem.' : 'Mixto'} · {new Date(t.starts_at).toLocaleDateString('es-AR')}
+                      {t.entry_fee > 0 && ` · $${Number(t.entry_fee).toLocaleString('es-AR')}`}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section className="mt-5">
           <p className="font-display font-bold text-ball text-sm">Membresias</p>
           <div className="mt-2 space-y-3">
@@ -173,12 +237,15 @@ export default function ClubPublico() {
                   <p className="font-display font-black">{plan.name}</p>
                   <p className="text-ball font-display font-black text-xl">${Number(plan.price).toLocaleString('es-AR')}/mes</p>
                   {plan.benefits && <p className="text-white/60 text-sm mt-1">{plan.benefits}</p>}
-                  <div className="mt-3 rounded-xl bg-white/5 p-3 text-sm">
-                    <p className="font-bold">Pago por transferencia</p>
-                    {cx.payment_alias && <p>Alias: <b>{cx.payment_alias}</b></p>}
-                    {cx.payment_cbu && <p>CBU/CVU: <b>{cx.payment_cbu}</b></p>}
-                    {cx.payment_holder && <p>Titular: {cx.payment_holder}</p>}
-                  </div>
+                  {/* Datos de pago: solo visibles si el jugador ya solicitó la membresía */}
+                  {mine && (
+                    <div className="mt-3 rounded-xl bg-white/5 p-3 text-sm">
+                      <p className="font-bold">Pago por transferencia</p>
+                      {cx.payment_alias && <p>Alias: <b>{cx.payment_alias}</b></p>}
+                      {cx.payment_cbu && <p>CBU/CVU: <b>{cx.payment_cbu}</b></p>}
+                      {cx.payment_holder && <p>Titular: {cx.payment_holder}</p>}
+                    </div>
+                  )}
                   {mine ? (
                     <div className="mt-3">
                       <p className={`text-sm font-bold ${mine.status === 'activa' ? 'text-green-400' : 'text-yellow-300'}`}>

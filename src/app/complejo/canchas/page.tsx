@@ -134,6 +134,19 @@ export default function Canchas() {
                     <option value="false">No</option><option value="true">Sí</option>
                   </select></div>
               </div>
+
+              <div className="mt-3">
+                <label className="label text-white/60">💰 Seña para reservar (opcional)</label>
+                <input className="input" type="number" placeholder="Vacío = se cobra el precio completo como seña"
+                  defaultValue={c.deposit_amount ?? ''}
+                  onBlur={e => {
+                    const v = e.target.value.trim();
+                    actualizar(c, { deposit_amount: v === '' ? null : Number(v) });
+                  }} />
+                <p className="text-white/40 text-[11px] mt-1">
+                  Ej: cancha $12.000 con seña $3.000 → el jugador paga $3.000 al reservar y el resto en la cancha.
+                </p>
+              </div>
             </div>
           </div>
         ))}

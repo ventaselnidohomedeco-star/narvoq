@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { buildSlots, type Slot } from '@/lib/slots';
@@ -9,15 +9,30 @@ import { uploadImage } from '@/lib/upload';
 import { ruleFor, priceWithRule, type OffpeakRule } from '@/lib/offpeak';
 import { notify } from '@/lib/notify';
 
-export default function Reservar() {
+export default function ReservarPage() {
+  return (
+    <Suspense fallback={<main className="p-8 text-white/60">Cargando…</main>}>
+      <Reservar />
+    </Suspense>
+  );
+}
+
+function Reservar() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Params opcionales para pre-selección desde el Buscador Inteligente:
+  // ?complex=<id>&court=<id>&date=YYYY-MM-DD&time=HH:MM
+  const paramComplex = searchParams?.get('complex');
+  const paramCourt = searchParams?.get('court');
+  const paramDate = searchParams?.get('date');
+  const paramTime = searchParams?.get('time');
   const [cities, setCities] = useState<any[]>([]);
   const [cityId, setCityId] = useState('');
   const [complexes, setComplexes] = useState<Complex[]>([]);
   const [complex, setComplex] = useState<Complex | null>(null);
   const [courts, setCourts] = useState<Court[]>([]);
   const [court, setCourt] = useState<Court | null>(null);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => paramDate || new Date().toISOString().slice(0, 10));
   const [slots, setSlots] = useState<Slot[]>([]);
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<any>(null);
@@ -59,10 +74,40 @@ export default function Reservar() {
   useEffect(() => {
     if (!complex) { setCourts([]); setOffpeakRules([]); return; }
     supabase.from('courts').select('*').eq('complex_id', complex.id).eq('active', true)
-      .then(({ data }) => { setCourts(data ?? []); setCourt(null); });
+      .then(({ data }) => {
+        setCourts(data ?? []);
+        // Pre-seleccionar cancha si vino por deep-link del Buscador
+        const preCourt = paramCourt ? (data ?? []).find((c: any) => c.id === paramCourt) : null;
+        setCourt(preCourt ?? null);
+      });
     supabase.from('offpeak_rules').select('*').eq('complex_id', complex.id).eq('active', true)
       .then(({ data }) => setOffpeakRules(data ?? []));
-  }, [complex]);
+  }, [complex, paramCourt]);
+
+  // Pre-selección del complejo por deep-link (una sola vez, al cargar cities/complexes)
+  useEffect(() => {
+    if (!paramComplex || complex) return;
+    (async () => {
+      const { data } = await supabase.from('complexes').select('*')
+        .eq('id', paramComplex).eq('status', 'active').maybeSingle();
+      if (data) {
+        if (data.city_id) setCityId(data.city_id);
+        setComplex(data as any);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramComplex]);
+
+  // Auto-scroll al slot buscado cuando ya cargaron los slots
+  useEffect(() => {
+    if (!paramTime || !court || slots.length === 0) return;
+    const target = document.getElementById(`slot-${paramTime}`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.add('ring-4', 'ring-ball');
+      setTimeout(() => target.classList.remove('ring-4', 'ring-ball'), 3000);
+    }
+  }, [paramTime, court, slots]);
 
   // Validar formato de fecha; si el usuario tipeó algo inválido no crashear.
   const dateIsValid = (() => {
@@ -116,13 +161,17 @@ export default function Reservar() {
     const { data: { user } } = await supabase.auth.getUser();
     const rule = ruleFor(slot.start, offpeakRules);
     const finalPrice = priceWithRule(Number(court.price_per_slot), rule);
+    // Seña: si el complejo definió deposit_amount en la cancha, se cobra eso; sino el total.
+    const senaAmount = (court as any).deposit_amount != null
+      ? Number((court as any).deposit_amount)
+      : finalPrice;
     // Fase 1: deadline para subir comprobante. Usa la config del complejo.
     const timeoutHours = (complex as any)?.booking_payment_timeout_hours ?? 2;
     const deadline = new Date(Date.now() + timeoutHours * 60 * 60 * 1000);
     const { data: booking, error: bErr } = await supabase.from('bookings').insert({
       court_id: court.id, player_id: user!.id, status: 'pendiente', payment_status: 'pendiente',
       starts_at: slot.start.toISOString(), ends_at: slot.end.toISOString(),
-      price: finalPrice,
+      price: senaAmount,   // el "price" del booking es la seña que el jugador paga ahora
       payment_deadline_at: deadline.toISOString()
     }).select().single();
     if (bErr) { setError('Ese turno acaba de ocuparse. Elegí otro.'); setSaving(false); return; }
@@ -376,8 +425,10 @@ export default function Reservar() {
               {slots.map((s, i) => {
                 const rule = ruleFor(s.start, offpeakRules);
                 const inMyWaitlist = myWaitlist.some(w => new Date(w.starts_at).getTime() === s.start.getTime());
+                const slotHour = s.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
                 return (
                   <button key={i}
+                    id={`slot-${slotHour}`}
                     disabled={saving}
                     onClick={() => s.free ? reservar(s) : (inMyWaitlist ? salirDeLaEspera(s) : sumarmeALaEspera(s))}
                     className={`relative py-3 rounded-xl font-display font-bold text-sm

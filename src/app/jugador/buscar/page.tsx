@@ -200,23 +200,29 @@ export default function BuscarCanchas() {
                     <Link href={`/club/${cx.id}`} className="text-ball text-xs font-bold underline">Perfil ↗</Link>
                   </div>
                   <div className="mt-3 grid gap-2">
-                    {cx.courts.map(c => (
-                      <div key={c.id} className="flex items-center justify-between bg-white/5 rounded-xl p-3">
-                        <div>
-                          <p className="font-bold text-sm">{c.name}</p>
-                          <p className="text-white/50 text-xs">{c.surface}{c.covered ? ' · techada' : ''}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-display font-black text-ball">${Number(c.price_per_slot).toLocaleString('es-AR')}</p>
-                          <p className="text-white/40 text-[10px]">{duration}′</p>
-                        </div>
-                      </div>
-                    ))}
+                    {cx.courts.map(c => {
+                      // Query params para pre-seleccionar todo en /jugador/reservar
+                      const qs = new URLSearchParams({
+                        complex: cx.id,
+                        court: c.id,
+                        date,
+                        time
+                      }).toString();
+                      return (
+                        <Link key={c.id} href={`/jugador/reservar?${qs}`}
+                          className="flex items-center justify-between bg-ball/5 border border-ball/30 hover:bg-ball/15 rounded-xl p-3 active:scale-[0.98] transition">
+                          <div>
+                            <p className="font-bold text-sm">{c.name}</p>
+                            <p className="text-white/50 text-xs">{c.surface}{c.covered ? ' · techada' : ''}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-display font-black text-ball">${Number(c.price_per_slot).toLocaleString('es-AR')}</p>
+                            <p className="text-ball text-[10px] font-bold">Reservar →</p>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  <Link href="/jugador/reservar"
-                    className="mt-3 block text-center py-2 rounded-xl bg-ball text-courtdark text-sm font-black">
-                    Reservar en {cx.name} →
-                  </Link>
                 </div>
               ))}
             </div>
