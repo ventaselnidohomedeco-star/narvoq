@@ -8,7 +8,7 @@ import Bell from '@/components/Bell';
 import InstallButton from '@/components/InstallButton';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
-// Ícono simple para el sidebar (emoji o texto).
+// ï¿½cono simple para el sidebar (emoji o texto).
 type Item = { href: string; label: string; icon: string };
 
 // Bottom nav mobile: 5 accesos core
@@ -17,23 +17,23 @@ const MOBILE_ITEMS: Item[] = [
   { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
   { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
   { href: '/complejo/jugadores', label: 'Jugadores', icon: '??' },
-  { href: '/complejo/mas', label: 'Más', icon: '?' }
+  { href: '/complejo/mas', label: 'Mï¿½s', icon: '?' }
 ];
 
 // Sidebar desktop: agrupado por secciones
 type Section = { label: string; items: Item[] };
 const DESKTOP_SECTIONS: Section[] = [
   {
-    label: 'Operación',
+    label: 'Operaciï¿½n',
     items: [
       { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '??' },
       { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
       { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
-      { href: '/complejo/socios', label: 'Socios · Membresías', icon: '??' }
+      { href: '/complejo/socios', label: 'Socios ï¿½ Membresï¿½as', icon: '??' }
     ]
   },
   {
-    label: 'Gestión',
+    label: 'Gestiï¿½n',
     items: [
       { href: '/complejo/canchas', label: 'Canchas', icon: '??' },
       { href: '/complejo/empleados', label: 'Empleados', icon: '??' },
@@ -45,7 +45,7 @@ const DESKTOP_SECTIONS: Section[] = [
   {
     label: 'Reportes',
     items: [
-      { href: '/complejo/estadisticas', label: 'Estadísticas Premium', icon: '??' },
+      { href: '/complejo/estadisticas', label: 'Estadï¿½sticas Premium', icon: '??' },
       { href: '/complejo/rentabilidad', label: 'Rentabilidad', icon: '??' }
     ]
   },
@@ -59,7 +59,7 @@ const DESKTOP_SECTIONS: Section[] = [
     ]
   },
   {
-    label: 'Configuración',
+    label: 'Configuraciï¿½n',
     items: [
       { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '??' },
       { href: '/complejo/mas', label: 'Ver todo', icon: '?' }
@@ -95,26 +95,26 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
   }
 
   async function signOut() {
-    if (!confirm('¿Cerrar sesión?')) return;
+    if (!confirm('ï¿½Cerrar sesiï¿½n?')) return;
     await supabase.auth.signOut();
     router.push('/');
   }
 
   // Banner de estado del complejo: pending_review, suspended o rejected.
-  // Solo se muestra al dueño (aparece en TODAS sus páginas).
+  // Solo se muestra al dueï¿½o (aparece en TODAS sus pï¿½ginas).
   const statusBanner = cx && cx.status !== 'active' ? (
     <div className={`w-full px-5 py-3 text-sm font-bold text-center
       ${cx.status === 'pending_review' ? 'bg-yellow-500/20 border-b-2 border-yellow-500/50 text-yellow-100'
         : cx.status === 'suspended' ? 'bg-orange-500/20 border-b-2 border-orange-500/50 text-orange-100'
         : 'bg-red-500/20 border-b-2 border-red-500/50 text-red-100'}`}>
       {cx.status === 'pending_review' && (
-        <>? <b>Tu complejo está en revisión</b>. Podés completar tu perfil y canchas, pero todavía no aparece a los jugadores.</>
+        <>? <b>Tu complejo estï¿½ en revisiï¿½n</b>. Podï¿½s completar tu perfil y canchas, pero todavï¿½a no aparece a los jugadores.</>
       )}
       {cx.status === 'suspended' && (
-        <>?? <b>Tu complejo está suspendido</b>. Escribinos para reactivarlo.</>
+        <>?? <b>Tu complejo estï¿½ suspendido</b>. Escribinos para reactivarlo.</>
       )}
       {cx.status === 'rejected' && (
-        <>? <b>Tu complejo fue rechazado</b>. {cx.rejection_reason ? `Motivo: ${cx.rejection_reason}` : 'Contactá al soporte para más info.'}</>
+        <>? <b>Tu complejo fue rechazado</b>. {cx.rejection_reason ? `Motivo: ${cx.rejection_reason}` : 'Contactï¿½ al soporte para mï¿½s info.'}</>
       )}
     </div>
   ) : null;
@@ -129,7 +129,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
         {/* Header sidebar: logo NarvoQ */}
         <div className="px-5 pt-6 pb-4 border-b border-white/10">
           <Link href="/complejo/dashboard" className="block">
-            <img src="/brand/logo.png?v=7" alt="NarvoQ"
+            <img src="/brand/logo.png?v=8" alt="NarvoQ"
               style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
             <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL COMPLEJOS</p>
           </Link>
@@ -165,7 +165,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
           </div>
         )}
 
-        {/* Navegación agrupada */}
+        {/* Navegaciï¿½n agrupada */}
         <div className="flex-1 py-3 space-y-4 overflow-y-auto">
           {DESKTOP_SECTIONS.map(section => (
             <div key={section.label}>
@@ -191,7 +191,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
           ))}
         </div>
 
-        {/* Footer sidebar: cerrar sesión */}
+        {/* Footer sidebar: cerrar sesiï¿½n */}
         <div className="p-3 border-t border-white/10 flex items-center gap-2">
           <InstallButton variant="ghost" />
           <Bell />
@@ -216,7 +216,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
               </button>
             )}
             <Link href="/complejo/dashboard" className="shrink-0 active:scale-95 transition">
-              <img src="/brand/logo.png?v=7" alt="NarvoQ" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+              <img src="/brand/logo.png?v=8" alt="NarvoQ" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
             </Link>
           </div>
           <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-3">
             {cx && (
               <span className="font-bold text-white/50 text-xs">
-                {cx.name} · {cx.is_premium ? '? Premium' : 'Free'}
+                {cx.name} ï¿½ {cx.is_premium ? '? Premium' : 'Free'}
               </span>
             )}
             <Bell />

@@ -82,13 +82,13 @@ export default function Dashboard() {
 
       <section className="mt-6 grid grid-cols-3 gap-3">
         {[
-          { n: stats.played, l: 'Jugados', href: '/jugador/reservas?tab=historial' },
-          { n: stats.won, l: 'Ganados', href: '/jugador/reservas?tab=historial' },
-          { n: stats.points, l: 'Pts. ranking', href: '/jugador/ranking' }
+          { n: stats.played, l: 'Partidos', href: '/jugador/reservas?tab=historial' },
+          { n: stats.won, l: 'Victorias', href: '/jugador/reservas?tab=historial' },
+          { n: stats.points, l: 'Puntos', href: '/jugador/ranking' }
         ].map(s => (
-          <Link key={s.l} href={s.href} className="card !p-4 text-center active:scale-95 transition">
-            <p className="font-display font-black text-4xl md:text-5xl text-ball">{s.n}</p>
-            <p className="text-white/70 text-sm font-bold uppercase tracking-wider mt-2">{s.l}</p>
+          <Link key={s.l} href={s.href} className="card !py-3 !px-3 text-center active:scale-95 transition">
+            <p className="font-display font-black text-3xl md:text-4xl text-ball leading-none">{s.n}</p>
+            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mt-1.5">{s.l}</p>
           </Link>
         ))}
       </section>
@@ -131,32 +131,34 @@ export default function Dashboard() {
         </Link>
       )}
 
-      <div className="court-divider my-6" />
-
-      {/* Botones primarios grandes: Reservar + Buscador Inteligente lado a lado */}
-      <section className="grid grid-cols-2 gap-3 mb-4">
+      {/* Botones primarios: Reservar + Buscador Inteligente
+          (reducidos ~30%: aspect 4:3 en lugar de cuadrado + max-w para centrar) */}
+      <section className="mt-6 grid grid-cols-2 gap-3 mb-4 max-w-md mx-auto">
         <Link href="/jugador/reservar"
-          className="aspect-square rounded-2xl bg-black border border-white/10 active:scale-95 transition shadow-lg overflow-hidden flex items-center justify-center">
+          className="rounded-2xl bg-black border border-white/10 active:scale-95 transition shadow-lg flex flex-col items-center justify-center p-4 gap-2">
           <img src="/icons/reservar.png" alt="Reservar cancha"
-            className="w-full h-full object-contain" />
+            className="w-20 h-20 md:w-24 md:h-24 object-contain" />
+          <p className="text-sm md:text-base font-display font-black text-white text-center leading-tight">Reservar<br/>cancha</p>
         </Link>
         <Link href="/jugador/buscar"
-          className="aspect-square rounded-2xl bg-black border border-ball/30 active:scale-95 transition shadow-lg shadow-ball/20 overflow-hidden flex items-center justify-center">
+          className="rounded-2xl bg-black border border-ball/40 active:scale-95 transition shadow-lg shadow-ball/20 flex flex-col items-center justify-center p-4 gap-2">
           <img src="/icons/buscadorinteligente.png" alt="Buscador Inteligente"
-            className="w-full h-full object-contain" />
+            className="w-20 h-20 md:w-24 md:h-24 object-contain" />
+          <p className="text-sm md:text-base font-display font-black text-ball text-center leading-tight">Buscador<br/>Inteligente</p>
         </Link>
       </section>
 
-      {/* Botones secundarios grandes con iconos premium PNG */}
-      <section className="grid grid-cols-3 gap-3 mb-6">
+      {/* Botones secundarios: SMASHE@ · AMIGOS · MARKET (ese orden pedido) */}
+      <section className="grid grid-cols-3 gap-3 mb-6 max-w-md mx-auto">
         {[
-          { href: '/smash', src: '/icons/smash.png', alt: 'Smashe@' },
-          { href: '/marketplace', src: '/icons/market.png', alt: 'Market' },
-          { href: '/jugador/amigos', src: '/icons/amigos.png', alt: 'Amigos' }
+          { href: '/smash', src: '/icons/smash.png', alt: 'Smashe@', label: 'Smashe@' },
+          { href: '/jugador/amigos', src: '/icons/amigos.png', alt: 'Amigos', label: 'Amigos' },
+          { href: '/marketplace', src: '/icons/market.png', alt: 'Market', label: 'Market' }
         ].map(a => (
           <Link key={a.href} href={a.href}
-            className="aspect-square rounded-2xl bg-black border border-white/10 active:scale-95 transition shadow-lg overflow-hidden flex items-center justify-center">
-            <img src={a.src} alt={a.alt} className="w-full h-full object-contain" />
+            className="rounded-2xl bg-black border border-white/10 active:scale-95 transition shadow-lg flex flex-col items-center justify-center p-3 gap-1.5">
+            <img src={a.src} alt={a.alt} className="w-14 h-14 md:w-16 md:h-16 object-contain" />
+            <p className="text-xs md:text-sm font-display font-black text-white">{a.label}</p>
           </Link>
         ))}
       </section>

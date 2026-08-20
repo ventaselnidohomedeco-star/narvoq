@@ -5,7 +5,7 @@
 
 type Variant = 'full' | 'mark' | 'inline';
 
-const logoSrc = '/brand/logo.png?v=7';
+const logoSrc = '/brand/logo.png?v=8';
 const iconoAppSrc = '/brand/icono-app.png?v=5';
 
 function IsotipoSvg({ size = 32 }: { size?: number }) {
@@ -42,7 +42,7 @@ export default function Brand({
       </span>
     );
   }
-  // 60% más grande que antes.
+  // 60% mï¿½s grande que antes.
   const baseH = variant === 'full' ? size * 2.15 : size * 1.7;
   return (
     <img src={logoSrc} alt="NarvoQ" className={className}

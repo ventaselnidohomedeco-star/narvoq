@@ -4,9 +4,9 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
-// ComplexShell — Renderiza el sidebar (desktop) + bottom nav (mobile) del complejo
-// en TODAS las páginas fuera de /complejo/*, si el usuario es complex_admin.
-// Así el menú siempre está visible aunque el complejo esté en /notificaciones,
+// ComplexShell ï¿½ Renderiza el sidebar (desktop) + bottom nav (mobile) del complejo
+// en TODAS las pï¿½ginas fuera de /complejo/*, si el usuario es complex_admin.
+// Asï¿½ el menï¿½ siempre estï¿½ visible aunque el complejo estï¿½ en /notificaciones,
 // /planes, /mi-suscripcion, /u/[username], etc.
 //
 // Se OCULTA en: landing, auth, /complejo/*, /training/*, /admin/*, /jugador/*.
@@ -17,21 +17,21 @@ const MOBILE_ITEMS = [
   { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
   { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
   { href: '/complejo/jugadores', label: 'Jugadores', icon: '??' },
-  { href: '/complejo/mas', label: 'Más', icon: '?' }
+  { href: '/complejo/mas', label: 'Mï¿½s', icon: '?' }
 ];
 
 const DESKTOP_SECTIONS = [
   {
-    label: 'Operación',
+    label: 'Operaciï¿½n',
     items: [
       { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '??' },
       { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
       { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
-      { href: '/complejo/socios', label: 'Socios · Membresías', icon: '??' }
+      { href: '/complejo/socios', label: 'Socios ï¿½ Membresï¿½as', icon: '??' }
     ]
   },
   {
-    label: 'Gestión',
+    label: 'Gestiï¿½n',
     items: [
       { href: '/complejo/canchas', label: 'Canchas', icon: '??' },
       { href: '/complejo/empleados', label: 'Empleados', icon: '??' },
@@ -47,7 +47,7 @@ const DESKTOP_SECTIONS = [
     ]
   },
   {
-    label: 'Configuración',
+    label: 'Configuraciï¿½n',
     items: [
       { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '??' },
       { href: '/complejo/mas', label: 'Ver todo', icon: '?' }
@@ -99,7 +99,7 @@ export default function ComplexShell({ children }: { children: React.ReactNode }
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-black border-r border-white/10 flex-col z-40 overflow-y-auto">
         <div className="px-5 pt-6 pb-4 border-b border-white/10">
           <Link href="/complejo/dashboard" className="block">
-            <img src="/brand/logo.png?v=7" alt="NarvoQ"
+            <img src="/brand/logo.png?v=8" alt="NarvoQ"
               style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
             <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL COMPLEJOS</p>
           </Link>
@@ -145,7 +145,7 @@ export default function ComplexShell({ children }: { children: React.ReactNode }
         </div>
       </nav>
 
-      {/* Botón "Volver al complejo" al principio del contenido */}
+      {/* Botï¿½n "Volver al complejo" al principio del contenido */}
       <div className="max-w-3xl xl:max-w-7xl mx-auto lg:mx-0 lg:max-w-none">
         <div className="lg:px-8 lg:py-4 px-5 py-3 border-b border-white/5">
           <Link href="/complejo/dashboard"

@@ -3,14 +3,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 // Bottom nav grande y legible.
-// Nuevo orden: Perfil · Feed · Reservas · Smashe@ (??) · Torneos · Ranking
-// Foco en comunidad: Feed y Smashe@ (chat con corazón) protagonistas.
+// Nuevo orden: Perfil ï¿½ Feed ï¿½ Reservas ï¿½ Smashe@ (??) ï¿½ Torneos ï¿½ Ranking
+// Foco en comunidad: Feed y Smashe@ (chat con corazï¿½n) protagonistas.
 
 const I = {
-  profile: (
+  home: (
     <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+      <path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1V11z" />
     </svg>
   ),
   feed: (
@@ -25,7 +24,7 @@ const I = {
       <path d="M3 10h18M8 3v4M16 3v4" />
     </svg>
   ),
-  // Corazón para Smashe@ — la app quiere ser "el tinder del padel"
+  // Corazï¿½n para Smashe@ ï¿½ la app quiere ser "el tinder del padel"
   heart: (
     <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
       <path d="M12 21s-7-4.5-7-11a4.5 4.5 0 0 1 8-3 4.5 4.5 0 0 1 8 3c0 6.5-7 11-7 11z" />
@@ -46,7 +45,7 @@ const I = {
 };
 
 const items = [
-  { href: '/jugador/dashboard', label: 'Perfil', icon: I.profile },
+  { href: '/jugador/dashboard', label: 'Inicio', icon: I.home },
   { href: '/jugador/feed', label: 'Feed', icon: I.feed },
   { href: '/jugador/reservas', label: 'Reservas', icon: I.calendar },
   { href: '/smash', label: 'Smashe@', icon: I.heart, accent: true },
@@ -82,7 +81,7 @@ export default function BottomNav() {
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-60 bg-black border-r border-white/10 flex-col py-6 z-40">
         <div className="px-5 mb-6 bg-black">
           <Link href="/jugador/dashboard" className="block">
-            <img src="/brand/logo.png?v=7" alt="NarvoQ"
+            <img src="/brand/logo.png?v=8" alt="NarvoQ"
               style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
           </Link>
         </div>
