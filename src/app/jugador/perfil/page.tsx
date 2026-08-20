@@ -9,11 +9,13 @@ export default function Perfil() {
   const router = useRouter();
   const [p, setP] = useState<any>(null);
   const [saved, setSaved] = useState(false);
+  const [email, setEmail] = useState<string>('');
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setEmail(user.email ?? '');
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setP(data);
     })();
@@ -65,6 +67,14 @@ export default function Perfil() {
         </div>
         <div><label className="label">Zona / localidad</label>
           <input className="input" defaultValue={p.zone ?? ''} onBlur={e => save({ zone: e.target.value })} /></div>
+        <div>
+          <label className="label">Correo de registro</label>
+          <input className="input opacity-60" value={email} readOnly
+            title="Para cambiar tu correo, escribinos por soporte." />
+          <p className="text-white/40 text-[11px] mt-1">
+            Este es el correo con el que ingresás a NarvoQ. No se puede cambiar desde acá.
+          </p>
+        </div>
       </div>
 
       {/* Datos de juego */}

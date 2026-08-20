@@ -5,7 +5,7 @@ import { supabase } from './supabase/client';
 export type NotifyKind =
   | 'like' | 'comment' | 'reserva_ok' | 'membresia_ok'
   | 'coach_add' | 'training_new' | 'torneo_nuevo' | 'mencion'
-  | 'match_add' | 'match_kick';
+  | 'match_add' | 'match_kick' | 'roster_add';
 
 export async function notify(input: {
   user_id: string;

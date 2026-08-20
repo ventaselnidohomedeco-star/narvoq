@@ -98,17 +98,7 @@ export default function Partido() {
       .insert({ match_id: id, player_id: a.id, team: finalTeam });
     if (err) return alert(`No se pudo agregar: ${err.message}. ¿Ejecutaste update-06-pro.sql?`);
 
-    // Notificar al agregado
-    const complexName = match.booking?.court.complex.name ?? '';
-    const cuando = when?.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) ?? '';
-    await notify({
-      user_id: a.id,
-      kind: 'match_add',
-      title: '🎾 Te sumaron a un partido',
-      body: `${complexName} · ${cuando} hs · Equipo ${finalTeam}`,
-      link: `/partido/${id}`,
-      ref_id: id
-    });
+    // La notificación al agregado la dispara un trigger de la DB (update-39).
 
     if (players.length + 1 === 4) {
       await supabase.from('matches').update({ status: 'completa' }).eq('id', id);
@@ -131,17 +121,7 @@ export default function Partido() {
       await supabase.from('matches').update({ status: 'buscando' }).eq('id', id);
       await supabase.from('bookings').update({ status: 'pendiente' }).eq('id', match.booking.id);
     }
-    // Notificar al que sacaron
-    if (player) {
-      await notify({
-        user_id: playerId,
-        kind: 'match_kick',
-        title: 'Te sacaron de un partido',
-        body: `${match.booking?.court.complex.name ?? ''} · ${when?.toLocaleDateString('es-AR') ?? ''}`,
-        link: `/partido/${id}`,
-        ref_id: id
-      });
-    }
+    // La notificación al sacado la dispara un trigger de la DB (update-39).
     load();
   }
 

@@ -68,11 +68,14 @@ export default function Dashboard() {
         <div className="flex-1 min-w-0">
           <p className="text-white/60 text-base">Hola,</p>
           <h1 className="font-display font-black text-3xl md:text-4xl leading-tight truncate">
-            {profile?.first_name ?? '…'}
+            {profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() : '…'}
             <VerifiedBadge show={(profile as any)?.is_premium} size="lg" />
           </h1>
+          {profile?.username && (
+            <p className="text-white/50 text-sm font-semibold mt-0.5">@{profile.username}</p>
+          )}
           {profile && (
-            <p className="text-ball text-base font-bold mt-1">Categoría {profile.category}</p>
+            <p className="text-ball text-base font-bold mt-1">Categoría {profile.category ?? '—'}</p>
           )}
           <div className="mt-2">
             <TrialCountdown premiumExpiresAt={(profile as any)?.premium_expires_at} />

@@ -17,6 +17,7 @@ export default function PerfilPublico() {
   const [followed, setFollowed] = useState<any[]>([]);
   const [lastMatches, setLastMatches] = useState<any[]>([]);
   const [lastTrainings, setLastTrainings] = useState<any[]>([]);
+  const [clubRoster, setClubRoster] = useState<any[]>([]);   // info del jugador en cada club
   const [notFound, setNotFound] = useState(false);
   const [me, setMe] = useState<string | null>(null);
   const [followers, setFollowers] = useState(0);
@@ -112,6 +113,12 @@ export default function PerfilPublico() {
         .eq('author_profile_id', profile.id)
         .order('created_at', { ascending: false }).limit(12);
       setPosts(ps ?? []);
+
+      // Info del jugador en cada complejo (categoría y puntos que le asignaron)
+      const { data: cRoster } = await supabase.from('club_player_roster')
+        .select('category, points, notes, complex:complexes(id, name, logo_url)')
+        .eq('matched_player_id', profile.id);
+      setClubRoster(cRoster ?? []);
     })();
   }, [username]);
 
@@ -161,7 +168,7 @@ export default function PerfilPublico() {
             )}
             {p.role === 'player' && (
               <span className="inline-block mt-1 bg-ball text-courtdark font-display font-black text-sm rounded-lg px-2.5 py-1">
-                Categoría {p.category}
+                Categoría {p.category ?? 'sin definir'}
               </span>
             )}
           </div>
@@ -218,6 +225,39 @@ export default function PerfilPublico() {
               </p>
             </div>
           </div>
+        </section>
+      )}
+
+      {/* Categorías / puntos por complejo */}
+      {clubRoster.length > 0 && (
+        <section className="px-5 mt-5">
+          <h2 className="h-section">🏟️ En cada club</h2>
+          <p className="text-white/50 text-xs mt-1">Categoría y puntos que le asignó cada complejo.</p>
+          <ul className="mt-3 space-y-2">
+            {clubRoster.map((cr: any, i: number) => (
+              <li key={i} className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                {cr.complex?.logo_url
+                  ? <img src={cr.complex.logo_url} alt="" className="w-11 h-11 rounded-full object-cover border border-white/10" />
+                  : <span className="w-11 h-11 rounded-full bg-court/30 flex items-center justify-center text-lg">🏟️</span>}
+                <div className="flex-1 min-w-0">
+                  {cr.complex?.id ? (
+                    <Link href={`/club/${cr.complex.id}`} className="font-semibold truncate block hover:text-ball">
+                      {cr.complex.name}
+                    </Link>
+                  ) : (
+                    <p className="font-semibold truncate">Complejo</p>
+                  )}
+                  <p className="text-white/50 text-xs">
+                    {cr.category != null && <span>Cat. <b className="text-ball">{cr.category}</b></span>}
+                    {cr.category != null && cr.points ? ' · ' : ''}
+                    {cr.points ? <span><b className="text-ball">{cr.points}</b> pts</span> : ''}
+                    {(cr.category == null && !cr.points) && <span className="text-white/40">Sin datos asignados</span>}
+                  </p>
+                  {cr.notes && <p className="text-white/40 text-[11px] mt-0.5 truncate">📝 {cr.notes}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
