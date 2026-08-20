@@ -7,6 +7,7 @@ import PlacaButton from '@/components/PlacaButton';
 import CourtLayout from '@/components/CourtLayout';
 import BackButton from '@/components/BackButton';
 import { sharePlaca } from '@/lib/placas';
+import { notify } from '@/lib/notify';
 
 export default function Partido() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,10 @@ export default function Partido() {
   const [sets, setSets] = useState([{ t1: '', t2: '' }, { t1: '', t2: '' }, { t1: '', t2: '' }]);
   const [error, setError] = useState('');
   const [amigos, setAmigos] = useState<any[]>([]);
+  // Modal para agregar jugador a un equipo específico (desde la cancha visual)
+  const [pickerTeam, setPickerTeam] = useState<1 | 2 | null>(null);
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -85,16 +90,74 @@ export default function Partido() {
     else { await navigator.clipboard.writeText(url); alert('Link copiado 📋'); }
   }
 
-  async function agregarAmigo(a: any) {
+  async function agregarJugador(a: any, team?: 1 | 2) {
+    const finalTeam = team ?? (players.filter(p => p.team === 1).length < 2 ? 1 : 2);
+    // Evitar duplicados
+    if (players.some(p => p.player_id === a.id)) return alert('Ese jugador ya está en el partido.');
     const { error: err } = await supabase.from('match_players')
-      .insert({ match_id: id, player_id: a.id, team: players.length < 2 ? 1 : 2 });
+      .insert({ match_id: id, player_id: a.id, team: finalTeam });
     if (err) return alert(`No se pudo agregar: ${err.message}. ¿Ejecutaste update-06-pro.sql?`);
+
+    // Notificar al agregado
+    const complexName = match.booking?.court.complex.name ?? '';
+    const cuando = when?.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) ?? '';
+    await notify({
+      user_id: a.id,
+      kind: 'match_add',
+      title: '🎾 Te sumaron a un partido',
+      body: `${complexName} · ${cuando} hs · Equipo ${finalTeam}`,
+      link: `/partido/${id}`,
+      ref_id: id
+    });
+
     if (players.length + 1 === 4) {
       await supabase.from('matches').update({ status: 'completa' }).eq('id', id);
       await supabase.from('bookings').update({ status: 'completa' }).eq('id', match.booking.id);
     }
+    setPickerTeam(null);
+    setPickerQuery('');
+    setSearchResults([]);
     load();
   }
+  // alias para el listado antiguo
+  const agregarAmigo = (a: any) => agregarJugador(a);
+
+  async function sacarJugador(playerId: string) {
+    if (playerId === match.creator_id) return alert('No podés sacar al creador del partido.');
+    const player = players.find(p => p.player_id === playerId);
+    await supabase.from('match_players').delete().eq('match_id', id).eq('player_id', playerId);
+    // Si estaba completa, volver a estado pendiente
+    if (match.status === 'completa') {
+      await supabase.from('matches').update({ status: 'buscando' }).eq('id', id);
+      await supabase.from('bookings').update({ status: 'pendiente' }).eq('id', match.booking.id);
+    }
+    // Notificar al que sacaron
+    if (player) {
+      await notify({
+        user_id: playerId,
+        kind: 'match_kick',
+        title: 'Te sacaron de un partido',
+        body: `${match.booking?.court.complex.name ?? ''} · ${when?.toLocaleDateString('es-AR') ?? ''}`,
+        link: `/partido/${id}`,
+        ref_id: id
+      });
+    }
+    load();
+  }
+
+  // Búsqueda de jugadores para el picker
+  useEffect(() => {
+    if (!pickerTeam || !pickerQuery.trim() || pickerQuery.length < 2) { setSearchResults([]); return; }
+    const t = setTimeout(async () => {
+      const q = pickerQuery.trim();
+      const { data } = await supabase.from('profiles')
+        .select('id, username, first_name, last_name, avatar_url, category, phone')
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,username.ilike.%${q}%,phone.ilike.%${q}%`)
+        .eq('role', 'player').limit(15);
+      setSearchResults(data ?? []);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [pickerQuery, pickerTeam]);
 
   async function cargarResultado() {
     setError('');
@@ -176,10 +239,15 @@ export default function Partido() {
           meId={me}
           canSwap={match.creator_id === me}
           onSwap={async (playerId, newTeam) => {
+            // Solo se puede cambiar de equipo si hay lugar en el destino
+            const targetCount = players.filter(p => p.team === newTeam).length;
+            if (targetCount >= 2) return alert(`Ya hay 2 jugadores en el equipo ${newTeam}.`);
             await supabase.from('match_players').update({ team: newTeam })
               .eq('match_id', id).eq('player_id', playerId);
             load();
           }}
+          onAddClick={inMatch ? (team) => setPickerTeam(team) : undefined}
+          onRemove={match.creator_id === me ? sacarJugador : undefined}
         />
         <div className="mt-3 flex justify-between text-xs font-semibold text-white/60">
           <span>Nivel promedio <b className="text-ball">{avg}</b></span>
@@ -295,6 +363,86 @@ export default function Partido() {
           })} className="self-start inline-flex items-center gap-1 bg-white/5 border border-white/10 text-white/60 text-xs font-bold rounded-lg px-3 py-1.5 active:scale-95 transition">📸 Compartir placa</button>
         </div>
       )}
+
+      {/* Modal picker: buscar y agregar jugador a un equipo específico */}
+      {pickerTeam && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-end lg:items-center overflow-y-auto"
+          onClick={() => setPickerTeam(null)}>
+          <div className="bg-[#0B0F16] border-2 border-white/15 rounded-t-3xl lg:rounded-2xl w-full max-w-lg mx-auto p-5 pb-10"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="font-display font-black text-lg">
+                ➕ Agregar al Equipo {pickerTeam}
+              </p>
+              <button onClick={() => setPickerTeam(null)}
+                className="w-9 h-9 rounded-full bg-white/10 text-white font-bold">✕</button>
+            </div>
+
+            <input autoFocus type="text" className="input mt-3"
+              placeholder="🔍 Buscar por nombre, usuario o celular…"
+              value={pickerQuery} onChange={e => setPickerQuery(e.target.value)} />
+
+            {/* Amigos (por defecto) */}
+            {!pickerQuery.trim() && amigos.length > 0 && (
+              <>
+                <p className="text-white/50 text-xs font-black uppercase mt-4">Tus amigos</p>
+                <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
+                  {amigos.filter(a => !players.some(p => p.player_id === a.id)).map(a => (
+                    <PlayerRow key={a.id} a={a} onAdd={() => agregarJugador(a, pickerTeam)} />
+                  ))}
+                  {amigos.filter(a => !players.some(p => p.player_id === a.id)).length === 0 && (
+                    <p className="text-white/40 text-sm text-center py-4">Todos tus amigos ya están en el partido 🎉</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Resultados de búsqueda */}
+            {pickerQuery.trim() && (
+              <>
+                <p className="text-white/50 text-xs font-black uppercase mt-4">
+                  {pickerQuery.length < 2 ? 'Escribí al menos 2 letras…' : `Resultados (${searchResults.length})`}
+                </p>
+                <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
+                  {searchResults.filter(a => !players.some(p => p.player_id === a.id)).map(a => (
+                    <PlayerRow key={a.id} a={a} onAdd={() => agregarJugador(a, pickerTeam)} />
+                  ))}
+                  {pickerQuery.length >= 2 && searchResults.length === 0 && (
+                    <p className="text-white/40 text-sm text-center py-4">Sin resultados</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {!pickerQuery.trim() && amigos.length === 0 && (
+              <div className="mt-4 text-center py-6">
+                <p className="text-white/50 text-sm">Todavía no seguís a nadie.</p>
+                <Link href="/jugador/amigos" className="mt-3 inline-block btn-ball !py-2 !px-4 text-xs">
+                  Buscar amigos
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
+  );
+}
+
+// Fila reusable para el picker
+function PlayerRow({ a, onAdd }: { a: any; onAdd: () => void }) {
+  return (
+    <div className="flex items-center gap-3 bg-white/5 rounded-xl p-2.5">
+      {a.avatar_url
+        ? <img src={a.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+        : <span className="w-10 h-10 rounded-full bg-grafito text-white text-sm font-display font-black flex items-center justify-center">
+            {a.first_name?.[0]?.toUpperCase()}
+          </span>}
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm truncate">{a.first_name} {a.last_name}</p>
+        <p className="text-white/50 text-xs truncate">@{a.username} · cat. {a.category ?? '-'}</p>
+      </div>
+      <button onClick={onAdd} className="btn-ball !py-1.5 !px-3 text-xs shrink-0">+ Agregar</button>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import ExcelJS from 'exceljs';
 
 // Jugadores del club: ranking interno + roster CSV importado + ascensos.
 export default function Jugadores() {
@@ -50,64 +51,112 @@ export default function Jugadores() {
     load();
   }
 
-  function descargarPlantilla() {
-    const csv = [
-      'nombre,apellido,celular,dni,email,categoria,puntos,notas',
-      'Ejemplo,Jugador,1122334455,30123456,ejemplo@correo.com,4,50,Categoría según ranking interno',
-      'Otro,Ejemplo,1155667788,,,,3,120,'
-    ].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  async function descargarPlantilla() {
+    // Plantilla .xlsx con encabezados en color de marca (ball verde) sobre grafito
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'NarvoQ';
+    wb.title = `Plantilla ${cx?.name ?? 'Club'}`;
+    const ws = wb.addWorksheet('Jugadores', { views: [{ state: 'frozen', ySplit: 1 }] });
+
+    const headers = ['nombre', 'apellido', 'celular', 'dni', 'email', 'categoria', 'puntos', 'notas'];
+    ws.columns = [
+      { key: 'nombre', width: 16 }, { key: 'apellido', width: 16 },
+      { key: 'celular', width: 15 }, { key: 'dni', width: 13 },
+      { key: 'email', width: 28 }, { key: 'categoria', width: 11 },
+      { key: 'puntos', width: 9 }, { key: 'notas', width: 32 }
+    ];
+    ws.addRow(headers);
+    ws.addRow(['Ejemplo', 'Jugador', '1122334455', '30123456', 'ejemplo@correo.com', 4, 50, 'Cargar según ranking del club']);
+    ws.addRow(['Otro', 'Ejemplo', '1155667788', '', '', 3, 120, '']);
+
+    // Estilo del header: verde ball (#B8FF3D) sobre grafito (#161C24), bold, centrado
+    const header = ws.getRow(1);
+    header.height = 26;
+    header.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB8FF3D' } };
+      cell.font = { bold: true, size: 12, color: { argb: 'FF161C24' }, name: 'Calibri' };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        bottom: { style: 'medium', color: { argb: 'FF161C24' } }
+      };
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `plantilla-jugadores-${cx?.name ?? 'club'}.csv`;
+    a.download = `plantilla-jugadores-${cx?.name ?? 'club'}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  async function importarCsv(e: React.ChangeEvent<HTMLInputElement>) {
+  async function importarPlanilla(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportMsg('Procesando…');
     try {
-      const text = await file.text();
-      // Split lines, ignore empty
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) throw new Error('El archivo está vacío o solo tiene encabezado.');
-      // Parse header
-      const header = lines[0].toLowerCase().split(',').map(h => h.trim());
-      const idx = (name: string) => header.indexOf(name);
-      const nameIdx = idx('nombre');
-      const lastIdx = idx('apellido');
-      const phoneIdx = idx('celular');
-      const dniIdx = idx('dni');
-      const emailIdx = idx('email');
-      const catIdx = idx('categoria');
-      const pointsIdx = idx('puntos');
-      const notesIdx = idx('notas');
-      if (nameIdx < 0) throw new Error('Falta la columna "nombre". Descargá la plantilla nueva.');
+      const buf = await file.arrayBuffer();
+      const wb = new ExcelJS.Workbook();
+      // Detectar formato por extensión
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        const text = new TextDecoder('utf-8').decode(buf);
+        // exceljs no lee CSV desde buffer; usamos un parser mínimo inline
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) throw new Error('El CSV está vacío o solo tiene encabezado.');
+        const ws = wb.addWorksheet('csv');
+        lines.forEach(line => ws.addRow(parseCsvLine(line)));
+      } else {
+        await wb.xlsx.load(buf);
+      }
+      const ws = wb.worksheets[0];
+      if (!ws || ws.rowCount < 2) throw new Error('El archivo está vacío o solo tiene encabezado.');
+
+      // Normalizar keys (lowercase, sin acentos)
+      const norm = (s: string) => s
+        .toLowerCase().trim()
+        .normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '');
+
+      const headers: string[] = [];
+      ws.getRow(1).eachCell({ includeEmpty: false }, (cell, col) => {
+        headers[col - 1] = norm(String(cell.value ?? ''));
+      });
+
+      const rows: Record<string, string>[] = [];
+      for (let r = 2; r <= ws.rowCount; r++) {
+        const rowObj: Record<string, string> = {};
+        const row = ws.getRow(r);
+        let hasData = false;
+        headers.forEach((h, i) => {
+          const v = row.getCell(i + 1).value;
+          const s = v == null ? '' : String(typeof v === 'object' && 'text' in (v as any) ? (v as any).text : v).trim();
+          if (s) hasData = true;
+          rowObj[h] = s;
+        });
+        if (hasData) rows.push(rowObj);
+      }
+      if (rows.length === 0) throw new Error('No hay filas con datos.');
 
       const { data: { user } } = await supabase.auth.getUser();
       const inserted: any[] = [];
       let skipped = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const cells = parseCsvLine(lines[i]);
-        const first = cells[nameIdx]?.trim();
+      for (const clean of rows) {
+        const first = clean['nombre'];
         if (!first) { skipped++; continue; }
         inserted.push({
           complex_id: cx.id,
           first_name: first,
-          last_name: cells[lastIdx]?.trim() || null,
-          phone: cells[phoneIdx]?.replace(/\D/g, '') || null,
-          dni: cells[dniIdx]?.replace(/\D/g, '') || null,
-          email: cells[emailIdx]?.trim().toLowerCase() || null,
-          category: catIdx >= 0 && cells[catIdx] ? Number(cells[catIdx]) || null : null,
-          points: pointsIdx >= 0 && cells[pointsIdx] ? Number(cells[pointsIdx]) || 0 : 0,
-          notes: notesIdx >= 0 ? cells[notesIdx]?.trim() || null : null,
+          last_name: clean['apellido'] || null,
+          phone: clean['celular']?.replace(/\D/g, '') || null,
+          dni: clean['dni']?.replace(/\D/g, '') || null,
+          email: clean['email']?.toLowerCase() || null,
+          category: clean['categoria'] ? Number(clean['categoria']) || null : null,
+          points: clean['puntos'] ? Number(clean['puntos']) || 0 : 0,
+          notes: clean['notas'] || null,
           created_by: user!.id
         });
       }
-      if (inserted.length === 0) throw new Error('No se pudo leer ninguna fila válida.');
+      if (inserted.length === 0) throw new Error('No se pudo leer ninguna fila válida. Verificá que la columna "nombre" tenga datos.');
       const { error } = await supabase.from('club_player_roster').insert(inserted);
       if (error) throw error;
       setImportMsg(`✓ Importados: ${inserted.length}${skipped ? ` (${skipped} filas vacías omitidas)` : ''}`);
@@ -189,11 +238,13 @@ export default function Jugadores() {
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button onClick={descargarPlantilla}
               className="py-3 rounded-xl bg-white/10 border border-white/20 text-white font-black text-sm">
-              📥 Descargar plantilla CSV
+              📥 Descargar plantilla Excel
             </button>
             <label className="py-3 rounded-xl bg-ball text-courtdark font-black text-sm text-center cursor-pointer">
               📤 Importar planilla
-              <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={importarCsv} />
+              <input ref={fileRef} type="file"
+                accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="hidden" onChange={importarPlanilla} />
             </label>
           </div>
           {importMsg && (
@@ -203,7 +254,8 @@ export default function Jugadores() {
           )}
 
           <p className="text-white/40 text-[11px] mt-3">
-            Formato: nombre,apellido,celular,dni,email,categoria,puntos,notas
+            Columnas: <b>nombre</b> · apellido · celular · dni · email · categoria · puntos · notas.
+            Acepta Excel (.xlsx) y CSV.
           </p>
 
           <section className="mt-4">

@@ -1,7 +1,10 @@
 'use client';
 
-// Cancha visual de pádel con 4 puestos (2 por equipo, separados por la red).
-// Muestra avatares y permite seleccionar/cambiar de equipo si onSwap está definido.
+// Cancha visual de pádel — vertical, tamaño real (alto), 4 puestos separados por red.
+// Muestra avatares y permite:
+//  - onSwap: cambiar de equipo tocando el jugador
+//  - onAddClick: abrir picker de amigos tocando un slot vacío (+)
+//  - onRemove: sacar a un jugador (creador del partido)
 
 type Player = {
   player_id: string;
@@ -13,79 +16,136 @@ export default function CourtLayout({
   players,
   onSwap,
   canSwap,
-  meId
+  meId,
+  onAddClick,
+  onRemove
 }: {
   players: Player[];
   onSwap?: (playerId: string, newTeam: 1 | 2) => void;
   canSwap?: boolean;
   meId?: string | null;
+  onAddClick?: (team: 1 | 2) => void;
+  onRemove?: (playerId: string) => void;
 }) {
   const team1 = players.filter(p => p.team === 1).slice(0, 2);
   const team2 = players.filter(p => p.team === 2).slice(0, 2);
-  const empty1 = 2 - team1.length;
-  const empty2 = 2 - team2.length;
 
   const Slot = ({ p, teamOfSlot }: { p?: Player; teamOfSlot: 1 | 2 }) => {
     const isMe = meId && p?.player_id === meId;
-    const clickable = p && onSwap && (canSwap || isMe);
+    const clickableSwap = p && onSwap && (canSwap || isMe);
+    const canRemove = p && onRemove && canSwap && !isMe;
     const targetTeam: 1 | 2 = teamOfSlot === 1 ? 2 : 1;
-    const label = p ? `${p.profile.first_name}${p.profile.last_name ? ' ' + p.profile.last_name[0] + '.' : ''}` : 'Libre';
+    const label = p
+      ? `${p.profile.first_name}${p.profile.last_name ? ' ' + p.profile.last_name[0] + '.' : ''}`
+      : 'Libre';
+
+    if (!p) {
+      return (
+        <button
+          onClick={() => onAddClick?.(teamOfSlot)}
+          disabled={!onAddClick}
+          className="relative flex flex-col items-center justify-center gap-2 rounded-2xl min-h-[130px] flex-1 min-w-0
+            bg-white/5 border-2 border-dashed border-white/25 active:scale-95 transition
+            hover:bg-ball/10 hover:border-ball/50">
+          <span className="w-14 h-14 rounded-full bg-ball/15 border-2 border-ball/50 flex items-center justify-center text-3xl font-black text-ball">
+            +
+          </span>
+          <span className="text-[11px] font-bold text-white/60">
+            {onAddClick ? 'Agregar' : 'Libre'}
+          </span>
+        </button>
+      );
+    }
+
     return (
-      <button
-        disabled={!clickable}
-        onClick={() => clickable && onSwap!(p!.player_id, targetTeam)}
-        title={clickable ? `Cambiar a equipo ${targetTeam}` : label}
-        className={`flex flex-col items-center justify-center gap-1 rounded-xl p-2 min-w-[70px] flex-1
-          ${p ? 'bg-white/10' : 'bg-white/5 border border-dashed border-white/15'}
-          ${clickable ? 'active:scale-95 transition' : ''}`}>
-        {p
-          ? (p.profile.avatar_url
-              ? <img src={p.profile.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover" />
-              : <span className="w-11 h-11 rounded-full bg-court text-white font-display font-black flex items-center justify-center">
-                  {p.profile.first_name?.[0]?.toUpperCase()}
-                </span>)
-          : <span className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-lg">+</span>}
-        <span className="text-[11px] font-bold text-center leading-tight truncate max-w-full">{label}</span>
-        {p?.profile.category != null && (
-          <span className="text-[9px] text-ball font-black">cat. {p.profile.category}</span>
+      <div className="relative flex-1 min-w-0">
+        <button
+          disabled={!clickableSwap}
+          onClick={() => clickableSwap && onSwap!(p.player_id, targetTeam)}
+          title={clickableSwap ? `Cambiar a equipo ${targetTeam}` : label}
+          className={`w-full flex flex-col items-center justify-center gap-2 rounded-2xl p-3 min-h-[130px]
+            bg-white/15 backdrop-blur-sm border border-white/20
+            ${clickableSwap ? 'active:scale-95 transition' : ''}`}>
+          {p.profile.avatar_url
+            ? <img src={p.profile.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-ball/60" />
+            : <span className="w-14 h-14 rounded-full bg-court text-white font-display font-black text-lg flex items-center justify-center border-2 border-ball/60">
+                {p.profile.first_name?.[0]?.toUpperCase()}
+              </span>}
+          <span className="text-xs font-bold text-center leading-tight truncate max-w-full text-white">{label}</span>
+          {p.profile.category != null && (
+            <span className="text-[10px] text-ball font-black bg-black/30 rounded-full px-2 py-0.5">
+              cat. {p.profile.category}
+            </span>
+          )}
+        </button>
+        {canRemove && (
+          <button
+            onClick={() => {
+              if (confirm(`¿Sacar a ${p.profile.first_name} del partido?`)) onRemove!(p.player_id);
+            }}
+            title="Sacar del partido"
+            className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white text-sm font-black flex items-center justify-center shadow-lg active:scale-90 hover:bg-red-600">
+            ✕
+          </button>
         )}
-      </button>
+      </div>
     );
   };
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-white/10"
-      style={{ background: 'linear-gradient(180deg, #0f2144 0%, #0b1935 50%, #0f2144 100%)' }}>
+    <div className="rounded-3xl overflow-hidden border-2 border-white/15 shadow-2xl"
+      style={{
+        background: 'linear-gradient(180deg, #0b2f5c 0%, #0a2450 50%, #0b2f5c 100%)',
+        aspectRatio: '3 / 4'
+      }}>
       {/* Marco de la cancha */}
-      <div className="p-3 relative">
-        {/* Líneas laterales */}
-        <div className="absolute inset-3 border-2 border-white/30 rounded-md pointer-events-none" />
-        {/* Red */}
-        <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-[3px] bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.5)] pointer-events-none" />
-        <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-2 bg-repeating-linear-gradient pointer-events-none"
-          style={{ background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.6) 0 4px, transparent 4px 8px)' }} />
+      <div className="relative w-full h-full p-4 flex flex-col">
+        {/* Líneas laterales blancas */}
+        <div className="absolute inset-4 border-2 border-white/40 rounded-lg pointer-events-none" />
+        {/* Línea de servicio superior */}
+        <div className="absolute left-4 right-4 top-[27%] h-[2px] bg-white/30 pointer-events-none" />
+        {/* Línea de servicio inferior */}
+        <div className="absolute left-4 right-4 bottom-[27%] h-[2px] bg-white/30 pointer-events-none" />
+        {/* Línea central vertical (entre líneas de servicio) */}
+        <div className="absolute left-1/2 top-[27%] bottom-[27%] w-[2px] bg-white/30 -translate-x-1/2 pointer-events-none" />
 
-        {/* Equipo 1 (arriba) */}
-        <div className="relative flex gap-2 pb-4">
-          <p className="absolute -top-1 left-2 text-[9px] font-black text-ball tracking-widest">EQUIPO 1</p>
-          <Slot p={team1[0]} teamOfSlot={1} />
-          <Slot p={team1[1]} teamOfSlot={1} />
-          {Array.from({ length: empty1 - (team1.length ? 0 : 0) - (team1.length === 0 ? 0 : 0) }).map((_, i) =>
-            i === 0 && team1.length === 1 ? null : null
-          )}
+        {/* RED — con postes y malla */}
+        <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-4 pointer-events-none flex items-center">
+          <span className="w-1.5 h-4 bg-white/70 rounded-sm" />
+          <div className="flex-1 h-3 border-t-2 border-b-2 border-white/70"
+            style={{ backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.6) 0 2px, transparent 2px 6px)' }} />
+          <span className="w-1.5 h-4 bg-white/70 rounded-sm" />
         </div>
 
-        {/* Equipo 2 (abajo) */}
-        <div className="relative flex gap-2 pt-4">
-          <p className="absolute -bottom-1 left-2 text-[9px] font-black text-ball tracking-widest">EQUIPO 2</p>
-          <Slot p={team2[0]} teamOfSlot={2} />
-          <Slot p={team2[1]} teamOfSlot={2} />
+        {/* EQUIPO 1 — arriba */}
+        <div className="flex-1 flex flex-col justify-center gap-2 relative z-10 pb-2">
+          <p className="text-[10px] font-black text-ball tracking-widest text-center opacity-80">
+            🔵 EQUIPO 1
+          </p>
+          <div className="flex gap-2">
+            <Slot p={team1[0]} teamOfSlot={1} />
+            <Slot p={team1[1]} teamOfSlot={1} />
+          </div>
+        </div>
+
+        {/* Espacio de la red */}
+        <div className="h-4" />
+
+        {/* EQUIPO 2 — abajo */}
+        <div className="flex-1 flex flex-col justify-center gap-2 relative z-10 pt-2">
+          <div className="flex gap-2">
+            <Slot p={team2[0]} teamOfSlot={2} />
+            <Slot p={team2[1]} teamOfSlot={2} />
+          </div>
+          <p className="text-[10px] font-black text-ball tracking-widest text-center opacity-80">
+            🟢 EQUIPO 2
+          </p>
         </div>
       </div>
 
       {onSwap && (canSwap || meId) && (
-        <p className="px-3 pb-2 text-white/40 text-[10px] text-center">
-          {canSwap ? 'Tocá un jugador para cambiarlo de equipo' : 'Tocate a vos mismo para cambiar de equipo'}
+        <p className="px-3 pb-3 text-white/50 text-[10px] text-center">
+          {canSwap ? 'Tocá un jugador para cambiarlo de equipo · ✕ para sacarlo' : 'Tocate a vos mismo para cambiar de equipo'}
         </p>
       )}
     </div>

@@ -4,7 +4,8 @@ import { supabase } from './supabase/client';
 // componente cliente después de un evento (like, comentario, etc.).
 export type NotifyKind =
   | 'like' | 'comment' | 'reserva_ok' | 'membresia_ok'
-  | 'coach_add' | 'training_new' | 'torneo_nuevo' | 'mencion';
+  | 'coach_add' | 'training_new' | 'torneo_nuevo' | 'mencion'
+  | 'match_add' | 'match_kick';
 
 export async function notify(input: {
   user_id: string;
