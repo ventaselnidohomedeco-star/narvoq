@@ -136,21 +136,18 @@ export default function Dashboard() {
       {/* Botones primarios grandes: Reservar + Buscador Inteligente lado a lado */}
       <section className="grid grid-cols-2 gap-3 mb-4">
         <Link href="/jugador/reservar"
-          className="rounded-2xl py-5 px-4 flex flex-col items-center gap-2 bg-white/5 border border-white/10 active:scale-95 transition shadow-lg">
-          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#D8F646" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M6.5 6.5c3 3 8 3 11 0M6.5 17.5c3-3 8-3 11 0" />
-          </svg>
-          <span className="text-[15px] font-display font-black text-white text-center leading-tight">Reservar<br/>cancha</span>
+          className="aspect-square rounded-2xl bg-black border border-white/10 active:scale-95 transition shadow-lg overflow-hidden flex items-center justify-center">
+          <img src="/icons/reservar.png" alt="Reservar cancha"
+            className="w-full h-full object-contain" />
         </Link>
         <Link href="/jugador/buscar"
-          className="rounded-2xl py-5 px-4 flex flex-col items-center gap-2 bg-gradient-to-br from-ball to-lime-500 active:scale-95 transition shadow-lg shadow-ball/20">
-          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#0A1633" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          className="aspect-square rounded-2xl bg-gradient-to-br from-ball to-lime-500 active:scale-95 transition shadow-lg shadow-ball/20 flex flex-col items-center justify-center gap-3 p-5">
+          <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#0A1633" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="7" />
             <path d="M21 21l-4.35-4.35" />
             <path d="M8 11h6M11 8v6" />
           </svg>
-          <span className="text-[15px] font-display font-black text-courtdark text-center leading-tight">Buscador<br/>Inteligente</span>
+          <span className="text-lg font-display font-black text-courtdark text-center leading-tight">Buscador<br/>Inteligente</span>
         </Link>
       </section>
 
