@@ -1,6 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+
+// Abre WhatsApp con un mensaje pre-cargado del complejo.
+function waLink(phone: string | null | undefined, complexName: string): string | null {
+  if (!phone) return null;
+  const clean = phone.replace(/\D/g, '');
+  if (clean.length < 8) return null;
+  const text = `Hola, nos contactamos de ${complexName || 'nuestro complejo'} para...`;
+  return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+}
 
 // Clientes: jugadores del club con SALDO DE CUENTA CORRIENTE + historial + facturación.
 export default function Clientes() {
@@ -228,21 +238,26 @@ export default function Clientes() {
         <ul className="mt-3 space-y-2">
           {frecuentes.map((f, i) => {
             const bal = f.player?.id ? balances.get(f.player.id) ?? 0 : 0;
+            const phone = f.player?.phone ?? f.guest_phone ?? null;
+            const wa = waLink(phone, cx.name);
             return (
-              <li key={i}>
+              <li key={i} className="bg-white/[0.03] rounded-xl p-2">
                 <button onClick={() => f.player?.id && abrirDetalle(f)}
                   disabled={!f.player?.id}
                   className="w-full flex items-center gap-3 text-left disabled:cursor-default">
                   {f.player?.avatar_url
-                    ? <img src={f.player.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
-                    : <span className="w-9 h-9 rounded-full bg-grafito font-display font-black flex items-center justify-center">
+                    ? <img src={f.player.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    : <span className="w-10 h-10 rounded-full bg-grafito font-display font-black flex items-center justify-center">
                         {(f.player?.first_name ?? f.guest ?? '?')[0]}
                       </span>}
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">
                       {f.player ? `${f.player.first_name} ${f.player.last_name}` : `${f.guest ?? 'Invitado'} (manual)`}
                     </p>
-                    {f.player && <p className="text-white/40 text-xs">{f.player.phone} · cat. {f.player.category}</p>}
+                    <p className="text-white/40 text-xs truncate">
+                      {phone ? `📱 ${phone}` : 'Sin teléfono'}
+                      {f.player?.category ? ` · cat. ${f.player.category}` : ''}
+                    </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-display font-black text-ball text-sm">{f.count} rvs</p>
@@ -253,6 +268,30 @@ export default function Clientes() {
                     )}
                   </div>
                 </button>
+
+                {/* Acciones: WhatsApp + Ver perfil (siempre visibles cuando aplican) */}
+                <div className="mt-2 flex gap-2">
+                  {wa ? (
+                    <a href={wa} target="_blank" rel="noopener"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#25D366] text-white font-black text-xs active:scale-95 transition">
+                      💬 WhatsApp
+                    </a>
+                  ) : (
+                    <span className="flex-1 py-2 rounded-lg bg-white/5 text-white/30 font-bold text-xs text-center">
+                      💬 Sin teléfono
+                    </span>
+                  )}
+                  {f.player?.username ? (
+                    <Link href={`/u/${f.player.username}`}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-ball/10 border border-ball/40 text-ball font-black text-xs active:scale-95 transition">
+                      👤 Ver perfil
+                    </Link>
+                  ) : (
+                    <span className="flex-1 py-2 rounded-lg bg-white/5 text-white/30 font-bold text-xs text-center">
+                      👤 Sin perfil
+                    </span>
+                  )}
+                </div>
               </li>
             );
           })}
@@ -295,6 +334,33 @@ export default function Clientes() {
                 </div>
               </div>
               <button onClick={() => setSelected(null)} className="w-10 h-10 rounded-full bg-white/10 text-xl">✕</button>
+            </div>
+
+            {/* Acciones de contacto */}
+            <div className="px-5 pt-4 grid grid-cols-2 gap-2">
+              {(() => {
+                const wa = waLink(selected.player.phone, cx.name);
+                return wa ? (
+                  <a href={wa} target="_blank" rel="noopener"
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#25D366] text-white font-black text-sm active:scale-95 transition">
+                    💬 WhatsApp
+                  </a>
+                ) : (
+                  <span className="flex items-center justify-center py-2.5 rounded-xl bg-white/5 text-white/30 font-bold text-xs">
+                    💬 Sin teléfono
+                  </span>
+                );
+              })()}
+              {selected.player.username ? (
+                <Link href={`/u/${selected.player.username}`}
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-ball/10 border border-ball/40 text-ball font-black text-sm active:scale-95 transition">
+                  👤 Ver perfil
+                </Link>
+              ) : (
+                <span className="flex items-center justify-center py-2.5 rounded-xl bg-white/5 text-white/30 font-bold text-xs">
+                  👤 Sin perfil
+                </span>
+              )}
             </div>
 
             <div className="p-5">
