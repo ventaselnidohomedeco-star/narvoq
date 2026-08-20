@@ -16,6 +16,8 @@ export default function Calendario() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [sel, setSel] = useState<any>(null);           // celda seleccionada
   const [form, setForm] = useState({ name: '', phone: '' });
+  const [cobro, setCobro] = useState<{ show: boolean; monto: string; metodo: 'efectivo' | 'transferencia' }>({ show: false, monto: '', metodo: 'efectivo' });
+  const [selPaid, setSelPaid] = useState<number>(0);   // ya cobrado de la reserva seleccionada
 
   const day = useMemo(() => {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dayOffset);
@@ -70,6 +72,38 @@ export default function Calendario() {
     setBookings(data ?? []);
   }
   useEffect(() => { if (cx || dayOffset >= 0) load(); }, [dayOffset]); // eslint-disable-line
+
+  // Cada vez que se abre una reserva, cargar cuánto ya se cobró
+  useEffect(() => {
+    (async () => {
+      if (!sel?.booking?.id) { setSelPaid(0); setCobro({ show: false, monto: '', metodo: 'efectivo' }); return; }
+      const { data } = await supabase.rpc('get_booking_paid', { p_booking_id: sel.booking.id });
+      setSelPaid(Number(data ?? 0));
+    })();
+  }, [sel?.booking?.id]);
+
+  async function cobrarRestante() {
+    const monto = Number(cobro.monto.replace(',', '.'));
+    if (!monto || monto <= 0) return alert('Ingresá un monto válido');
+    const b = sel.booking;
+    if (!b?.player_id) return alert('Solo se puede cobrar restante a jugadores registrados');
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('player_ledger').insert({
+      player_id: b.player_id,
+      complex_id: cx.id,
+      kind: 'restante_paid',
+      amount: monto,
+      method: cobro.metodo,
+      description: `Restante cancha · ${new Date(b.starts_at).toLocaleDateString('es-AR')} ${new Date(b.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`,
+      ref_booking_id: b.id,
+      created_by: user!.id
+    });
+    if (error) return alert('Error: ' + error.message);
+    // Recalcular cobrado
+    const { data } = await supabase.rpc('get_booking_paid', { p_booking_id: b.id });
+    setSelPaid(Number(data ?? 0));
+    setCobro({ show: false, monto: '', metodo: 'efectivo' });
+  }
 
   // Horarios del día (filas de la grilla)
   const times = useMemo(() => {
@@ -165,15 +199,15 @@ export default function Calendario() {
       payment_confirmed_by: user!.id
     }).eq('id', b.id);
 
-    // Registrar la seña como pagada por transferencia (comprobante)
+    // Registrar la seña cobrada. amount = monto en efectivo, no afecta saldo del jugador.
     if (b.player_id && b.price) {
       await supabase.from('player_ledger').insert({
         player_id: b.player_id,
         complex_id: cx.id,
         kind: 'seña_paid',
-        amount: 0,  // 0 porque el jugador ya pagó al complejo, no queda saldo
+        amount: Number(b.price),
         method: 'transferencia',
-        description: `Seña ${new Date(b.starts_at).toLocaleDateString('es-AR')} ${new Date(b.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} · $${Number(b.price).toLocaleString('es-AR')}`,
+        description: `Seña · ${new Date(b.starts_at).toLocaleDateString('es-AR')} ${new Date(b.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`,
         ref_booking_id: b.id,
         created_by: user!.id
       });
@@ -355,6 +389,67 @@ export default function Calendario() {
                     Marcar pagado y confirmar reserva
                   </button>
                 )}
+
+                {/* Cobrar restante — solo si es reserva de jugador registrado y ya está confirmada */}
+                {sel.booking.type !== 'block' && sel.booking.player_id && sel.booking.status === 'confirmada' && (
+                  <div className="mt-4 bg-white/5 rounded-2xl p-4">
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      <div>
+                        <p className="text-white/40 uppercase font-black">Total turno</p>
+                        <p className="font-display font-black text-white mt-1">
+                          ${Number(sel.court?.price_per_slot ?? sel.booking.price ?? 0).toLocaleString('es-AR')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-white/40 uppercase font-black">Cobrado</p>
+                        <p className="font-display font-black text-ball mt-1">${selPaid.toLocaleString('es-AR')}</p>
+                      </div>
+                      <div>
+                        <p className="text-white/40 uppercase font-black">Restante</p>
+                        <p className="font-display font-black text-yellow-300 mt-1">
+                          ${Math.max(0, Number(sel.court?.price_per_slot ?? sel.booking.price ?? 0) - selPaid).toLocaleString('es-AR')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!cobro.show ? (
+                      <button onClick={() => {
+                        const rest = Math.max(0, Number(sel.court?.price_per_slot ?? sel.booking.price ?? 0) - selPaid);
+                        setCobro({ show: true, monto: String(rest || ''), metodo: 'efectivo' });
+                      }} className="mt-3 w-full py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-black text-sm">
+                        💰 Cobrar restante en cancha
+                      </button>
+                    ) : (
+                      <div className="mt-3 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <button onClick={() => setCobro({ ...cobro, metodo: 'efectivo' })}
+                            className={`py-2 rounded-lg text-sm font-black border ${cobro.metodo === 'efectivo' ? 'bg-ball text-courtdark border-ball' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                            💵 Efectivo
+                          </button>
+                          <button onClick={() => setCobro({ ...cobro, metodo: 'transferencia' })}
+                            className={`py-2 rounded-lg text-sm font-black border ${cobro.metodo === 'transferencia' ? 'bg-ball text-courtdark border-ball' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                            🏦 Transferencia
+                          </button>
+                        </div>
+                        <input type="number" inputMode="decimal"
+                          className="input" placeholder="Monto a cobrar"
+                          value={cobro.monto} onChange={e => setCobro({ ...cobro, monto: e.target.value })} />
+                        <p className="text-white/40 text-[10px]">Puede ser parcial. Podés cobrar el resto con otro método después.</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button onClick={() => setCobro({ show: false, monto: '', metodo: 'efectivo' })}
+                            className="py-2 rounded-lg bg-white/5 border border-white/10 text-white/70 text-sm">
+                            Cancelar
+                          </button>
+                          <button onClick={cobrarRestante}
+                            className="py-2 rounded-lg bg-ball text-courtdark font-black text-sm">
+                            ✓ Confirmar cobro
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <button onClick={() => cancelar(sel.booking)}
                   className="mt-3 w-full py-3 rounded-xl border border-red-400/40 text-red-400 font-semibold">
                   {sel.booking.type === 'block' ? 'Quitar bloqueo' : 'Cancelar reserva'}

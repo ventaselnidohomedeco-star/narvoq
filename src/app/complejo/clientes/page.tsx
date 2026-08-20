@@ -53,14 +53,36 @@ export default function Clientes() {
     });
     setMeses(Array.from(mm.entries()).map(([mes, v]) => ({ mes, ...v })).slice(0, 6));
 
-    // Balances de todos los frecuentes con perfil
-    const bmap = new Map<string, number>();
-    for (const f of frecList) {
-      if (!f.player?.id) continue;
-      const { data } = await supabase.rpc('get_player_balance', {
-        p_player_id: f.player.id, p_complex_id: complex.id
+    // Balances: primero, TODOS los jugadores con movimientos en el ledger de este
+    // complejo (aunque no aparezcan en frecuentes porque su reserva fue cancelada).
+    const { data: ledgerPlayers } = await supabase.from('player_ledger')
+      .select('player_id')
+      .eq('complex_id', complex.id);
+    const uniquePids = Array.from(new Set((ledgerPlayers ?? []).map((r: any) => r.player_id)));
+
+    // Agregar los que están en frecuentes también
+    frecList.forEach(f => { if (f.player?.id) uniquePids.push(f.player.id); });
+    const allPids = Array.from(new Set(uniquePids));
+
+    // Traer perfiles de los que no están en frecuentes ya
+    const missing = allPids.filter(pid => !frecList.some(f => f.player?.id === pid));
+    if (missing.length > 0) {
+      const { data: profs } = await supabase.from('profiles')
+        .select('id, username, first_name, last_name, avatar_url, phone, category')
+        .in('id', missing);
+      (profs ?? []).forEach((p: any) => {
+        frecList.push({ player: p, guest: null, count: 0 });
       });
-      bmap.set(f.player.id, Number(data ?? 0));
+      setFrecuentes([...frecList]);
+    }
+
+    // Consultar balance de cada uno
+    const bmap = new Map<string, number>();
+    for (const pid of allPids) {
+      const { data } = await supabase.rpc('get_player_balance', {
+        p_player_id: pid, p_complex_id: complex.id
+      });
+      bmap.set(pid, Number(data ?? 0));
     }
     setBalances(bmap);
 
