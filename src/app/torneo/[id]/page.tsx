@@ -243,7 +243,7 @@ export default function TorneoDetalle() {
         <section className="mt-6 rounded-2xl bg-gradient-to-br from-ball/25 via-ball/10 to-transparent border-2 border-ball/50 p-6 text-center shadow-[0_0_40px_rgba(216,246,70,0.25)]">
           <div className="flex items-center justify-center gap-3">
             <span className="text-4xl">🏆</span>
-            <img src="/brand/logo.png?v=8" alt="NarvoQ" style={{ height: 34 }} />
+            <img src="/brand/logo.png?v=9" alt="NarvoQ" style={{ height: 34 }} />
             <span className="text-4xl">🏆</span>
           </div>
           <p className="text-ball text-[11px] font-black tracking-widest mt-3">CAMPEONES</p>
@@ -538,7 +538,7 @@ function BracketMatch({ m, pairsById, isFinal, isSemi }: any) {
       {isFinal && (
         <div className="flex items-center justify-center gap-2 mb-2">
           <span className="text-2xl">🏆</span>
-          <img src="/brand/logo.png?v=8" alt="NarvoQ" style={{ height: 24 }} />
+          <img src="/brand/logo.png?v=9" alt="NarvoQ" style={{ height: 24 }} />
           <span className="text-2xl">🏆</span>
         </div>
       )}

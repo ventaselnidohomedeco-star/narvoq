@@ -5,7 +5,7 @@
 
 type Variant = 'full' | 'mark' | 'inline';
 
-const logoSrc = '/brand/logo.png?v=8';
+const logoSrc = '/brand/logo.png?v=9';
 const iconoAppSrc = '/brand/icono-app.png?v=5';
 
 function IsotipoSvg({ size = 32 }: { size?: number }) {

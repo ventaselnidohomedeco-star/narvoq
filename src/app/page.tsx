@@ -80,7 +80,7 @@ export default function Landing() {
 
   if (checking) return (
     <main className="min-h-dvh bg-[#0B0F16] flex items-center justify-center">
-      <img src="/brand/logo.png?v=8" alt="NarvoQ"
+      <img src="/brand/logo.png?v=9" alt="NarvoQ"
         style={{ height: 80, width: 'auto', opacity: 0.6 }} />
     </main>
   );
@@ -97,7 +97,7 @@ export default function Landing() {
 
         {/* Logo grande — desktop más grande aún */}
         <img
-          src="/brand/logo.png?v=8"
+          src="/brand/logo.png?v=9"
           alt="NarvoQ"
           className="relative z-10"
           style={{ height: 'clamp(120px, 20vw, 180px)', width: 'auto', objectFit: 'contain' }}

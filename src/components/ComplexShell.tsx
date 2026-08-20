@@ -99,7 +99,7 @@ export default function ComplexShell({ children }: { children: React.ReactNode }
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-black border-r border-white/10 flex-col z-40 overflow-y-auto">
         <div className="px-5 pt-6 pb-4 border-b border-white/10">
           <Link href="/complejo/dashboard" className="block">
-            <img src="/brand/logo.png?v=8" alt="NarvoQ"
+            <img src="/brand/logo.png?v=9" alt="NarvoQ"
               style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
             <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL COMPLEJOS</p>
           </Link>

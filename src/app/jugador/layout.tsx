@@ -14,7 +14,7 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
         <div className="max-w-3xl xl:max-w-5xl mx-auto">
           <header className="px-5 pt-4 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5 bg-black">
             <Link href="/jugador/dashboard" className="shrink-0 active:scale-95 transition">
-              <img src="/brand/logo.png?v=8" alt="NarvoQ"
+              <img src="/brand/logo.png?v=9" alt="NarvoQ"
                 style={{ height: 70, width: 'auto', objectFit: 'contain' }} />
             </Link>
             <div className="flex items-center gap-2">

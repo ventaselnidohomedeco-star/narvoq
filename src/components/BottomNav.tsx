@@ -81,7 +81,7 @@ export default function BottomNav() {
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-60 bg-black border-r border-white/10 flex-col py-6 z-40">
         <div className="px-5 mb-6 bg-black">
           <Link href="/jugador/dashboard" className="block">
-            <img src="/brand/logo.png?v=8" alt="NarvoQ"
+            <img src="/brand/logo.png?v=9" alt="NarvoQ"
               style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
           </Link>
         </div>

@@ -129,7 +129,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
         {/* Header sidebar: logo NarvoQ */}
         <div className="px-5 pt-6 pb-4 border-b border-white/10">
           <Link href="/complejo/dashboard" className="block">
-            <img src="/brand/logo.png?v=8" alt="NarvoQ"
+            <img src="/brand/logo.png?v=9" alt="NarvoQ"
               style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
             <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL COMPLEJOS</p>
           </Link>
@@ -216,7 +216,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
               </button>
             )}
             <Link href="/complejo/dashboard" className="shrink-0 active:scale-95 transition">
-              <img src="/brand/logo.png?v=8" alt="NarvoQ" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+              <img src="/brand/logo.png?v=9" alt="NarvoQ" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
             </Link>
           </div>
           <div className="flex items-center gap-2">
