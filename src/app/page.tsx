@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabase/client';
 
 // Landing minimalista. Arriba del pliegue: SOLO logo + frase + 3 CTAs por rol.
 // Al clickear un rol se abre un drawer con las funciones + Google + email.
-// Si el usuario YA est� logueado, redirigimos autom�ticamente al dashboard
-// (as� al abrir la PWA no ve la landing como si estuviera deslogueado).
+// Si el usuario YA está logueado, redirigimos automáticamente al dashboard
+// (así al abrir la PWA no ve la landing como si estuviera deslogueado).
 
 type Role = 'player' | 'coach' | 'complex';
 
@@ -20,40 +20,40 @@ const ROLE_INFO: Record<Role, {
 }> = {
   player: {
     title: 'Soy jugador',
-    emoji: '??',
+    emoji: '🎾',
     loginHref: '/login',
     registerHref: '/registro',
     features: [
-      { emoji: '??', title: 'Reserv� canchas en 3 toques', text: 'Busc�s por ciudad, ves horarios libres y reserv�s sin llamar.' },
-      { emoji: '??', title: 'Arm� partido con amigos', text: 'Compart�s un link y tus amigos se suman al turno.' },
-      { emoji: '??', title: 'Torneos con fixture autom�tico', text: 'La app arma zonas, cruces y bracket sola.' },
-      { emoji: '??', title: 'Ranking real de tu zona', text: 'Gan�s torneos, sub�s puntos. Filtr�s por categor�a y ciudad.' },
-      { emoji: '??', title: 'Clases con tu profe', text: 'Tu profe te carga la sesi�n y vos segu�s tu progreso.' },
+      { emoji: '🎾', title: 'Reservá canchas en 3 toques', text: 'Buscás por ciudad, ves horarios libres y reservás sin llamar.' },
+      { emoji: '🤝', title: 'Armá partido con amigos', text: 'Compartís un link y tus amigos se suman al turno.' },
+      { emoji: '🥇', title: 'Torneos con fixture automático', text: 'La app arma zonas, cruces y bracket sola.' },
+      { emoji: '📊', title: 'Ranking real de tu zona', text: 'Ganás torneos, subís puntos. Filtrás por categoría y ciudad.' },
+      { emoji: '🎓', title: 'Clases con tu profe', text: 'Tu profe te carga la sesión y vos seguís tu progreso.' },
     ],
   },
   coach: {
     title: 'Soy entrenador',
-    emoji: '??',
+    emoji: '🎓',
     loginHref: '/training/login',
     registerHref: '/training/registro',
     features: [
-      { emoji: '?????', title: 'Un dashboard por alumno', text: 'Registr�s cada sesi�n: foco, tarea y evaluaci�n 0�10.' },
-      { emoji: '??', title: 'Progreso del grupo', text: 'M�tricas de los �ltimos 30 d�as: sesiones, minutos, intensidad.' },
-      { emoji: '??', title: 'Compart�s por WhatsApp', text: 'Un bot�n y el alumno ve su progreso en su propia cuenta.' },
-      { emoji: '??', title: 'Cre�s tus propios torneos', text: 'Fixture, standings y bracket totalmente autom�tico.' },
+      { emoji: '👨‍🏫', title: 'Un dashboard por alumno', text: 'Registrás cada sesión: foco, tarea y evaluación 0–10.' },
+      { emoji: '📈', title: 'Progreso del grupo', text: 'Métricas de los últimos 30 días: sesiones, minutos, intensidad.' },
+      { emoji: '📤', title: 'Compartís por WhatsApp', text: 'Un botón y el alumno ve su progreso en su propia cuenta.' },
+      { emoji: '🏆', title: 'Creás tus propios torneos', text: 'Fixture, standings y bracket totalmente automático.' },
     ],
   },
   complex: {
     title: 'Tengo un complejo',
-    emoji: '???',
+    emoji: '🏟️',
     loginHref: '/complejo/login',
     registerHref: '/complejo/registro',
     features: [
-      { emoji: '??', title: 'Calendario 7 d�as � canchas', text: 'Todos los turnos en una sola grilla, carg�s bloqueos manuales.' },
-      { emoji: '?', title: 'Aprob�s transferencias con un tap', text: 'El jugador sube el comprobante, vos lo aprob�s en 1 segundo.' },
-      { emoji: '??', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixto� eleg�s y ya. Se abre inscripci�n.' },
-      { emoji: '??', title: 'Membres�as y socios', text: 'Planes de socio, cobr�s por transferencia, control�s vencimientos.' },
-      { emoji: '??', title: 'Public�s promos al feed', text: 'Happy hour, evento o torneo abierto: tus clientes lo ven en el feed.' },
+      { emoji: '📅', title: 'Calendario 7 días × canchas', text: 'Todos los turnos en una sola grilla, cargás bloqueos manuales.' },
+      { emoji: '✅', title: 'Aprobás transferencias con un tap', text: 'El jugador sube el comprobante, vos lo aprobás en 1 segundo.' },
+      { emoji: '🏆', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixto… elegís y ya. Se abre inscripción.' },
+      { emoji: '👥', title: 'Membresías y socios', text: 'Planes de socio, cobrás por transferencia, controlás vencimientos.' },
+      { emoji: '📢', title: 'Publicás promos al feed', text: 'Happy hour, evento o torneo abierto: tus clientes lo ven en el feed.' },
     ],
   },
 };
@@ -63,9 +63,9 @@ export default function Landing() {
   const [role, setRole] = useState<Role | null>(null);
   const [checking, setChecking] = useState(true);
 
-  // Auto-login: si el usuario ya tiene sesi�n activa, mandarlo directo al
+  // Auto-login: si el usuario ya tiene sesión activa, mandarlo directo al
   // dashboard de su rol. Sin esto, al abrir la PWA ve la landing como si
-  // se hubiera deslogueado (aunque la sesi�n estaba OK).
+  // se hubiera deslogueado (aunque la sesión estaba OK).
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -89,13 +89,13 @@ export default function Landing() {
     <main className="min-h-dvh bg-[#0B0F16] text-white flex flex-col">
       {/* HERO minimalista */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden">
-        {/* Decoraci�n lima */}
+        {/* Decoración lima */}
         <div className="absolute -right-14 -top-16 w-14 h-[380px] bg-ball rotate-[24deg] opacity-80 pointer-events-none" />
         <div className="absolute right-8 -top-16 w-4 h-[240px] bg-ball/30 rotate-[24deg] pointer-events-none" />
         <div className="absolute -left-24 -bottom-24 w-72 h-72 rounded-full opacity-30 pointer-events-none"
           style={{ background: 'radial-gradient(circle at 32% 30%, #F4FF9E 0%, #DCEF52 35%, #A8C22E 72%, transparent 100%)' }} />
 
-        {/* Logo grande � desktop m�s grande a�n */}
+        {/* Logo grande — desktop más grande aún */}
         <img
           src="/brand/logo.png?v=8"
           alt="NarvoQ"
@@ -105,37 +105,37 @@ export default function Landing() {
 
         {/* Frase corta */}
         <h1 className="relative z-10 font-display font-black text-3xl md:text-5xl mt-6 text-center leading-tight">
-          Elev� tu juego.
+          Elevá tu juego.
         </h1>
         <p className="relative z-10 text-white/60 text-base md:text-lg mt-2 text-center max-w-xs md:max-w-md">
-          Reserv�, jug�, sub� en el ranking.
+          Reservá, jugá, subí en el ranking.
         </p>
 
-        {/* 3 CTAs por rol � m�s anchos en desktop */}
+        {/* 3 CTAs por rol — más anchos en desktop */}
         <div className="relative z-10 w-full max-w-sm md:max-w-md mt-10 space-y-3">
           <button
             onClick={() => setRole('player')}
             className="w-full bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-lg md:text-xl flex items-center justify-center gap-2 active:scale-[0.98] transition">
-            <span className="text-2xl">??</span>
+            <span className="text-2xl">🎾</span>
             Soy jugador
           </button>
           <button
             onClick={() => setRole('coach')}
             className="w-full bg-white/10 border border-white/15 text-white font-display font-black rounded-2xl py-5 text-lg md:text-xl flex items-center justify-center gap-2 active:scale-[0.98] transition">
-            <span className="text-2xl">??</span>
+            <span className="text-2xl">🎓</span>
             Soy entrenador
           </button>
           <button
             onClick={() => setRole('complex')}
             className="w-full bg-white/10 border border-white/15 text-white font-display font-black rounded-2xl py-5 text-lg md:text-xl flex items-center justify-center gap-2 active:scale-[0.98] transition">
-            <span className="text-2xl">???</span>
+            <span className="text-2xl">🏟️</span>
             Tengo un complejo
           </button>
         </div>
 
         {/* Ya tengo cuenta */}
         <p className="relative z-10 text-white/50 text-sm mt-8">
-          �Ya ten�s cuenta?{' '}
+          ¿Ya tenés cuenta?{' '}
           <Link href="/login" className="text-ball font-bold underline">Entrar</Link>
         </p>
       </div>
@@ -172,7 +172,7 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
       }
     });
     if (error) {
-      setError(`No se pudo iniciar con Google: ${error.message}. Puede ser que Google Auth no est� configurado.`);
+      setError(`No se pudo iniciar con Google: ${error.message}. Puede ser que Google Auth no esté configurado.`);
       setGoogleBusy(false);
     }
   }
@@ -197,11 +197,11 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
               <p className="text-white/70 text-base md:text-lg mt-2">Con NarvoQ vas a poder:</p>
             </div>
             <button onClick={onClose}
-              className="text-white/60 text-2xl font-bold w-12 h-12 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10">?</button>
+              className="text-white/60 text-2xl font-bold w-12 h-12 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10">✕</button>
           </div>
         </div>
 
-        {/* Features � m�s grandes, m�s aire */}
+        {/* Features — más grandes, más aire */}
         <div className="px-6 md:px-8 space-y-5 pb-6 md:grid md:grid-cols-2 md:gap-5 md:space-y-0">
           {info.features.map((f, i) => (
             <div key={i} className="flex gap-4 items-start">
@@ -214,14 +214,14 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
           ))}
         </div>
 
-        {/* CTAs � m�s grandes */}
+        {/* CTAs — más grandes */}
         <div className="px-6 md:px-8 pb-8 md:pb-10 space-y-3 border-t border-white/10 pt-6 mt-2">
           <button
             onClick={loginWithGoogle}
             disabled={googleBusy}
             className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-5 text-base md:text-lg flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
             <GoogleIcon />
-            {googleBusy ? 'Redirigiendo�' : 'Continuar con Google'}
+            {googleBusy ? 'Redirigiendo…' : 'Continuar con Google'}
           </button>
 
           <Link
@@ -233,7 +233,7 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
           <Link
             href={info.loginHref}
             className="w-full block text-center text-white/70 font-bold py-3 underline">
-            Ya tengo cuenta � Entrar
+            Ya tengo cuenta · Entrar
           </Link>
 
           {error && (

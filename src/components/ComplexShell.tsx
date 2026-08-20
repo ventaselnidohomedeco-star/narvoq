@@ -4,53 +4,53 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
-// ComplexShell � Renderiza el sidebar (desktop) + bottom nav (mobile) del complejo
-// en TODAS las p�ginas fuera de /complejo/*, si el usuario es complex_admin.
-// As� el men� siempre est� visible aunque el complejo est� en /notificaciones,
+// ComplexShell — Renderiza el sidebar (desktop) + bottom nav (mobile) del complejo
+// en TODAS las páginas fuera de /complejo/*, si el usuario es complex_admin.
+// Así el menú siempre está visible aunque el complejo esté en /notificaciones,
 // /planes, /mi-suscripcion, /u/[username], etc.
 //
 // Se OCULTA en: landing, auth, /complejo/*, /training/*, /admin/*, /jugador/*.
 // Reproduce visualmente el chrome de complejo/layout.tsx para consistencia.
 
 const MOBILE_ITEMS = [
-  { href: '/complejo/dashboard', label: 'Hoy', icon: '??' },
-  { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
-  { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
-  { href: '/complejo/jugadores', label: 'Jugadores', icon: '??' },
-  { href: '/complejo/mas', label: 'M�s', icon: '?' }
+  { href: '/complejo/dashboard', label: 'Hoy', icon: '🏠' },
+  { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
+  { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
+  { href: '/complejo/jugadores', label: 'Jugadores', icon: '👥' },
+  { href: '/complejo/mas', label: 'Más', icon: '⋯' }
 ];
 
 const DESKTOP_SECTIONS = [
   {
-    label: 'Operaci�n',
+    label: 'Operación',
     items: [
-      { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '??' },
-      { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
-      { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
-      { href: '/complejo/socios', label: 'Socios � Membres�as', icon: '??' }
+      { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '🏠' },
+      { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
+      { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
+      { href: '/complejo/socios', label: 'Socios · Membresías', icon: '💳' }
     ]
   },
   {
-    label: 'Gesti�n',
+    label: 'Gestión',
     items: [
-      { href: '/complejo/canchas', label: 'Canchas', icon: '??' },
-      { href: '/complejo/empleados', label: 'Empleados', icon: '??' },
-      { href: '/complejo/jugadores', label: 'Jugadores del club', icon: '?' },
-      { href: '/complejo/clientes', label: 'Base de clientes', icon: '??' }
+      { href: '/complejo/canchas', label: 'Canchas', icon: '🎾' },
+      { href: '/complejo/empleados', label: 'Empleados', icon: '👥' },
+      { href: '/complejo/jugadores', label: 'Jugadores del club', icon: '⭐' },
+      { href: '/complejo/clientes', label: 'Base de clientes', icon: '👤' }
     ]
   },
   {
     label: 'Comunidad',
     items: [
-      { href: '/jugador/feed', label: 'Feed', icon: '??' },
-      { href: '/smash', label: 'Smashe@', icon: '??' }
+      { href: '/jugador/feed', label: 'Feed', icon: '📰' },
+      { href: '/smash', label: 'Smashe@', icon: '💬' }
     ]
   },
   {
-    label: 'Configuraci�n',
+    label: 'Configuración',
     items: [
-      { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '??' },
-      { href: '/complejo/mas', label: 'Ver todo', icon: '?' }
+      { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '⚙️' },
+      { href: '/complejo/mas', label: 'Ver todo', icon: '⋯' }
     ]
   }
 ];
@@ -145,7 +145,7 @@ export default function ComplexShell({ children }: { children: React.ReactNode }
         </div>
       </nav>
 
-      {/* Bot�n "Volver al complejo" al principio del contenido */}
+      {/* Botón "Volver al complejo" al principio del contenido */}
       <div className="max-w-3xl xl:max-w-7xl mx-auto lg:mx-0 lg:max-w-none">
         <div className="lg:px-8 lg:py-4 px-5 py-3 border-b border-white/5">
           <Link href="/complejo/dashboard"

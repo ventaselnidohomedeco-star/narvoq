@@ -42,7 +42,7 @@ export default function Brand({
       </span>
     );
   }
-  // 60% m�s grande que antes.
+  // 60% más grande que antes.
   const baseH = variant === 'full' ? size * 2.15 : size * 1.7;
   return (
     <img src={logoSrc} alt="NarvoQ" className={className}
