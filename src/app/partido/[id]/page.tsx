@@ -254,20 +254,37 @@ export default function Partido() {
               <button onClick={copiarLink} className="btn-court">Compartir link del partido</button>
             </>
           )}
-          {inMatch && spots > 0 && amigos.length > 0 && (
+          {inMatch && spots > 0 && (
             <div className="card">
-              <p className="font-display font-bold text-sm">👥 Agregar amigos al partido</p>
-              <div className="mt-2 space-y-2 max-h-56 overflow-y-auto">
-                {amigos.filter(a => !players.some(pl => pl.player_id === a.id)).map(a => (
-                  <div key={a.id} className="flex items-center gap-2">
-                    {a.avatar_url
-                      ? <img src={a.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                      : <span className="w-8 h-8 rounded-full bg-grafito text-white text-xs font-display font-black flex items-center justify-center">{a.first_name[0]}</span>}
-                    <span className="flex-1 text-sm font-semibold truncate">{a.first_name} {a.last_name} <span className="text-white/50 font-normal">cat. {a.category}</span></span>
-                    <button onClick={() => agregarAmigo(a)} className="btn-ball !py-1.5 !px-3 text-xs">+ Agregar</button>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <p className="font-display font-bold text-sm">👥 Agregar amigos al partido</p>
+                <a href="/jugador/amigos" className="text-ball text-xs font-black">
+                  🔍 Buscar más →
+                </a>
               </div>
+              {amigos.length === 0 ? (
+                <div className="mt-3 text-center py-4">
+                  <p className="text-white/50 text-sm">Todavía no tenés amigos en NarvoQ.</p>
+                  <a href="/jugador/amigos" className="mt-2 inline-block btn-ball !py-2 !px-4 text-xs">
+                    👥 Buscar y agregar amigos
+                  </a>
+                </div>
+              ) : (
+                <div className="mt-2 space-y-2 max-h-56 overflow-y-auto">
+                  {amigos.filter(a => !players.some(pl => pl.player_id === a.id)).map(a => (
+                    <div key={a.id} className="flex items-center gap-2">
+                      {a.avatar_url
+                        ? <img src={a.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                        : <span className="w-8 h-8 rounded-full bg-grafito text-white text-xs font-display font-black flex items-center justify-center">{a.first_name[0]}</span>}
+                      <span className="flex-1 text-sm font-semibold truncate">{a.first_name} {a.last_name} <span className="text-white/50 font-normal">cat. {a.category}</span></span>
+                      <button onClick={() => agregarAmigo(a)} className="btn-ball !py-1.5 !px-3 text-xs">+ Agregar</button>
+                    </div>
+                  ))}
+                  {amigos.filter(a => !players.some(pl => pl.player_id === a.id)).length === 0 && (
+                    <p className="text-white/50 text-xs text-center py-3">Todos tus amigos ya están en este partido 🎉</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <button onClick={() => sharePlaca({

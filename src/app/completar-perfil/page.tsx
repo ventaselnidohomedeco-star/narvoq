@@ -98,6 +98,10 @@ export default function CompletarPerfil() {
       return;
     }
 
+    // Aplicar roster de complejos: si el usuario ya estaba en la planilla de
+    // algún club (por celular/DNI/email), le asignamos la categoría cargada.
+    try { await supabase.rpc('apply_roster_to_profile', { p_profile_id: user!.id }); } catch {}
+
     // Redirigir al dashboard del rol correspondiente.
     // Usamos window.location (full reload) para forzar que el middleware
     // corra fresh contra el perfil recién actualizado. Con router.push()

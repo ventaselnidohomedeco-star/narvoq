@@ -24,7 +24,8 @@ export default function Calendario() {
     return d;
   }, [dayOffset]);
 
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
+  // Ventana de 30 días — scrolleables horizontalmente
+  const days = useMemo(() => Array.from({ length: 30 }, (_, i) => {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
     return d;
   }), []);
@@ -259,15 +260,35 @@ export default function Calendario() {
         </section>
       )}
 
-      {/* Selector de día */}
-      <div className="mt-3 flex gap-2 overflow-x-auto px-2 pb-1">
-        {days.map((d, i) => (
-          <button key={i} onClick={() => setDayOffset(i)}
-            className={`shrink-0 rounded-xl px-3 py-2 text-center ${i === dayOffset ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/70'}`}>
-            <p className="text-[10px] font-bold uppercase">{d.toLocaleDateString('es-AR', { weekday: 'short' })}</p>
-            <p className="font-display font-black text-lg leading-none">{d.getDate()}</p>
-          </button>
-        ))}
+      {/* Selector de día — 30 días scrolleables */}
+      <div className="mt-3 relative">
+        <div className="flex gap-2 overflow-x-auto px-2 pb-2 scroll-smooth snap-x">
+          {days.map((d, i) => {
+            const isToday = i === 0;
+            const isMonday = d.getDay() === 1 && i > 0;
+            const monthChange = i > 0 && d.getDate() === 1;
+            return (
+              <div key={i} className="flex items-stretch snap-start">
+                {(isMonday || monthChange) && (
+                  <div className="border-l-2 border-white/10 mx-1" />
+                )}
+                <button onClick={() => setDayOffset(i)}
+                  className={`shrink-0 rounded-xl px-3 py-2 text-center min-w-[54px] ${i === dayOffset ? 'bg-ball text-courtdark' : isToday ? 'bg-white/10 text-white border border-ball/30' : 'bg-white/5 text-white/70'}`}>
+                  <p className="text-[9px] font-bold uppercase">
+                    {isToday ? 'HOY' : d.toLocaleDateString('es-AR', { weekday: 'short' })}
+                  </p>
+                  <p className="font-display font-black text-lg leading-none">{d.getDate()}</p>
+                  {monthChange && (
+                    <p className="text-[9px] font-bold uppercase mt-0.5">
+                      {d.toLocaleDateString('es-AR', { month: 'short' })}
+                    </p>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-white/40 text-[10px] text-center mt-1">← desliza para ver más días →</p>
       </div>
 
       {/* Grilla: filas = horarios, columnas = canchas */}
