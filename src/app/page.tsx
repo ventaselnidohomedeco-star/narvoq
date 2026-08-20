@@ -1,4 +1,4 @@
-ï»¿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabase/client';
 
 // Landing minimalista. Arriba del pliegue: SOLO logo + frase + 3 CTAs por rol.
 // Al clickear un rol se abre un drawer con las funciones + Google + email.
-// Si el usuario YA estÃ¡ logueado, redirigimos automÃ¡ticamente al dashboard
-// (asÃ­ al abrir la PWA no ve la landing como si estuviera deslogueado).
+// Si el usuario YA está logueado, redirigimos automáticamente al dashboard
+// (así al abrir la PWA no ve la landing como si estuviera deslogueado).
 
 type Role = 'player' | 'coach' | 'complex';
 
@@ -20,40 +20,40 @@ const ROLE_INFO: Record<Role, {
 }> = {
   player: {
     title: 'Soy jugador',
-    emoji: 'ğŸ¾',
+    emoji: '??',
     loginHref: '/login',
     registerHref: '/registro',
     features: [
-      { emoji: 'ğŸ¾', title: 'ReservÃ¡ canchas en 3 toques', text: 'BuscÃ¡s por ciudad, ves horarios libres y reservÃ¡s sin llamar.' },
-      { emoji: 'ğŸ¤', title: 'ArmÃ¡ partido con amigos', text: 'CompartÃ­s un link y tus amigos se suman al turno.' },
-      { emoji: 'ğŸ¥‡', title: 'Torneos con fixture automÃ¡tico', text: 'La app arma zonas, cruces y bracket sola.' },
-      { emoji: 'ğŸ“Š', title: 'Ranking real de tu zona', text: 'GanÃ¡s torneos, subÃ­s puntos. FiltrÃ¡s por categorÃ­a y ciudad.' },
-      { emoji: 'ğŸ“', title: 'Clases con tu profe', text: 'Tu profe te carga la sesiÃ³n y vos seguÃ­s tu progreso.' },
+      { emoji: '??', title: 'Reservá canchas en 3 toques', text: 'Buscás por ciudad, ves horarios libres y reservás sin llamar.' },
+      { emoji: '??', title: 'Armá partido con amigos', text: 'Compartís un link y tus amigos se suman al turno.' },
+      { emoji: '??', title: 'Torneos con fixture automático', text: 'La app arma zonas, cruces y bracket sola.' },
+      { emoji: '??', title: 'Ranking real de tu zona', text: 'Ganás torneos, subís puntos. Filtrás por categoría y ciudad.' },
+      { emoji: '??', title: 'Clases con tu profe', text: 'Tu profe te carga la sesión y vos seguís tu progreso.' },
     ],
   },
   coach: {
     title: 'Soy entrenador',
-    emoji: 'ğŸ“',
+    emoji: '??',
     loginHref: '/training/login',
     registerHref: '/training/registro',
     features: [
-      { emoji: 'ğŸ‘¨â€ğŸ«', title: 'Un dashboard por alumno', text: 'RegistrÃ¡s cada sesiÃ³n: foco, tarea y evaluaciÃ³n 0â€“10.' },
-      { emoji: 'ğŸ“ˆ', title: 'Progreso del grupo', text: 'MÃ©tricas de los Ãºltimos 30 dÃ­as: sesiones, minutos, intensidad.' },
-      { emoji: 'ğŸ“¤', title: 'CompartÃ­s por WhatsApp', text: 'Un botÃ³n y el alumno ve su progreso en su propia cuenta.' },
-      { emoji: 'ğŸ†', title: 'CreÃ¡s tus propios torneos', text: 'Fixture, standings y bracket totalmente automÃ¡tico.' },
+      { emoji: '?????', title: 'Un dashboard por alumno', text: 'Registrás cada sesión: foco, tarea y evaluación 0–10.' },
+      { emoji: '??', title: 'Progreso del grupo', text: 'Métricas de los últimos 30 días: sesiones, minutos, intensidad.' },
+      { emoji: '??', title: 'Compartís por WhatsApp', text: 'Un botón y el alumno ve su progreso en su propia cuenta.' },
+      { emoji: '??', title: 'Creás tus propios torneos', text: 'Fixture, standings y bracket totalmente automático.' },
     ],
   },
   complex: {
     title: 'Tengo un complejo',
-    emoji: 'ğŸŸï¸',
+    emoji: '???',
     loginHref: '/complejo/login',
     registerHref: '/complejo/registro',
     features: [
-      { emoji: 'ğŸ“…', title: 'Calendario 7 dÃ­as Ã— canchas', text: 'Todos los turnos en una sola grilla, cargÃ¡s bloqueos manuales.' },
-      { emoji: 'âœ…', title: 'AprobÃ¡s transferencias con un tap', text: 'El jugador sube el comprobante, vos lo aprobÃ¡s en 1 segundo.' },
-      { emoji: 'ğŸ†', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixtoâ€¦ elegÃ­s y ya. Se abre inscripciÃ³n.' },
-      { emoji: 'ğŸ‘¥', title: 'MembresÃ­as y socios', text: 'Planes de socio, cobrÃ¡s por transferencia, controlÃ¡s vencimientos.' },
-      { emoji: 'ğŸ“¢', title: 'PublicÃ¡s promos al feed', text: 'Happy hour, evento o torneo abierto: tus clientes lo ven en el feed.' },
+      { emoji: '??', title: 'Calendario 7 días × canchas', text: 'Todos los turnos en una sola grilla, cargás bloqueos manuales.' },
+      { emoji: '?', title: 'Aprobás transferencias con un tap', text: 'El jugador sube el comprobante, vos lo aprobás en 1 segundo.' },
+      { emoji: '??', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixto… elegís y ya. Se abre inscripción.' },
+      { emoji: '??', title: 'Membresías y socios', text: 'Planes de socio, cobrás por transferencia, controlás vencimientos.' },
+      { emoji: '??', title: 'Publicás promos al feed', text: 'Happy hour, evento o torneo abierto: tus clientes lo ven en el feed.' },
     ],
   },
 };
@@ -63,9 +63,9 @@ export default function Landing() {
   const [role, setRole] = useState<Role | null>(null);
   const [checking, setChecking] = useState(true);
 
-  // Auto-login: si el usuario ya tiene sesiÃ³n activa, mandarlo directo al
+  // Auto-login: si el usuario ya tiene sesión activa, mandarlo directo al
   // dashboard de su rol. Sin esto, al abrir la PWA ve la landing como si
-  // se hubiera deslogueado (aunque la sesiÃ³n estaba OK).
+  // se hubiera deslogueado (aunque la sesión estaba OK).
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -80,7 +80,7 @@ export default function Landing() {
 
   if (checking) return (
     <main className="min-h-dvh bg-[#0B0F16] flex items-center justify-center">
-      <img src="/brand/logo.png?v=6" alt="NarvoQ"
+      <img src="/brand/logo.png?v=7" alt="NarvoQ"
         style={{ height: 80, width: 'auto', opacity: 0.6 }} />
     </main>
   );
@@ -89,15 +89,15 @@ export default function Landing() {
     <main className="min-h-dvh bg-[#0B0F16] text-white flex flex-col">
       {/* HERO minimalista */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden">
-        {/* DecoraciÃ³n lima */}
+        {/* Decoración lima */}
         <div className="absolute -right-14 -top-16 w-14 h-[380px] bg-ball rotate-[24deg] opacity-80 pointer-events-none" />
         <div className="absolute right-8 -top-16 w-4 h-[240px] bg-ball/30 rotate-[24deg] pointer-events-none" />
         <div className="absolute -left-24 -bottom-24 w-72 h-72 rounded-full opacity-30 pointer-events-none"
           style={{ background: 'radial-gradient(circle at 32% 30%, #F4FF9E 0%, #DCEF52 35%, #A8C22E 72%, transparent 100%)' }} />
 
-        {/* Logo grande â€” desktop mÃ¡s grande aÃºn */}
+        {/* Logo grande — desktop más grande aún */}
         <img
-          src="/brand/logo.png?v=6"
+          src="/brand/logo.png?v=7"
           alt="NarvoQ"
           className="relative z-10"
           style={{ height: 'clamp(120px, 20vw, 180px)', width: 'auto', objectFit: 'contain' }}
@@ -105,37 +105,37 @@ export default function Landing() {
 
         {/* Frase corta */}
         <h1 className="relative z-10 font-display font-black text-3xl md:text-5xl mt-6 text-center leading-tight">
-          ElevÃ¡ tu juego.
+          Elevá tu juego.
         </h1>
         <p className="relative z-10 text-white/60 text-base md:text-lg mt-2 text-center max-w-xs md:max-w-md">
-          ReservÃ¡, jugÃ¡, subÃ­ en el ranking.
+          Reservá, jugá, subí en el ranking.
         </p>
 
-        {/* 3 CTAs por rol â€” mÃ¡s anchos en desktop */}
+        {/* 3 CTAs por rol — más anchos en desktop */}
         <div className="relative z-10 w-full max-w-sm md:max-w-md mt-10 space-y-3">
           <button
             onClick={() => setRole('player')}
             className="w-full bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-lg md:text-xl flex items-center justify-center gap-2 active:scale-[0.98] transition">
-            <span className="text-2xl">ğŸ¾</span>
+            <span className="text-2xl">??</span>
             Soy jugador
           </button>
           <button
             onClick={() => setRole('coach')}
             className="w-full bg-white/10 border border-white/15 text-white font-display font-black rounded-2xl py-5 text-lg md:text-xl flex items-center justify-center gap-2 active:scale-[0.98] transition">
-            <span className="text-2xl">ğŸ“</span>
+            <span className="text-2xl">??</span>
             Soy entrenador
           </button>
           <button
             onClick={() => setRole('complex')}
             className="w-full bg-white/10 border border-white/15 text-white font-display font-black rounded-2xl py-5 text-lg md:text-xl flex items-center justify-center gap-2 active:scale-[0.98] transition">
-            <span className="text-2xl">ğŸŸï¸</span>
+            <span className="text-2xl">???</span>
             Tengo un complejo
           </button>
         </div>
 
         {/* Ya tengo cuenta */}
         <p className="relative z-10 text-white/50 text-sm mt-8">
-          Â¿Ya tenÃ©s cuenta?{' '}
+          ¿Ya tenés cuenta?{' '}
           <Link href="/login" className="text-ball font-bold underline">Entrar</Link>
         </p>
       </div>
@@ -172,7 +172,7 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
       }
     });
     if (error) {
-      setError(`No se pudo iniciar con Google: ${error.message}. Puede ser que Google Auth no estÃ© configurado.`);
+      setError(`No se pudo iniciar con Google: ${error.message}. Puede ser que Google Auth no esté configurado.`);
       setGoogleBusy(false);
     }
   }
@@ -197,11 +197,11 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
               <p className="text-white/70 text-base md:text-lg mt-2">Con NarvoQ vas a poder:</p>
             </div>
             <button onClick={onClose}
-              className="text-white/60 text-2xl font-bold w-12 h-12 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10">âœ•</button>
+              className="text-white/60 text-2xl font-bold w-12 h-12 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10">?</button>
           </div>
         </div>
 
-        {/* Features â€” mÃ¡s grandes, mÃ¡s aire */}
+        {/* Features — más grandes, más aire */}
         <div className="px-6 md:px-8 space-y-5 pb-6 md:grid md:grid-cols-2 md:gap-5 md:space-y-0">
           {info.features.map((f, i) => (
             <div key={i} className="flex gap-4 items-start">
@@ -214,14 +214,14 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
           ))}
         </div>
 
-        {/* CTAs â€” mÃ¡s grandes */}
+        {/* CTAs — más grandes */}
         <div className="px-6 md:px-8 pb-8 md:pb-10 space-y-3 border-t border-white/10 pt-6 mt-2">
           <button
             onClick={loginWithGoogle}
             disabled={googleBusy}
             className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-5 text-base md:text-lg flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
             <GoogleIcon />
-            {googleBusy ? 'Redirigiendoâ€¦' : 'Continuar con Google'}
+            {googleBusy ? 'Redirigiendo…' : 'Continuar con Google'}
           </button>
 
           <Link
@@ -233,7 +233,7 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
           <Link
             href={info.loginHref}
             className="w-full block text-center text-white/70 font-bold py-3 underline">
-            Ya tengo cuenta Â· Entrar
+            Ya tengo cuenta · Entrar
           </Link>
 
           {error && (

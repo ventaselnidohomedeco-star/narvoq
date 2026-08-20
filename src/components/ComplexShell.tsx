@@ -1,56 +1,56 @@
-﻿'use client';
+'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
-// ComplexShell — Renderiza el sidebar (desktop) + bottom nav (mobile) del complejo
-// en TODAS las páginas fuera de /complejo/*, si el usuario es complex_admin.
-// Así el menú siempre está visible aunque el complejo esté en /notificaciones,
+// ComplexShell � Renderiza el sidebar (desktop) + bottom nav (mobile) del complejo
+// en TODAS las p�ginas fuera de /complejo/*, si el usuario es complex_admin.
+// As� el men� siempre est� visible aunque el complejo est� en /notificaciones,
 // /planes, /mi-suscripcion, /u/[username], etc.
 //
 // Se OCULTA en: landing, auth, /complejo/*, /training/*, /admin/*, /jugador/*.
 // Reproduce visualmente el chrome de complejo/layout.tsx para consistencia.
 
 const MOBILE_ITEMS = [
-  { href: '/complejo/dashboard', label: 'Hoy', icon: '🏠' },
-  { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
-  { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
-  { href: '/complejo/jugadores', label: 'Jugadores', icon: '👥' },
-  { href: '/complejo/mas', label: 'Más', icon: '⋯' }
+  { href: '/complejo/dashboard', label: 'Hoy', icon: '??' },
+  { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
+  { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
+  { href: '/complejo/jugadores', label: 'Jugadores', icon: '??' },
+  { href: '/complejo/mas', label: 'M�s', icon: '?' }
 ];
 
 const DESKTOP_SECTIONS = [
   {
-    label: 'Operación',
+    label: 'Operaci�n',
     items: [
-      { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '🏠' },
-      { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
-      { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
-      { href: '/complejo/socios', label: 'Socios · Membresías', icon: '💳' }
+      { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '??' },
+      { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
+      { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
+      { href: '/complejo/socios', label: 'Socios � Membres�as', icon: '??' }
     ]
   },
   {
-    label: 'Gestión',
+    label: 'Gesti�n',
     items: [
-      { href: '/complejo/canchas', label: 'Canchas', icon: '🎾' },
-      { href: '/complejo/empleados', label: 'Empleados', icon: '👥' },
-      { href: '/complejo/jugadores', label: 'Jugadores del club', icon: '⭐' },
-      { href: '/complejo/clientes', label: 'Base de clientes', icon: '👤' }
+      { href: '/complejo/canchas', label: 'Canchas', icon: '??' },
+      { href: '/complejo/empleados', label: 'Empleados', icon: '??' },
+      { href: '/complejo/jugadores', label: 'Jugadores del club', icon: '?' },
+      { href: '/complejo/clientes', label: 'Base de clientes', icon: '??' }
     ]
   },
   {
     label: 'Comunidad',
     items: [
-      { href: '/jugador/feed', label: 'Feed', icon: '📰' },
-      { href: '/smash', label: 'Smashe@', icon: '💬' }
+      { href: '/jugador/feed', label: 'Feed', icon: '??' },
+      { href: '/smash', label: 'Smashe@', icon: '??' }
     ]
   },
   {
-    label: 'Configuración',
+    label: 'Configuraci�n',
     items: [
-      { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '⚙️' },
-      { href: '/complejo/mas', label: 'Ver todo', icon: '⋯' }
+      { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '??' },
+      { href: '/complejo/mas', label: 'Ver todo', icon: '?' }
     ]
   }
 ];
@@ -99,7 +99,7 @@ export default function ComplexShell({ children }: { children: React.ReactNode }
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-black border-r border-white/10 flex-col z-40 overflow-y-auto">
         <div className="px-5 pt-6 pb-4 border-b border-white/10">
           <Link href="/complejo/dashboard" className="block">
-            <img src="/brand/logo.png?v=6" alt="NarvoQ"
+            <img src="/brand/logo.png?v=7" alt="NarvoQ"
               style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
             <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL COMPLEJOS</p>
           </Link>
@@ -145,7 +145,7 @@ export default function ComplexShell({ children }: { children: React.ReactNode }
         </div>
       </nav>
 
-      {/* Botón "Volver al complejo" al principio del contenido */}
+      {/* Bot�n "Volver al complejo" al principio del contenido */}
       <div className="max-w-3xl xl:max-w-7xl mx-auto lg:mx-0 lg:max-w-none">
         <div className="lg:px-8 lg:py-4 px-5 py-3 border-b border-white/5">
           <Link href="/complejo/dashboard"

@@ -1,10 +1,10 @@
-ï»¿'use client';
+'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 // Bottom nav grande y legible.
-// Nuevo orden: Perfil Â· Feed Â· Reservas Â· Smashe@ (â¤ï¸) Â· Torneos Â· Ranking
-// Foco en comunidad: Feed y Smashe@ (chat con corazÃ³n) protagonistas.
+// Nuevo orden: Perfil · Feed · Reservas · Smashe@ (??) · Torneos · Ranking
+// Foco en comunidad: Feed y Smashe@ (chat con corazón) protagonistas.
 
 const I = {
   profile: (
@@ -25,7 +25,7 @@ const I = {
       <path d="M3 10h18M8 3v4M16 3v4" />
     </svg>
   ),
-  // CorazÃ³n para Smashe@ â€” la app quiere ser "el tinder del padel"
+  // Corazón para Smashe@ — la app quiere ser "el tinder del padel"
   heart: (
     <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
       <path d="M12 21s-7-4.5-7-11a4.5 4.5 0 0 1 8-3 4.5 4.5 0 0 1 8 3c0 6.5-7 11-7 11z" />
@@ -82,7 +82,7 @@ export default function BottomNav() {
       <nav className="hidden lg:flex fixed left-0 top-0 bottom-0 w-60 bg-black border-r border-white/10 flex-col py-6 z-40">
         <div className="px-5 mb-6 bg-black">
           <Link href="/jugador/dashboard" className="block">
-            <img src="/brand/logo.png?v=6" alt="NarvoQ"
+            <img src="/brand/logo.png?v=7" alt="NarvoQ"
               style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
           </Link>
         </div>

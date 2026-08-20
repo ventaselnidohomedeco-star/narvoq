@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,61 +8,61 @@ import Bell from '@/components/Bell';
 import InstallButton from '@/components/InstallButton';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
-// Ícono simple para el sidebar (emoji o texto).
+// �cono simple para el sidebar (emoji o texto).
 type Item = { href: string; label: string; icon: string };
 
 // Bottom nav mobile: 5 accesos core
 const MOBILE_ITEMS: Item[] = [
-  { href: '/complejo/dashboard', label: 'Hoy', icon: '🏠' },
-  { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
-  { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
-  { href: '/complejo/jugadores', label: 'Jugadores', icon: '👥' },
-  { href: '/complejo/mas', label: 'Más', icon: '⋯' }
+  { href: '/complejo/dashboard', label: 'Hoy', icon: '??' },
+  { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
+  { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
+  { href: '/complejo/jugadores', label: 'Jugadores', icon: '??' },
+  { href: '/complejo/mas', label: 'M�s', icon: '?' }
 ];
 
 // Sidebar desktop: agrupado por secciones
 type Section = { label: string; items: Item[] };
 const DESKTOP_SECTIONS: Section[] = [
   {
-    label: 'Operación',
+    label: 'Operaci�n',
     items: [
-      { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '🏠' },
-      { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
-      { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
-      { href: '/complejo/socios', label: 'Socios · Membresías', icon: '💳' }
+      { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '??' },
+      { href: '/complejo/calendario', label: 'Calendario', icon: '??' },
+      { href: '/complejo/torneos', label: 'Torneos', icon: '??' },
+      { href: '/complejo/socios', label: 'Socios � Membres�as', icon: '??' }
     ]
   },
   {
-    label: 'Gestión',
+    label: 'Gesti�n',
     items: [
-      { href: '/complejo/canchas', label: 'Canchas', icon: '🎾' },
-      { href: '/complejo/empleados', label: 'Empleados', icon: '👥' },
-      { href: '/complejo/jugadores', label: 'Jugadores del club', icon: '⭐' },
-      { href: '/complejo/clientes', label: 'Base de clientes', icon: '👤' },
-      { href: '/complejo/entrenamientos', label: 'Entrenamientos', icon: '🏋️' }
+      { href: '/complejo/canchas', label: 'Canchas', icon: '??' },
+      { href: '/complejo/empleados', label: 'Empleados', icon: '??' },
+      { href: '/complejo/jugadores', label: 'Jugadores del club', icon: '?' },
+      { href: '/complejo/clientes', label: 'Base de clientes', icon: '??' },
+      { href: '/complejo/entrenamientos', label: 'Entrenamientos', icon: '???' }
     ]
   },
   {
     label: 'Reportes',
     items: [
-      { href: '/complejo/estadisticas', label: 'Estadísticas Premium', icon: '📊' },
-      { href: '/complejo/rentabilidad', label: 'Rentabilidad', icon: '💰' }
+      { href: '/complejo/estadisticas', label: 'Estad�sticas Premium', icon: '??' },
+      { href: '/complejo/rentabilidad', label: 'Rentabilidad', icon: '??' }
     ]
   },
   {
     label: 'Comunidad',
     items: [
-      { href: '/jugador/feed', label: 'Feed', icon: '📰' },
-      { href: '/smash', label: 'Smashe@', icon: '💬' },
-      { href: '/complejo/amigos', label: 'Comunidad', icon: '🌐' },
-      { href: '/marketplace', label: 'Marketplace', icon: '🛒' }
+      { href: '/jugador/feed', label: 'Feed', icon: '??' },
+      { href: '/smash', label: 'Smashe@', icon: '??' },
+      { href: '/complejo/amigos', label: 'Comunidad', icon: '??' },
+      { href: '/marketplace', label: 'Marketplace', icon: '??' }
     ]
   },
   {
-    label: 'Configuración',
+    label: 'Configuraci�n',
     items: [
-      { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '⚙️' },
-      { href: '/complejo/mas', label: 'Ver todo', icon: '⋯' }
+      { href: '/complejo/perfil', label: 'Perfil del complejo', icon: '??' },
+      { href: '/complejo/mas', label: 'Ver todo', icon: '?' }
     ]
   }
 ];
@@ -95,26 +95,26 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
   }
 
   async function signOut() {
-    if (!confirm('¿Cerrar sesión?')) return;
+    if (!confirm('�Cerrar sesi�n?')) return;
     await supabase.auth.signOut();
     router.push('/');
   }
 
   // Banner de estado del complejo: pending_review, suspended o rejected.
-  // Solo se muestra al dueño (aparece en TODAS sus páginas).
+  // Solo se muestra al due�o (aparece en TODAS sus p�ginas).
   const statusBanner = cx && cx.status !== 'active' ? (
     <div className={`w-full px-5 py-3 text-sm font-bold text-center
       ${cx.status === 'pending_review' ? 'bg-yellow-500/20 border-b-2 border-yellow-500/50 text-yellow-100'
         : cx.status === 'suspended' ? 'bg-orange-500/20 border-b-2 border-orange-500/50 text-orange-100'
         : 'bg-red-500/20 border-b-2 border-red-500/50 text-red-100'}`}>
       {cx.status === 'pending_review' && (
-        <>⏳ <b>Tu complejo está en revisión</b>. Podés completar tu perfil y canchas, pero todavía no aparece a los jugadores.</>
+        <>? <b>Tu complejo est� en revisi�n</b>. Pod�s completar tu perfil y canchas, pero todav�a no aparece a los jugadores.</>
       )}
       {cx.status === 'suspended' && (
-        <>⚠️ <b>Tu complejo está suspendido</b>. Escribinos para reactivarlo.</>
+        <>?? <b>Tu complejo est� suspendido</b>. Escribinos para reactivarlo.</>
       )}
       {cx.status === 'rejected' && (
-        <>❌ <b>Tu complejo fue rechazado</b>. {cx.rejection_reason ? `Motivo: ${cx.rejection_reason}` : 'Contactá al soporte para más info.'}</>
+        <>? <b>Tu complejo fue rechazado</b>. {cx.rejection_reason ? `Motivo: ${cx.rejection_reason}` : 'Contact� al soporte para m�s info.'}</>
       )}
     </div>
   ) : null;
@@ -129,7 +129,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
         {/* Header sidebar: logo NarvoQ */}
         <div className="px-5 pt-6 pb-4 border-b border-white/10">
           <Link href="/complejo/dashboard" className="block">
-            <img src="/brand/logo.png?v=6" alt="NarvoQ"
+            <img src="/brand/logo.png?v=7" alt="NarvoQ"
               style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
             <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL COMPLEJOS</p>
           </Link>
@@ -165,7 +165,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
           </div>
         )}
 
-        {/* Navegación agrupada */}
+        {/* Navegaci�n agrupada */}
         <div className="flex-1 py-3 space-y-4 overflow-y-auto">
           {DESKTOP_SECTIONS.map(section => (
             <div key={section.label}>
@@ -191,13 +191,13 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
           ))}
         </div>
 
-        {/* Footer sidebar: cerrar sesión */}
+        {/* Footer sidebar: cerrar sesi�n */}
         <div className="p-3 border-t border-white/10 flex items-center gap-2">
           <InstallButton variant="ghost" />
           <Bell />
           <button onClick={signOut}
             className="flex-1 text-left text-white/60 text-xs font-bold hover:text-red-300 py-2 px-2 hover:bg-white/5 rounded">
-            🚪 Salir
+            ?? Salir
           </button>
         </div>
       </nav>
@@ -216,7 +216,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
               </button>
             )}
             <Link href="/complejo/dashboard" className="shrink-0 active:scale-95 transition">
-              <img src="/brand/logo.png?v=6" alt="NarvoQ" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+              <img src="/brand/logo.png?v=7" alt="NarvoQ" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
             </Link>
           </div>
           <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-3">
             {cx && (
               <span className="font-bold text-white/50 text-xs">
-                {cx.name} · {cx.is_premium ? '⭐ Premium' : 'Free'}
+                {cx.name} � {cx.is_premium ? '? Premium' : 'Free'}
               </span>
             )}
             <Bell />
