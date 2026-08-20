@@ -141,13 +141,9 @@ export default function Dashboard() {
             className="w-full h-full object-contain" />
         </Link>
         <Link href="/jugador/buscar"
-          className="aspect-square rounded-2xl bg-gradient-to-br from-ball to-lime-500 active:scale-95 transition shadow-lg shadow-ball/20 flex flex-col items-center justify-center gap-3 p-5">
-          <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#0A1633" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M21 21l-4.35-4.35" />
-            <path d="M8 11h6M11 8v6" />
-          </svg>
-          <span className="text-lg font-display font-black text-courtdark text-center leading-tight">Buscador<br/>Inteligente</span>
+          className="aspect-square rounded-2xl bg-black border border-ball/30 active:scale-95 transition shadow-lg shadow-ball/20 overflow-hidden flex items-center justify-center">
+          <img src="/icons/buscadorinteligente.png" alt="Buscador Inteligente"
+            className="w-full h-full object-contain" />
         </Link>
       </section>
 
