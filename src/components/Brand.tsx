@@ -50,7 +50,8 @@ export default function Brand({
         height: baseH,
         width: 'auto',
         display: 'block',
-        objectFit: 'contain'
+        objectFit: 'contain',
+        mixBlendMode: 'screen'   // funde el bg oscuro del logo con el bg de la app
       }} />
   );
 }

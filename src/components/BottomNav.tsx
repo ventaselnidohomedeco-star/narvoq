@@ -82,7 +82,7 @@ export default function BottomNav() {
         <div className="px-5 mb-6 bg-black">
           <Link href="/jugador/dashboard" className="block">
             <img src="/brand/logo.png?v=9" alt="NarvoQ"
-              style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
+              style={{ height: 64, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
           </Link>
         </div>
         <ul className="flex-1 space-y-1 px-3">

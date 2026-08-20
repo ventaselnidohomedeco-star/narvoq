@@ -24,11 +24,14 @@ const ROLE_INFO: Record<Role, {
     loginHref: '/login',
     registerHref: '/registro',
     features: [
-      { emoji: '🎾', title: 'Reservá canchas en 3 toques', text: 'Buscás por ciudad, ves horarios libres y reservás sin llamar.' },
+      { emoji: '🎾', title: 'Reservá canchas', text: 'Buscás por ciudad, ves horarios libres y reservás sin llamar.' },
+      { emoji: '🔍', title: 'Buscador inteligente', text: 'Encontrá canchas libres por zona y horario en un click. Premium.' },
       { emoji: '🤝', title: 'Armá partido con amigos', text: 'Compartís un link y tus amigos se suman al turno.' },
-      { emoji: '🥇', title: 'Torneos con fixture automático', text: 'La app arma zonas, cruces y bracket sola.' },
-      { emoji: '📊', title: 'Ranking real de tu zona', text: 'Ganás torneos, subís puntos. Filtrás por categoría y ciudad.' },
-      { emoji: '🎓', title: 'Clases con tu profe', text: 'Tu profe te carga la sesión y vos seguís tu progreso.' },
+      { emoji: '🥇', title: 'Torneos automáticos', text: 'Fixture, zonas y bracket armados por la app.' },
+      { emoji: '📊', title: 'Ranking de tu zona', text: 'Ganás torneos, subís puntos. Filtrás por categoría.' },
+      { emoji: '💬', title: 'Chateá con jugadores', text: 'Smashe@: conocé y armá partidos con nuevos rivales.' },
+      { emoji: '📰', title: 'Feed de la comunidad', text: 'Compartí tus partidos, victorias y momentos con la comunidad.' },
+      { emoji: '🎓', title: 'Clases con tu profe', text: 'Tu profe carga la sesión y seguís tu progreso.' },
     ],
   },
   coach: {
@@ -37,10 +40,12 @@ const ROLE_INFO: Record<Role, {
     loginHref: '/training/login',
     registerHref: '/training/registro',
     features: [
-      { emoji: '👨‍🏫', title: 'Un dashboard por alumno', text: 'Registrás cada sesión: foco, tarea y evaluación 0–10.' },
+      { emoji: '👨‍🏫', title: 'Dashboard por alumno', text: 'Registrás cada sesión: foco, tarea y evaluación 0–10.' },
       { emoji: '📈', title: 'Progreso del grupo', text: 'Métricas de los últimos 30 días: sesiones, minutos, intensidad.' },
-      { emoji: '📤', title: 'Compartís por WhatsApp', text: 'Un botón y el alumno ve su progreso en su propia cuenta.' },
-      { emoji: '🏆', title: 'Creás tus propios torneos', text: 'Fixture, standings y bracket totalmente automático.' },
+      { emoji: '🎓', title: 'Perfil público', text: 'Los jugadores te encuentran con tu disponibilidad y tarifas.' },
+      { emoji: '📤', title: 'Compartís por WhatsApp', text: 'Un botón y el alumno ve su progreso en su cuenta.' },
+      { emoji: '🏆', title: 'Creás torneos propios', text: 'Fixture, standings y bracket totalmente automático.' },
+      { emoji: '💎', title: 'Academia Premium', text: 'Vendé clases individuales y packs a jugadores nuevos.' },
     ],
   },
   complex: {
@@ -49,11 +54,14 @@ const ROLE_INFO: Record<Role, {
     loginHref: '/complejo/login',
     registerHref: '/complejo/registro',
     features: [
-      { emoji: '📅', title: 'Calendario 7 días × canchas', text: 'Todos los turnos en una sola grilla, cargás bloqueos manuales.' },
-      { emoji: '✅', title: 'Aprobás transferencias con un tap', text: 'El jugador sube el comprobante, vos lo aprobás en 1 segundo.' },
-      { emoji: '🏆', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixto… elegís y ya. Se abre inscripción.' },
-      { emoji: '👥', title: 'Membresías y socios', text: 'Planes de socio, cobrás por transferencia, controlás vencimientos.' },
-      { emoji: '📢', title: 'Publicás promos al feed', text: 'Happy hour, evento o torneo abierto: tus clientes lo ven en el feed.' },
+      { emoji: '📅', title: 'Calendario semanal', text: 'Todos los turnos por cancha en una grilla, cargás bloqueos.' },
+      { emoji: '✅', title: 'Aprobás transferencias', text: 'El jugador sube el comprobante, vos lo aprobás en 1 tap.' },
+      { emoji: '🏆', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixto… elegís y se abre inscripción.' },
+      { emoji: '👥', title: 'Membresías y socios', text: 'Planes de socio, cobros mensuales, controlás vencimientos.' },
+      { emoji: '📢', title: 'Promos al feed público', text: 'Happy hour, evento o torneo: tus clientes lo ven en el feed.' },
+      { emoji: '📊', title: 'Estadísticas del negocio', text: 'Ocupación, ingresos, top clientes. Rentabilidad por cancha.' },
+      { emoji: '👤', title: 'Base de clientes', text: 'Historial de cada jugador, sus reservas y su valor.' },
+      { emoji: '🔔', title: 'Notificaciones automáticas', text: 'Nueva reserva, comprobante subido, cancelación — todo al toque.' },
     ],
   },
 };
@@ -81,7 +89,7 @@ export default function Landing() {
   if (checking) return (
     <main className="min-h-dvh bg-[#0B0F16] flex items-center justify-center">
       <img src="/brand/logo.png?v=9" alt="NarvoQ"
-        style={{ height: 80, width: 'auto', opacity: 0.6 }} />
+        style={{ height: 80, width: 'auto', opacity: 0.6, mixBlendMode: 'screen' }} />
     </main>
   );
 
@@ -100,7 +108,7 @@ export default function Landing() {
           src="/brand/logo.png?v=9"
           alt="NarvoQ"
           className="relative z-10"
-          style={{ height: 'clamp(120px, 20vw, 180px)', width: 'auto', objectFit: 'contain' }}
+          style={{ height: 'clamp(120px, 20vw, 180px)', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }}
         />
 
         {/* Frase corta */}
@@ -182,57 +190,57 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
       onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-lg md:max-w-2xl bg-[#0F141D] border-t-2 sm:border-2 border-ball rounded-t-3xl sm:rounded-3xl max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+        className="w-full max-w-lg md:max-w-3xl bg-[#0F141D] border-t-2 sm:border-2 border-ball rounded-t-3xl sm:rounded-3xl max-h-[95dvh] animate-in slide-in-from-bottom duration-300 flex flex-col">
         {/* Handle */}
         <div className="pt-3 pb-1 flex justify-center sm:hidden">
           <div className="w-12 h-1.5 bg-white/30 rounded-full" />
         </div>
 
-        {/* Header con emoji GRANDE */}
-        <div className="p-6 md:p-8 bg-gradient-to-b from-ball/25 via-ball/10 to-transparent">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-6xl md:text-7xl leading-none">{info.emoji}</span>
-              <h2 className="font-display font-black text-3xl md:text-4xl mt-3 leading-tight">{info.title}</h2>
-              <p className="text-white/70 text-base md:text-lg mt-2">Con NarvoQ vas a poder:</p>
+        {/* Header compacto */}
+        <div className="px-6 pt-4 pb-3 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl leading-none">{info.emoji}</span>
+              <div>
+                <h2 className="font-display font-black text-2xl md:text-3xl leading-tight">{info.title}</h2>
+                <p className="text-white/60 text-xs md:text-sm">Con NarvoQ vas a poder:</p>
+              </div>
             </div>
             <button onClick={onClose}
-              className="text-white/60 text-2xl font-bold w-12 h-12 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10">✕</button>
+              className="text-white/60 text-xl font-bold w-10 h-10 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10">✕</button>
           </div>
         </div>
 
-        {/* Features — más grandes, más aire */}
-        <div className="px-6 md:px-8 space-y-5 pb-6 md:grid md:grid-cols-2 md:gap-5 md:space-y-0">
+        {/* Features — grilla compacta 2 columnas siempre, sin scroll interno */}
+        <div className="px-4 md:px-6 pb-4 grid grid-cols-2 gap-2 md:gap-3 overflow-y-auto flex-1">
           {info.features.map((f, i) => (
-            <div key={i} className="flex gap-4 items-start">
-              <span className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-ball/15 border border-ball/25 flex items-center justify-center text-3xl md:text-4xl shrink-0">{f.emoji}</span>
-              <div className="flex-1 min-w-0 pt-0.5">
-                <p className="font-display font-black text-lg md:text-xl leading-tight">{f.title}</p>
-                <p className="text-white/70 text-sm md:text-base mt-1 leading-snug">{f.text}</p>
-              </div>
+            <div key={i} className="bg-white/[0.04] border border-white/10 rounded-xl p-3">
+              <span className="text-2xl md:text-3xl block leading-none mb-1.5">{f.emoji}</span>
+              <p className="font-display font-black text-sm md:text-base leading-tight">{f.title}</p>
+              <p className="text-white/60 text-[11px] md:text-xs mt-1 leading-snug">{f.text}</p>
             </div>
           ))}
         </div>
 
-        {/* CTAs — más grandes */}
-        <div className="px-6 md:px-8 pb-8 md:pb-10 space-y-3 border-t border-white/10 pt-6 mt-2">
+        {/* CTAs — pegados abajo, siempre visibles */}
+        <div className="px-6 md:px-8 py-4 space-y-2 border-t border-white/10 shrink-0 bg-[#0F141D]">
           <button
             onClick={loginWithGoogle}
             disabled={googleBusy}
-            className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-5 text-base md:text-lg flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
+            className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-3.5 text-base flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
             <GoogleIcon />
             {googleBusy ? 'Redirigiendo…' : 'Continuar con Google'}
           </button>
 
           <Link
             href={info.registerHref}
-            className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-5 text-base md:text-lg active:scale-[0.98] transition">
+            className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-3.5 text-base active:scale-[0.98] transition">
             Crear cuenta con email
           </Link>
 
           <Link
             href={info.loginHref}
-            className="w-full block text-center text-white/70 font-bold py-3 underline">
+            className="w-full block text-center text-white/70 font-bold py-1 underline text-sm">
             Ya tengo cuenta · Entrar
           </Link>
 

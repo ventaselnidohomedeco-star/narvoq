@@ -58,6 +58,18 @@ export default function Socios() {
     load();
   }
 
+  async function eliminarPlan(plan: any) {
+    const count = plan.members?.length ?? 0;
+    const warn = count > 0 ? `⚠️ Esta membresía tiene ${count} socio(s). Se eliminarán también sus registros. ` : '';
+    if (!confirm(`${warn}¿Eliminar la membresía "${plan.name}" definitivamente? Esta acción no se puede deshacer.`)) return;
+    // Borrar primero los membership_members
+    await supabase.from('membership_members').delete().eq('membership_id', plan.id);
+    // Borrar el plan
+    const { error } = await supabase.from('memberships').delete().eq('id', plan.id);
+    if (error) return alert('No se pudo eliminar: ' + error.message);
+    load();
+  }
+
   async function aprobarSocio(plan: any, pid: string) {
     const { data: { user } } = await supabase.auth.getUser();
     await supabase.from('membership_members').update({
@@ -118,10 +130,17 @@ export default function Socios() {
                   </p>
                   {plan.benefits && <p className="text-white/60 text-sm mt-0.5">{plan.benefits}</p>}
                 </div>
-                <button onClick={() => togglePlan(plan)}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-lg shrink-0 ${plan.active ? 'bg-ball text-courtdark' : 'bg-white/10 text-white/50'}`}>
-                  {plan.active ? 'Activo' : 'Pausado'}
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => togglePlan(plan)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg ${plan.active ? 'bg-ball text-courtdark' : 'bg-white/10 text-white/50'}`}>
+                    {plan.active ? 'Activo' : 'Pausado'}
+                  </button>
+                  <button onClick={() => eliminarPlan(plan)}
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20"
+                    title="Eliminar membresía">
+                    🗑️
+                  </button>
+                </div>
               </div>
 
               <p className="text-white/40 text-xs font-bold mt-3 uppercase">Socios ({plan.members.length})</p>
