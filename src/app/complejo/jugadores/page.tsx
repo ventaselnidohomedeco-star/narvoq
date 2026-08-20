@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import ExcelJS from 'exceljs';
 
@@ -23,8 +24,47 @@ export default function Jugadores() {
     const { data: w } = await supabase.from('watchlist').select('player_id').eq('complex_id', complex.id);
     setWatch((w ?? []).map(x => x.player_id));
     const { data: ros } = await supabase.from('club_player_roster')
-      .select('*').eq('complex_id', complex.id).order('created_at', { ascending: false });
+      .select('*, matched:profiles!matched_player_id(username, first_name, last_name, avatar_url, category)')
+      .eq('complex_id', complex.id).order('created_at', { ascending: false });
     setRoster(ros ?? []);
+  }
+
+  // Picker manual: buscar y vincular un roster con un usuario existente
+  const [linkFor, setLinkFor] = useState<any>(null);  // roster row a vincular
+  const [linkQuery, setLinkQuery] = useState('');
+  const [linkResults, setLinkResults] = useState<any[]>([]);
+  useEffect(() => {
+    if (!linkFor || !linkQuery.trim() || linkQuery.length < 2) { setLinkResults([]); return; }
+    const t = setTimeout(async () => {
+      const q = linkQuery.trim();
+      const { data } = await supabase.from('profiles')
+        .select('id, username, first_name, last_name, avatar_url, category, phone')
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,username.ilike.%${q}%,phone.ilike.%${q}%`)
+        .eq('role', 'player').limit(15);
+      setLinkResults(data ?? []);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [linkQuery, linkFor]);
+
+  async function vincularManual(rosterId: string, profile: any) {
+    const { error } = await supabase.from('club_player_roster')
+      .update({ matched_player_id: profile.id, matched_at: new Date().toISOString() })
+      .eq('id', rosterId);
+    if (error) return alert(`No se pudo vincular: ${error.message}`);
+    // Si el roster trae categoría, aplicarla al perfil
+    const rosterRow = roster.find(r => r.id === rosterId);
+    if (rosterRow?.category) {
+      await supabase.from('profiles').update({ category: rosterRow.category }).eq('id', profile.id);
+    }
+    setLinkFor(null); setLinkQuery(''); setLinkResults([]);
+    load();
+  }
+
+  async function desvincular(rosterId: string) {
+    if (!confirm('¿Desvincular este jugador?')) return;
+    await supabase.from('club_player_roster')
+      .update({ matched_player_id: null, matched_at: null }).eq('id', rosterId);
+    load();
   }
   useEffect(() => { load(); }, []);
 
@@ -287,25 +327,55 @@ export default function Jugadores() {
             <p className="font-display font-bold text-ball text-sm">Jugadores cargados ({roster.length})</p>
             <div className="mt-2 space-y-2">
               {roster.map(r => (
-                <div key={r.id} className={`rounded-xl p-3 flex items-center gap-3 ${r.matched_player_id ? 'bg-ball/5 border border-ball/30' : 'bg-white/5'}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">
-                      {r.first_name} {r.last_name}
-                      {r.matched_player_id && <span className="ml-2 text-ball text-[10px] font-black">✓ EN NARVOQ</span>}
-                    </p>
-                    <p className="text-white/50 text-xs">
-                      {r.category ? `cat. ${r.category} · ` : ''}
-                      {r.points ? `${r.points} pts · ` : ''}
-                      {r.phone && `📱 ${r.phone} · `}
-                      {r.dni && `DNI ${r.dni} · `}
-                      {r.email}
-                    </p>
-                    {r.notes && <p className="text-white/40 text-xs mt-1">📝 {r.notes}</p>}
+                <div key={r.id}
+                  className={`rounded-xl p-3 ${r.matched_player_id ? 'bg-ball/5 border border-ball/30' : 'bg-white/5'}`}>
+                  <div className="flex items-center gap-3">
+                    {r.matched?.avatar_url
+                      ? <img src={r.matched.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-ball/40" />
+                      : <span className="w-10 h-10 rounded-full bg-white/10 text-white/50 font-black flex items-center justify-center">
+                          {r.first_name?.[0]?.toUpperCase()}
+                        </span>}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">
+                        {r.first_name} {r.last_name}
+                        {r.matched_player_id && <span className="ml-2 text-ball text-[10px] font-black">✓ EN NARVOQ</span>}
+                      </p>
+                      <p className="text-white/50 text-xs">
+                        {r.category ? `cat. ${r.category} · ` : ''}
+                        {r.points ? `${r.points} pts · ` : ''}
+                        {r.phone && `📱 ${r.phone} · `}
+                        {r.dni && `DNI ${r.dni} · `}
+                        {r.email}
+                      </p>
+                      {r.notes && <p className="text-white/40 text-xs mt-1">📝 {r.notes}</p>}
+                    </div>
+                    <button onClick={() => eliminarRoster(r.id)} title="Eliminar del roster"
+                      className="text-red-400/70 text-lg font-bold w-8 h-8 hover:bg-red-500/10 rounded">
+                      ✕
+                    </button>
                   </div>
-                  <button onClick={() => eliminarRoster(r.id)}
-                    className="text-red-400/70 text-xs font-bold px-2 py-1 hover:bg-red-500/10 rounded">
-                    Eliminar
-                  </button>
+                  {/* Acciones */}
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    {r.matched_player_id ? (
+                      <>
+                        {r.matched?.username && (
+                          <Link href={`/u/${r.matched.username}`}
+                            className="btn-ball !py-1.5 !px-3 text-xs font-black">
+                            👤 Ver perfil
+                          </Link>
+                        )}
+                        <button onClick={() => desvincular(r.id)}
+                          className="py-1.5 px-3 rounded-lg border border-white/10 text-white/60 text-xs font-bold">
+                          🔓 Desvincular
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setLinkFor(r)}
+                        className="w-full py-2 rounded-lg border border-ball/40 bg-ball/10 text-ball text-xs font-black">
+                        🔍 Vincular a un jugador de NarvoQ
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
               {roster.length === 0 && (
@@ -317,6 +387,59 @@ export default function Jugadores() {
             </div>
           </section>
         </>
+      )}
+
+      {/* Modal: vincular manualmente un roster con un usuario existente */}
+      {linkFor && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-end lg:items-center overflow-y-auto"
+          onClick={() => { setLinkFor(null); setLinkQuery(''); setLinkResults([]); }}>
+          <div className="bg-[#0B0F16] border-2 border-white/15 rounded-t-3xl lg:rounded-2xl w-full max-w-lg mx-auto p-5 pb-10"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="font-display font-black text-lg">🔍 Vincular con NarvoQ</p>
+              <button onClick={() => { setLinkFor(null); setLinkQuery(''); setLinkResults([]); }}
+                className="w-9 h-9 rounded-full bg-white/10 text-white font-bold">✕</button>
+            </div>
+            <p className="text-white/60 text-sm mt-1">
+              Buscá al jugador <b>{linkFor.first_name} {linkFor.last_name}</b> en NarvoQ para vincular.
+            </p>
+
+            <input autoFocus type="text" className="input mt-3"
+              placeholder="Nombre, @usuario o celular…"
+              value={linkQuery} onChange={e => setLinkQuery(e.target.value)} />
+
+            {linkQuery.length >= 2 && (
+              <div className="mt-3 space-y-2 max-h-72 overflow-y-auto">
+                {linkResults.map(a => (
+                  <div key={a.id} className="flex items-center gap-3 bg-white/5 rounded-xl p-2.5">
+                    {a.avatar_url
+                      ? <img src={a.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      : <span className="w-10 h-10 rounded-full bg-grafito text-white text-sm font-display font-black flex items-center justify-center">
+                          {a.first_name?.[0]?.toUpperCase()}
+                        </span>}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{a.first_name} {a.last_name}</p>
+                      <p className="text-white/50 text-xs truncate">
+                        @{a.username} · cat. {a.category ?? '-'}
+                        {a.phone ? ` · 📱 ${a.phone}` : ''}
+                      </p>
+                    </div>
+                    <button onClick={() => vincularManual(linkFor.id, a)}
+                      className="btn-ball !py-1.5 !px-3 text-xs shrink-0">
+                      Vincular →
+                    </button>
+                  </div>
+                ))}
+                {linkResults.length === 0 && (
+                  <p className="text-white/40 text-sm text-center py-4">Sin resultados</p>
+                )}
+              </div>
+            )}
+            {linkQuery.length < 2 && (
+              <p className="text-white/40 text-xs mt-3 text-center">Escribí al menos 2 letras para buscar…</p>
+            )}
+          </div>
+        </div>
       )}
     </main>
   );
