@@ -28,9 +28,11 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
+    vibrate: [300, 150, 300, 150, 300],
     tag: data.ref_id || 'narvoq',
     renotify: true,
+    silent: false,             // explícito: no silenciada
+    requireInteraction: true,  // no auto-oculta hasta que el usuario la vea
     data: { link: data.link || '/', kind: data.kind || 'generic' }
   };
 
