@@ -21,9 +21,9 @@ create policy app_settings_read on app_settings
 drop policy if exists app_settings_write on app_settings;
 create policy app_settings_write on app_settings
   for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    exists (select 1 from profiles where id = auth.uid() and role = 'super_admin')
   ) with check (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    exists (select 1 from profiles where id = auth.uid() and role = 'super_admin')
   );
 
 -- 2. Campos MP en complexes (OAuth marketplace)
@@ -60,7 +60,7 @@ create policy mp_payments_read on mp_payments
   for select using (
     player_id = auth.uid()
     or exists (select 1 from complexes c where c.id = complex_id and c.owner_id = auth.uid())
-    or exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    or exists (select 1 from profiles where id = auth.uid() and role = 'super_admin')
   );
 drop policy if exists mp_payments_insert on mp_payments;
 create policy mp_payments_insert on mp_payments

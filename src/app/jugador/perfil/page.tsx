@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import PhotoPicker from '@/components/PhotoPicker';
+import PushEnableButton from '@/components/PushEnableButton';
 
 export default function Perfil() {
   const router = useRouter();
@@ -47,6 +48,15 @@ export default function Perfil() {
           <p className="text-white/50 text-sm">@{p.username}</p>
           <p className="text-white/50 text-xs mt-1">Tocá la foto para cambiarla</p>
         </div>
+      </div>
+
+      {/* Notificaciones push */}
+      <div className="card mt-4">
+        <p className="font-display font-bold text-sm text-court">🔔 Notificaciones al celular</p>
+        <p className="text-white/60 text-xs mt-1 mb-3">
+          Recibí un aviso en tu celular cuando te sumen a un partido, te reserven una cancha o te lleguen mensajes — aunque tengas NarvoQ cerrado.
+        </p>
+        <PushEnableButton />
       </div>
 
       {/* Datos personales */}
