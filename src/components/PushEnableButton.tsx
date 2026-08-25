@@ -52,7 +52,7 @@ export default function PushEnableButton({ compact = false }: { compact?: boolea
       // 4. Suscribirse
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(key)
+        applicationServerKey: urlBase64ToUint8Array(key) as BufferSource
       });
 
       // 5. Guardar en backend
