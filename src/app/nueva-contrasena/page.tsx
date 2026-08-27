@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from '@/components/PasswordInput';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -54,10 +55,10 @@ export default function NuevaContrasena() {
       {ready === 'ready' && !ok && (
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div><label className="label">Nueva contraseña</label>
-            <input className="input" type="password" minLength={6} value={password}
+            <PasswordInput minLength={6} value={password}
               onChange={e => setPassword(e.target.value)} required autoFocus /></div>
           <div><label className="label">Repetila</label>
-            <input className="input" type="password" minLength={6} value={confirm}
+            <PasswordInput minLength={6} value={confirm}
               onChange={e => setConfirm(e.target.value)} required /></div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button className="btn-ball w-full text-lg" disabled={loading}>

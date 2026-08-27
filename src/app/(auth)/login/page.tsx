@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
 import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function Login() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function Login() {
         <div><label className="label">Email</label>
           <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
         <div><label className="label">Contraseña</label>
-          <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required /></div>
+          <PasswordInput value={password} onChange={e => setPassword(e.target.value)} required /></div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <button className="btn-court w-full text-lg" disabled={loading}>
           {loading ? 'Entrando…' : 'Entrar'}

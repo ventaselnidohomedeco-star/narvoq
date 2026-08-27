@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from '@/components/PasswordInput';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -79,7 +80,7 @@ export default function RegistroComplejo() {
             </select></div>
         </div>
         <input className="input" type="email" placeholder="Email de acceso" value={f.email} onChange={set('email')} required />
-        <input className="input" type="password" placeholder="Contraseña" minLength={6} value={f.password} onChange={set('password')} required />
+        <PasswordInput placeholder="Contraseña" minLength={6} value={f.password} onChange={set('password')} required />
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <button className="btn-ball w-full text-lg" disabled={loading}>{loading ? 'Creando…' : 'Crear complejo'}</button>
       </form>

@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from '@/components/PasswordInput';
 import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -83,7 +84,7 @@ function RegistroForm() {
         <div className="court-divider my-2" />
         <div><label className="label">Usuario</label><input className="input" value={f.username} onChange={set('username')} required /></div>
         <div><label className="label">Email</label><input className="input" type="email" value={f.email} onChange={set('email')} required /></div>
-        <div><label className="label">Contraseña</label><input className="input" type="password" minLength={6} value={f.password} onChange={set('password')} required /></div>
+        <div><label className="label">Contraseña</label><PasswordInput minLength={6} value={f.password} onChange={set('password')} required /></div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <button className="btn-ball w-full text-lg" disabled={loading}>{loading ? 'Creando…' : 'Crear cuenta'}</button>
       </form>

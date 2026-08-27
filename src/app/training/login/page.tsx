@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from '@/components/PasswordInput';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -42,7 +43,7 @@ export default function TrainingLogin() {
         <div><label className="label">Email</label>
           <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
         <div><label className="label">Contraseña</label>
-          <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required /></div>
+          <PasswordInput value={password} onChange={e => setPassword(e.target.value)} required /></div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button className="btn-ball w-full text-lg" disabled={loading}>
           {loading ? 'Entrando…' : 'Entrar como profe'}

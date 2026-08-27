@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from '@/components/PasswordInput';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -38,7 +39,7 @@ export default function LoginComplejo() {
       <form onSubmit={submit} className="space-y-4">
         <input className="input" type="email" placeholder="Email"
           value={email} onChange={e => setEmail(e.target.value)} required />
-        <input className="input" type="password" placeholder="Contraseña"
+        <PasswordInput placeholder="Contraseña"
           value={password} onChange={e => setPassword(e.target.value)} required />
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <button className="btn-ball w-full text-lg">Entrar</button>

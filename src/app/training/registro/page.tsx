@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from '@/components/PasswordInput';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -166,7 +167,7 @@ export default function TrainingRegistro() {
           <input className="input" value={f.username} onChange={set('username')} required
             pattern="[a-zA-Z0-9_.-]{3,24}" /></div>
         <div><label className="label">Email</label><input className="input" type="email" value={f.email} onChange={set('email')} required /></div>
-        <div><label className="label">Contraseña</label><input className="input" type="password" minLength={6} value={f.password} onChange={set('password')} required /></div>
+        <div><label className="label">Contraseña</label><PasswordInput minLength={6} value={f.password} onChange={set('password')} required /></div>
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
             <p className="text-red-300 text-sm">{error}</p>
