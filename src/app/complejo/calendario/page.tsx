@@ -121,6 +121,18 @@ export default function Calendario() {
 
   // Modal post-cancelación con lista de espera + WA
   const [postCancel, setPostCancel] = useState<null | { court: any; starts: Date; wl: any[] }>(null);
+  // Modal para ver la waitlist de un slot al tocar el botón verde
+  const [waitlistModal, setWaitlistModal] = useState<null | { court: any; starts: Date; wl: any[] }>(null);
+
+  async function abrirWaitlistModal(court: any, starts: Date) {
+    const { data: wl } = await supabase.from('booking_waitlist')
+      .select('id, player_id, created_at, profile:profiles!player_id(username, first_name, last_name, avatar_url, phone)')
+      .eq('court_id', court.id)
+      .eq('starts_at', starts.toISOString())
+      .is('fulfilled_at', null)
+      .order('created_at');
+    setWaitlistModal({ court, starts, wl: wl ?? [] });
+  }
 
   async function cobrarRestante() {
     const monto = Number(cobro.monto.replace(',', '.'));
@@ -178,8 +190,9 @@ export default function Calendario() {
         court_id: sel.court.id,
         type: tipo === 'block' ? 'block' : 'reserva',
         status: 'confirmada',
+        // Reserva creada por el propio complejo — no requiere aprobación
         payment_status: tipo === 'manual'
-          ? (form.payKind === 'total' ? 'pagado' : form.payKind === 'sena' ? 'pagado' : 'pendiente')
+          ? (form.payKind === 'sin_pago' ? 'no_aplica' : 'pagado')
           : 'no_aplica',
         starts_at: starts.toISOString(),
         ends_at: ends.toISOString(),
@@ -424,10 +437,13 @@ export default function Calendario() {
                           </span>
                         </button>
                         {wlCount > 0 && (
-                          <span title={`${wlCount} en lista de espera`}
-                            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-yellow-400 text-black text-[10px] font-black flex items-center justify-center px-1 border border-black shadow">
-                            ⏳{wlCount}
-                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); abrirWaitlistModal(c, t); }}
+                            title={`${wlCount} en lista de espera — tocá para ver`}
+                            className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-ball text-courtdark text-[11px] font-black flex items-center justify-center border-2 border-black shadow-lg active:scale-90 hover:scale-110 transition z-10"
+                            style={{ boxShadow: '0 0 12px rgba(184,255,61,0.7), 0 0 4px rgba(184,255,61,1)' }}>
+                            🎾{wlCount}
+                          </button>
                         )}
                       </td>
                     );
@@ -441,10 +457,13 @@ export default function Calendario() {
                         {past ? '' : '+'}
                       </button>
                       {wlCount > 0 && (
-                        <span title={`${wlCount} en lista de espera`}
-                          className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-yellow-400 text-black text-[10px] font-black flex items-center justify-center px-1 border border-black shadow">
-                          ⏳{wlCount}
-                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); abrirWaitlistModal(c, t); }}
+                          title={`${wlCount} en lista de espera — tocá para ver`}
+                          className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-ball text-courtdark text-[11px] font-black flex items-center justify-center border-2 border-black shadow-lg active:scale-90 hover:scale-110 transition z-10"
+                          style={{ boxShadow: '0 0 12px rgba(184,255,61,0.7), 0 0 4px rgba(184,255,61,1)' }}>
+                          🎾{wlCount}
+                        </button>
                       )}
                     </td>
                   );
@@ -682,6 +701,90 @@ export default function Calendario() {
                   ⛔ Bloquear este horario
                 </button>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: ver waitlist de un slot al tocar el botón verde 🎾 */}
+      {waitlistModal && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex items-end lg:items-center overflow-y-auto"
+          onClick={() => setWaitlistModal(null)}>
+          <div className="bg-[#0B0F16] border-2 border-ball/50 rounded-t-3xl lg:rounded-2xl w-full max-w-lg mx-auto p-5 pb-10"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-ball text-xs font-black uppercase">🎾 Lista de espera</p>
+                <p className="font-display font-black text-lg mt-1">{waitlistModal.wl.length} jugador{waitlistModal.wl.length !== 1 ? 'es' : ''} esperando</p>
+                <p className="text-white/60 text-sm">
+                  {waitlistModal.court?.name} · {waitlistModal.starts.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} hs
+                </p>
+              </div>
+              <button onClick={() => setWaitlistModal(null)}
+                className="w-9 h-9 rounded-full bg-white/10 text-white font-bold shrink-0">✕</button>
+            </div>
+
+            {waitlistModal.wl.length === 0 ? (
+              <p className="text-white/50 text-center py-6 mt-3">No hay nadie en espera ahora.</p>
+            ) : (
+              <ul className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto">
+                {waitlistModal.wl.map((w: any, i: number) => {
+                  const p = w.profile;
+                  const days = Math.floor((Date.now() - new Date(w.created_at).getTime()) / (1000 * 60 * 60 * 24));
+                  const whenText = waitlistModal.starts.toLocaleString('es-AR', {
+                    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+                  });
+                  const daysText = days === 0 ? 'hoy'
+                    : days === 1 ? 'ayer'
+                    : `hace ${days} días`;
+                  const msg =
+                    `¡Hola ${p?.first_name || ''}! Se liberó la cancha ${waitlistModal.court?.name} el ${whenText} hs y notamos que estás en lista de espera desde ${daysText}. ¿Querés tomar el turno?\n\n` +
+                    `Respondenos a la brevedad para poder asignártela.\n\n` +
+                    `Muchas gracias,\n${cx?.name ?? 'Complejo'}`;
+                  const wa = p?.phone
+                    ? `https://wa.me/${p.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+                    : null;
+                  return (
+                    <li key={w.id} className="bg-white/5 rounded-xl p-3">
+                      <div className="flex items-center gap-3">
+                        <span className="font-display font-black text-ball w-6 text-center">{i + 1}</span>
+                        {p?.avatar_url
+                          ? <img src={p.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-ball/40" />
+                          : <span className="w-11 h-11 rounded-full bg-grafito flex items-center justify-center font-black">
+                              {p?.first_name?.[0] ?? '?'}
+                            </span>}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{p?.first_name} {p?.last_name}</p>
+                          <p className="text-white/50 text-xs truncate">
+                            @{p?.username ?? 'sin_usuario'}
+                          </p>
+                          <p className="text-white/40 text-[11px]">
+                            En espera {daysText}{p?.phone ? ` · 📱 ${p.phone}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {p?.username ? (
+                          <a href={`/u/${p.username}`} target="_blank"
+                            className="py-2 rounded-lg bg-ball/10 border border-ball/40 text-ball text-xs font-black text-center active:scale-95">
+                            👤 Ver perfil
+                          </a>
+                        ) : (
+                          <span className="py-2 rounded-lg bg-white/5 text-white/30 text-xs text-center">Sin perfil</span>
+                        )}
+                        {wa ? (
+                          <a href={wa} target="_blank" rel="noopener"
+                            className="py-2 rounded-lg bg-[#25D366] text-white text-xs font-black text-center active:scale-95">
+                            💬 WhatsApp
+                          </a>
+                        ) : (
+                          <span className="py-2 rounded-lg bg-white/5 text-white/30 text-xs text-center">Sin celular</span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
         </div>
