@@ -14,6 +14,7 @@ export default function Calendario() {
   const [cx, setCx] = useState<any>(null);
   const [dayOffset, setDayOffset] = useState(0);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [waitlistCounts, setWaitlistCounts] = useState<Map<string, number>>(new Map());
   const [sel, setSel] = useState<any>(null);           // celda seleccionada
   const [form, setForm] = useState({
     name: '', phone: '',
@@ -78,6 +79,19 @@ export default function Calendario() {
       .neq('status', 'cancelada');
     if (error) console.error('Error cargando bookings:', error);
     setBookings(data ?? []);
+
+    // Waitlist del día — para pintar badges en las celdas
+    const { data: wl } = await supabase.from('booking_waitlist')
+      .select('court_id, starts_at')
+      .in('court_id', complex.courts.map((c: any) => c.id))
+      .gte('starts_at', day.toISOString()).lt('starts_at', to.toISOString())
+      .is('fulfilled_at', null);
+    const counts = new Map<string, number>();
+    (wl ?? []).forEach((w: any) => {
+      const key = `${w.court_id}|${w.starts_at}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    setWaitlistCounts(counts);
   }
   useEffect(() => { if (cx || dayOffset >= 0) load(); }, [dayOffset]); // eslint-disable-line
 
@@ -390,12 +404,13 @@ export default function Calendario() {
                 </td>
                 {cx.courts.map((c: any) => {
                   const b = cellBooking(c.id, t);
+                  const wlCount = waitlistCounts.get(`${c.id}|${t.toISOString()}`) ?? 0;
                   if (b) {
                     const name = b.type === 'block' ? 'Bloqueado'
                       : b.player ? `${b.player.first_name} ${b.player.last_name?.[0] ?? ''}.`
                       : b.guest_name ?? 'Manual';
                     return (
-                      <td key={c.id}>
+                      <td key={c.id} className="relative">
                         <button onClick={() => setSel({ court: c, t, booking: b })}
                           className={`w-full rounded-lg px-1.5 py-1.5 text-left ${b.type === 'block' ? 'bg-white/10' : 'bg-grafito'}`}>
                           <span className="flex items-center gap-1.5">
@@ -408,17 +423,29 @@ export default function Calendario() {
                             )}
                           </span>
                         </button>
+                        {wlCount > 0 && (
+                          <span title={`${wlCount} en lista de espera`}
+                            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-yellow-400 text-black text-[10px] font-black flex items-center justify-center px-1 border border-black shadow">
+                            ⏳{wlCount}
+                          </span>
+                        )}
                       </td>
                     );
                   }
                   const past = t < new Date();
                   return (
-                    <td key={c.id}>
+                    <td key={c.id} className="relative">
                       <button disabled={past} onClick={() => setSel({ court: c, t, booking: null })}
                         className={`w-full rounded-lg py-2.5 text-xs font-bold border border-dashed
                           ${past ? 'border-white/5 text-white/10' : 'border-white/20 text-white/40 active:bg-white/10'}`}>
                         {past ? '' : '+'}
                       </button>
+                      {wlCount > 0 && (
+                        <span title={`${wlCount} en lista de espera`}
+                          className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-yellow-400 text-black text-[10px] font-black flex items-center justify-center px-1 border border-black shadow">
+                          ⏳{wlCount}
+                        </span>
+                      )}
                     </td>
                   );
                 })}

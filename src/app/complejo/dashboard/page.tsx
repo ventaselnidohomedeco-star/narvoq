@@ -111,21 +111,15 @@ export default function DashboardComplejo() {
     const cumplimiento = (confirmadas + canceladas) > 0
       ? Math.round(confirmadas / (confirmadas + canceladas) * 100) : 100;
 
-    // Waitlist total del período — todos los que están esperando
-    const bookingIds = reservas.map((b: any) => (b as any).id).filter(Boolean);
+    // Waitlist total: gente esperando por turnos futuros en las canchas del complejo
     let waitlistTotal = 0;
     if (courtIds.length > 0) {
-      const { data: matchesWithBk } = await supabase.from('matches')
-        .select('id, booking:bookings!inner(court_id, starts_at)')
-        .in('booking.court_id', courtIds)
-        .gte('booking.starts_at', new Date().toISOString());
-      const activeMatchIds = (matchesWithBk ?? []).map((m: any) => m.id);
-      if (activeMatchIds.length > 0) {
-        const { count } = await supabase.from('waitlist')
-          .select('*', { count: 'exact', head: true })
-          .in('match_id', activeMatchIds);
-        waitlistTotal = count ?? 0;
-      }
+      const { count } = await supabase.from('booking_waitlist')
+        .select('*', { count: 'exact', head: true })
+        .in('court_id', courtIds)
+        .is('fulfilled_at', null)
+        .gte('starts_at', new Date().toISOString());
+      waitlistTotal = count ?? 0;
     }
 
     setStats({
@@ -353,19 +347,19 @@ export default function DashboardComplejo() {
         </div>
         <button onClick={async () => {
           setWaitlistShow(true);
-          // Cargar detalle de waitlist cuando se abre el drawer
           const courtIds = cx.courts.filter((c: any) => c.active).map((c: any) => c.id);
-          const { data: matchesWithBk } = await supabase.from('matches')
-            .select('id, booking:bookings!inner(court_id, starts_at, court:courts(name))')
-            .in('booking.court_id', courtIds)
-            .gte('booking.starts_at', new Date().toISOString());
-          const matchIds = (matchesWithBk ?? []).map((m: any) => m.id);
-          if (matchIds.length === 0) { setWaitlistList([]); return; }
-          const { data: wl } = await supabase.from('waitlist')
-            .select('created_at, match_id, profile:profiles!player_id(first_name, last_name, avatar_url, phone)')
-            .in('match_id', matchIds).order('created_at');
-          const byMatch = new Map((matchesWithBk ?? []).map((m: any) => [m.id, m.booking]));
-          setWaitlistList((wl ?? []).map((w: any) => ({ ...w, booking: byMatch.get(w.match_id) })));
+          const { data: wl } = await supabase.from('booking_waitlist')
+            .select(`id, created_at, court_id, starts_at,
+              court:courts(name),
+              profile:profiles!player_id(first_name, last_name, avatar_url, phone)`)
+            .in('court_id', courtIds)
+            .is('fulfilled_at', null)
+            .gte('starts_at', new Date().toISOString())
+            .order('starts_at');
+          setWaitlistList((wl ?? []).map((w: any) => ({
+            ...w,
+            booking: { starts_at: w.starts_at, court: w.court }
+          })));
         }}
           className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-3 text-center active:scale-95 transition">
           <p className="font-display font-black text-lg text-purple-300">
