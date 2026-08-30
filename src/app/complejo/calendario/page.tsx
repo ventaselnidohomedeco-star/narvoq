@@ -90,25 +90,23 @@ export default function Calendario() {
     })();
   }, [sel?.booking?.id]);
 
-  // Al abrir un slot LIBRE, cargar quiénes están en lista de espera para ese slot
+  // Al abrir un slot, cargar quiénes están en lista de espera para ese slot exacto
   useEffect(() => {
     (async () => {
-      if (!sel || sel.booking) { setSelWaitlist([]); return; }
-      // Buscar matches con booking en ese slot que tengan waitlist
+      if (!sel) { setSelWaitlist([]); return; }
       const starts = sel.t.toISOString();
-      const { data: matches } = await supabase.from('matches')
-        .select('id, booking:bookings!inner(id, court_id, starts_at)')
-        .eq('booking.court_id', sel.court.id)
-        .eq('booking.starts_at', starts);
-      const matchIds = (matches ?? []).map((m: any) => m.id);
-      if (matchIds.length === 0) { setSelWaitlist([]); return; }
-      const { data: wl } = await supabase.from('waitlist')
-        .select('player_id, created_at, profile:profiles!player_id(first_name, last_name, avatar_url, phone)')
-        .in('match_id', matchIds)
+      const { data: wl } = await supabase.from('booking_waitlist')
+        .select('id, player_id, created_at, notified_at, fulfilled_at, profile:profiles!player_id(first_name, last_name, avatar_url, phone)')
+        .eq('court_id', sel.court.id)
+        .eq('starts_at', starts)
+        .is('fulfilled_at', null)
         .order('created_at');
       setSelWaitlist(wl ?? []);
     })();
   }, [sel]);
+
+  // Modal post-cancelación con lista de espera + WA
+  const [postCancel, setPostCancel] = useState<null | { court: any; starts: Date; wl: any[] }>(null);
 
   async function cobrarRestante() {
     const monto = Number(cobro.monto.replace(',', '.'));
@@ -256,6 +254,18 @@ export default function Calendario() {
           body: `${court?.name ?? 'Cancha'} · ${when}. ¡Reservalo antes que otro!`,
           link: '/jugador/reservar'
         });
+      }
+
+      // Cargar TODA la lista de espera de ese slot para mostrar al complejo con WA pre-armado
+      const { data: allWL } = await supabase.from('booking_waitlist')
+        .select('id, player_id, created_at, profile:profiles!player_id(first_name, last_name, avatar_url, phone)')
+        .eq('court_id', b.court_id)
+        .eq('starts_at', b.starts_at)
+        .is('fulfilled_at', null)
+        .order('created_at');
+      if ((allWL ?? []).length > 0) {
+        const court = cx?.courts?.find((c: any) => c.id === b.court_id);
+        setPostCancel({ court, starts: new Date(b.starts_at), wl: allWL ?? [] });
       }
     }
     setSel(null); load();
@@ -646,6 +656,78 @@ export default function Calendario() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal post-cancelación: mostrar lista de espera + WA con mensaje pre-armado */}
+      {postCancel && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex items-end lg:items-center overflow-y-auto"
+          onClick={() => setPostCancel(null)}>
+          <div className="bg-[#0B0F16] border-2 border-yellow-500/40 rounded-t-3xl lg:rounded-2xl w-full max-w-lg mx-auto p-5 pb-10"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-yellow-300 text-xs font-black uppercase">💡 Reserva cancelada</p>
+                <p className="font-display font-black text-lg mt-1">Tenés {postCancel.wl.length} en lista de espera</p>
+                <p className="text-white/60 text-sm mt-1">
+                  {postCancel.court?.name} · {postCancel.starts.toLocaleString('es-AR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} hs
+                </p>
+              </div>
+              <button onClick={() => setPostCancel(null)}
+                className="w-9 h-9 rounded-full bg-white/10 text-white font-bold shrink-0">✕</button>
+            </div>
+
+            <p className="text-white/50 text-xs mt-3">
+              Contactá a los jugadores en orden — el primero en anotarse tiene prioridad. Tocá el botón de WhatsApp para enviar el mensaje pre-armado.
+            </p>
+
+            <ul className="mt-3 space-y-2 max-h-[55vh] overflow-y-auto">
+              {postCancel.wl.map((w: any, i: number) => {
+                const p = w.profile;
+                const inWaitSince = new Date(w.created_at);
+                const days = Math.floor((Date.now() - inWaitSince.getTime()) / (1000 * 60 * 60 * 24));
+                const whenText = postCancel.starts.toLocaleString('es-AR', {
+                  weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+                });
+                const daysText = days === 0 ? 'hoy'
+                  : days === 1 ? 'ayer'
+                  : `hace ${days} días`;
+                const msg =
+                  `¡Hola ${p?.first_name || ''}! Se liberó la cancha ${postCancel.court?.name} el ${whenText} hs y notamos que estás en lista de espera desde ${daysText}. ¿Querés tomar el turno?\n\n` +
+                  `Respondenos a la brevedad para poder asignártela.\n\n` +
+                  `Muchas gracias,\n${cx?.name ?? 'Complejo'}`;
+                const wa = p?.phone
+                  ? `https://wa.me/${p.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+                  : null;
+                return (
+                  <li key={w.id} className="bg-white/5 rounded-xl p-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-display font-black text-yellow-300 w-6 text-center">{i + 1}</span>
+                      {p?.avatar_url
+                        ? <img src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        : <span className="w-10 h-10 rounded-full bg-grafito flex items-center justify-center font-black">
+                            {p?.first_name?.[0] ?? '?'}
+                          </span>}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{p?.first_name} {p?.last_name}</p>
+                        <p className="text-white/40 text-[11px]">
+                          En espera {daysText} {p?.phone ? `· 📱 ${p.phone}` : '· sin celular'}
+                        </p>
+                      </div>
+                      {wa ? (
+                        <a href={wa} target="_blank" rel="noopener"
+                          className="bg-[#25D366] text-white text-xs font-black px-3 py-2 rounded-lg active:scale-95 shrink-0">
+                          💬 Enviar WA
+                        </a>
+                      ) : (
+                        <span className="text-white/30 text-xs font-bold shrink-0">Sin celular</span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </div>
       )}
