@@ -105,10 +105,32 @@ export default function PushEnableButton({ compact = false }: { compact?: boolea
 
   if (status === 'subscribed') {
     return (
-      <button onClick={desactivar} disabled={busy}
-        className={`rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 font-bold ${compact ? 'py-2 px-3 text-xs' : 'py-3 px-4 text-sm w-full'} disabled:opacity-50`}>
-        {busy ? 'Desactivando…' : '🔔 Notificaciones activas · Desactivar'}
-      </button>
+      <div className="space-y-2">
+        <button onClick={desactivar} disabled={busy}
+          className={`rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 font-bold ${compact ? 'py-2 px-3 text-xs' : 'py-3 px-4 text-sm w-full'} disabled:opacity-50`}>
+          {busy ? 'Desactivando…' : '🔔 Notificaciones activas · Desactivar'}
+        </button>
+        {!compact && (
+          <details className="rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-xs">
+            <summary className="cursor-pointer p-3 font-bold text-yellow-300">
+              🔊 ¿Te llegan sin sonido? Tocá acá
+            </summary>
+            <div className="px-3 pb-3 text-white/70 space-y-1">
+              <p>Algunos celulares (Samsung, Xiaomi, algunos con MIUI/OneUI) llegan silenciados por defecto. Fix en 30 seg:</p>
+              <ol className="list-decimal ml-4 space-y-0.5 mt-1">
+                <li>Ajustes del celu → <b>Aplicaciones</b></li>
+                <li>Buscá <b>NarvoQ</b> (o <b>Chrome</b> si no instalaste la app al home)</li>
+                <li>Tocá <b>Notificaciones</b></li>
+                <li>Activá <b>Sonido</b> y poné <b>Importancia: Alta / Urgente</b></li>
+                <li>Chequeá que <b>Modo No Molestar</b> esté apagado</li>
+              </ol>
+              <p className="mt-2 text-white/50">
+                Si instalaste NarvoQ al home (☰ → Instalar app), el sonido funciona mejor porque tiene su propio canal.
+              </p>
+            </div>
+          </details>
+        )}
+      </div>
     );
   }
 
