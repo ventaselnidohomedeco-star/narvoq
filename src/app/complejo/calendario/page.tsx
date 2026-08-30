@@ -15,7 +15,14 @@ export default function Calendario() {
   const [dayOffset, setDayOffset] = useState(0);
   const [bookings, setBookings] = useState<any[]>([]);
   const [sel, setSel] = useState<any>(null);           // celda seleccionada
-  const [form, setForm] = useState({ name: '', phone: '' });
+  const [form, setForm] = useState({
+    name: '', phone: '',
+    repeat: 1 as 1 | 2 | 3 | 4,            // 1 = solo hoy, 2..4 = ese día + N-1 semanas
+    payKind: 'sin_pago' as 'sin_pago' | 'sena' | 'total',
+    payMethod: 'efectivo' as 'efectivo' | 'transferencia' | 'mp',
+    payAmount: ''                            // vacío = usa deposit_amount de la cancha
+  });
+  const [selWaitlist, setSelWaitlist] = useState<any[]>([]); // gente en espera del turno seleccionado
   const [cobro, setCobro] = useState<{ show: boolean; monto: string; metodo: 'efectivo' | 'transferencia' }>({ show: false, monto: '', metodo: 'efectivo' });
   const [selPaid, setSelPaid] = useState<number>(0);   // ya cobrado de la reserva seleccionada
 
@@ -83,6 +90,26 @@ export default function Calendario() {
     })();
   }, [sel?.booking?.id]);
 
+  // Al abrir un slot LIBRE, cargar quiénes están en lista de espera para ese slot
+  useEffect(() => {
+    (async () => {
+      if (!sel || sel.booking) { setSelWaitlist([]); return; }
+      // Buscar matches con booking en ese slot que tengan waitlist
+      const starts = sel.t.toISOString();
+      const { data: matches } = await supabase.from('matches')
+        .select('id, booking:bookings!inner(id, court_id, starts_at)')
+        .eq('booking.court_id', sel.court.id)
+        .eq('booking.starts_at', starts);
+      const matchIds = (matches ?? []).map((m: any) => m.id);
+      if (matchIds.length === 0) { setSelWaitlist([]); return; }
+      const { data: wl } = await supabase.from('waitlist')
+        .select('player_id, created_at, profile:profiles!player_id(first_name, last_name, avatar_url, phone)')
+        .in('match_id', matchIds)
+        .order('created_at');
+      setSelWaitlist(wl ?? []);
+    })();
+  }, [sel]);
+
   async function cobrarRestante() {
     const monto = Number(cobro.monto.replace(',', '.'));
     if (!monto || monto <= 0) return alert('Ingresá un monto válido');
@@ -119,20 +146,63 @@ export default function Calendario() {
   }
 
   async function accion(tipo: 'manual' | 'block') {
-    const starts = sel.t; const ends = new Date(starts.getTime() + cx.slot_minutes * 60000);
-    const { error } = await supabase.from('bookings').insert({
-      court_id: sel.court.id,
-      type: tipo === 'block' ? 'block' : 'reserva',
-      status: 'confirmada',
-      payment_status: tipo === 'manual' ? 'pagado' : 'no_aplica',
-      starts_at: starts.toISOString(), ends_at: ends.toISOString(),
-      price: tipo === 'manual' ? sel.court.price_per_slot : null,
-      guest_name: tipo === 'manual' ? (form.name || 'Reserva manual') : null,
-      guest_phone: tipo === 'manual' ? form.phone : null,
-      notes: tipo === 'block' ? 'Bloqueo' : null
-    });
-    if (error) alert('No se pudo guardar. ¿Ejecutaste update-02-panel.sql en Supabase?');
-    setSel(null); setForm({ name: '', phone: '' }); load();
+    const startsBase = sel.t;
+    const durationMs = cx.slot_minutes * 60000;
+    const priceTotal = Number(sel.court.price_per_slot ?? 0);
+    const deposit = sel.court.deposit_amount != null ? Number(sel.court.deposit_amount) : priceTotal;
+    const cobrado = tipo === 'manual' && form.payKind !== 'sin_pago'
+      ? (form.payAmount ? Number(form.payAmount) : (form.payKind === 'total' ? priceTotal : deposit))
+      : 0;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const semanas = tipo === 'block' ? 1 : Math.max(1, Math.min(4, Number(form.repeat)));
+
+    // Bloque de reservas — 1 por semana durante N semanas consecutivas (mismo día/horario/cancha)
+    const rows: any[] = [];
+    for (let w = 0; w < semanas; w++) {
+      const starts = new Date(startsBase.getTime() + w * 7 * 24 * 3600 * 1000);
+      const ends = new Date(starts.getTime() + durationMs);
+      rows.push({
+        court_id: sel.court.id,
+        type: tipo === 'block' ? 'block' : 'reserva',
+        status: 'confirmada',
+        payment_status: tipo === 'manual'
+          ? (form.payKind === 'total' ? 'pagado' : form.payKind === 'sena' ? 'pagado' : 'pendiente')
+          : 'no_aplica',
+        starts_at: starts.toISOString(),
+        ends_at: ends.toISOString(),
+        price: tipo === 'manual' ? priceTotal : null,
+        guest_name: tipo === 'manual' ? (form.name || 'Reserva manual') : null,
+        guest_phone: tipo === 'manual' ? form.phone : null,
+        notes: tipo === 'block' ? 'Bloqueo' : null
+      });
+    }
+
+    const { data: inserted, error } = await supabase.from('bookings').insert(rows).select();
+    if (error) {
+      alert('No se pudo guardar: ' + error.message);
+      return;
+    }
+
+    // Registrar pago (si aplica) para cada reserva creada
+    if (tipo === 'manual' && cobrado > 0 && inserted) {
+      const kind = form.payKind === 'total' ? 'seña_paid' : 'seña_paid';
+      const ledgerRows = inserted.map((b: any) => ({
+        player_id: null,   // manual, sin jugador registrado
+        complex_id: cx.id,
+        kind,
+        amount: cobrado,
+        method: form.payMethod,
+        description: `Reserva manual · ${form.name || 'Sin nombre'} · ${form.payKind === 'total' ? 'turno completo' : 'seña'}`,
+        ref_booking_id: b.id,
+        created_by: user!.id
+      }));
+      await supabase.from('player_ledger').insert(ledgerRows);
+    }
+
+    setSel(null);
+    setForm({ name: '', phone: '', repeat: 1, payKind: 'sin_pago', payMethod: 'efectivo', payAmount: '' });
+    load();
   }
 
   async function cancelar(b: any) {
@@ -478,12 +548,98 @@ export default function Calendario() {
               </div>
             ) : (
               <div className="mt-4 space-y-3">
-                <p className="text-white/70 text-sm font-semibold">Cargar reserva manual (WhatsApp / mostrador):</p>
+                {/* Lista de espera existente (si hay) */}
+                {selWaitlist.length > 0 && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-2xl p-3">
+                    <p className="text-yellow-300 font-black text-sm">
+                      ⏳ {selWaitlist.length} jugador{selWaitlist.length > 1 ? 'es' : ''} en lista de espera
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      {selWaitlist.map((w: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          {w.profile?.avatar_url
+                            ? <img src={w.profile.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+                            : <span className="w-6 h-6 rounded-full bg-grafito flex items-center justify-center text-xs font-black">
+                                {w.profile?.first_name?.[0] ?? '?'}
+                              </span>}
+                          <span className="flex-1 truncate">
+                            {w.profile?.first_name} {w.profile?.last_name}
+                          </span>
+                          {w.profile?.phone && (
+                            <a href={`https://wa.me/${w.profile.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hola, nos contactamos de ' + (cx?.name ?? '') + ' porque hay un lugar disponible!')}`}
+                              target="_blank" rel="noopener"
+                              className="text-[#25D366] text-xs font-black">
+                              💬
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-white/70 text-sm font-semibold">Cargar reserva manual:</p>
                 <input className="input" placeholder="Nombre de quien reserva"
                   value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                 <input className="input" placeholder="Teléfono (opcional)" inputMode="tel"
                   value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                <button onClick={() => accion('manual')} className="btn-ball w-full">Guardar reserva</button>
+
+                {/* Repetir por N semanas */}
+                <div>
+                  <label className="label text-white/60 text-xs">🔁 Repetir semanalmente</label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {([1, 2, 3, 4] as const).map(n => (
+                      <button key={n} onClick={() => setForm({ ...form, repeat: n })}
+                        className={`py-2 rounded-lg text-sm font-black border ${form.repeat === n ? 'bg-ball text-courtdark border-ball' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                        {n === 1 ? 'Solo hoy' : `${n} sem.`}
+                      </button>
+                    ))}
+                  </div>
+                  {form.repeat > 1 && (
+                    <p className="text-white/40 text-[11px] mt-1">
+                      Se creará {form.repeat} reservas: hoy + los próximos {form.repeat - 1} {form.repeat - 1 === 1 ? 'lunes/martes/etc' : 'mismos días'} de las siguientes semanas.
+                    </p>
+                  )}
+                </div>
+
+                {/* Pago */}
+                <div>
+                  <label className="label text-white/60 text-xs">💰 Pago</label>
+                  <div className="grid grid-cols-3 gap-1">
+                    <button onClick={() => setForm({ ...form, payKind: 'sin_pago' })}
+                      className={`py-2 rounded-lg text-xs font-black border ${form.payKind === 'sin_pago' ? 'bg-ball text-courtdark border-ball' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                      Sin pago
+                    </button>
+                    <button onClick={() => setForm({ ...form, payKind: 'sena' })}
+                      className={`py-2 rounded-lg text-xs font-black border ${form.payKind === 'sena' ? 'bg-ball text-courtdark border-ball' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                      Seña
+                    </button>
+                    <button onClick={() => setForm({ ...form, payKind: 'total' })}
+                      className={`py-2 rounded-lg text-xs font-black border ${form.payKind === 'total' ? 'bg-ball text-courtdark border-ball' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                      Total
+                    </button>
+                  </div>
+                  {form.payKind !== 'sin_pago' && (
+                    <>
+                      <div className="grid grid-cols-3 gap-1 mt-2">
+                        {(['efectivo', 'transferencia', 'mp'] as const).map(m => (
+                          <button key={m} onClick={() => setForm({ ...form, payMethod: m })}
+                            className={`py-2 rounded-lg text-xs font-black border ${form.payMethod === m ? 'bg-ball/20 border-ball/60 text-ball' : 'bg-white/5 border-white/10 text-white/60'}`}>
+                            {m === 'efectivo' ? '💵 Efvo' : m === 'transferencia' ? '🏦 Transf' : '💳 MP'}
+                          </button>
+                        ))}
+                      </div>
+                      <input type="number" inputMode="decimal" className="input mt-2"
+                        placeholder={`Monto${form.payKind === 'sena' && sel.court.deposit_amount ? ` (default $${sel.court.deposit_amount})` : ''}`}
+                        value={form.payAmount}
+                        onChange={e => setForm({ ...form, payAmount: e.target.value })} />
+                    </>
+                  )}
+                </div>
+
+                <button onClick={() => accion('manual')} className="btn-ball w-full">
+                  Guardar reserva{form.repeat > 1 ? ` (x${form.repeat})` : ''}
+                </button>
                 <button onClick={() => accion('block')}
                   className="w-full py-3 rounded-xl border border-white/20 font-semibold text-white/70">
                   ⛔ Bloquear este horario

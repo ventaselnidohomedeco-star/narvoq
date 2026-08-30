@@ -56,7 +56,15 @@ export default function DashboardComplejo() {
   const [reservasPendientes, setReservasPendientes] = useState<any[]>([]);
   const [sociosPendientes, setSociosPendientes] = useState<any[]>([]);
   const [top, setTop] = useState<any[]>([]);
-  const [stats, setStats] = useState({ turnos: 0, libres: 0, ocupacion: 0, plata: 0 });
+  const [stats, setStats] = useState({
+    turnos: 0, libres: 0, ocupacion: 0, plata: 0,
+    ingresado: 0,       // ya cobrado por MP/efectivo/transferencia
+    porCobrar: 0,       // pendiente (precio total - lo cobrado)
+    waitlistTotal: 0,   // gente esperando por turnos ocupados
+    cumplimiento: 0     // % de reservas cumplidas (no canceladas)
+  });
+  const [waitlistShow, setWaitlistShow] = useState(false);
+  const [waitlistList, setWaitlistList] = useState<any[]>([]);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -82,11 +90,53 @@ export default function DashboardComplejo() {
     const slotsDia = Math.max(1, Math.floor(horasDia * 60 / complex.slot_minutes));
     const totalSlots = slotsDia * courtIds.length * dias;
     const ocupados = (periodBks ?? []).length; // reservas + bloqueos
+    const plataTotal = reservas.reduce((a, b) => a + Number(b.price ?? 0), 0);
+
+    // Ingresos reales del período (ledger)
+    const { data: ledger } = await supabase.from('player_ledger')
+      .select('amount, kind')
+      .eq('complex_id', complex.id)
+      .in('kind', ['seña_paid', 'restante_paid'])
+      .gte('created_at', desde.toISOString());
+    const ingresado = (ledger ?? []).reduce((a: number, r: any) => a + Math.abs(Number(r.amount ?? 0)), 0);
+    const porCobrar = Math.max(0, plataTotal - ingresado);
+
+    // Cumplimiento: reservas confirmadas / (confirmadas + canceladas)
+    const { data: allBks } = await supabase.from('bookings')
+      .select('status')
+      .in('court_id', courtIds).eq('type', 'reserva')
+      .gte('starts_at', desde.toISOString()).lte('starts_at', new Date().toISOString());
+    const confirmadas = (allBks ?? []).filter((b: any) => b.status === 'confirmada' || b.status === 'completa' || b.status === 'jugada').length;
+    const canceladas = (allBks ?? []).filter((b: any) => b.status === 'cancelada').length;
+    const cumplimiento = (confirmadas + canceladas) > 0
+      ? Math.round(confirmadas / (confirmadas + canceladas) * 100) : 100;
+
+    // Waitlist total del período — todos los que están esperando
+    const bookingIds = reservas.map((b: any) => (b as any).id).filter(Boolean);
+    let waitlistTotal = 0;
+    if (courtIds.length > 0) {
+      const { data: matchesWithBk } = await supabase.from('matches')
+        .select('id, booking:bookings!inner(court_id, starts_at)')
+        .in('booking.court_id', courtIds)
+        .gte('booking.starts_at', new Date().toISOString());
+      const activeMatchIds = (matchesWithBk ?? []).map((m: any) => m.id);
+      if (activeMatchIds.length > 0) {
+        const { count } = await supabase.from('waitlist')
+          .select('*', { count: 'exact', head: true })
+          .in('match_id', activeMatchIds);
+        waitlistTotal = count ?? 0;
+      }
+    }
+
     setStats({
       turnos: reservas.length,
       libres: Math.max(0, totalSlots - ocupados),
       ocupacion: totalSlots ? Math.round(ocupados / totalSlots * 100) : 0,
-      plata: reservas.reduce((a, b) => a + Number(b.price ?? 0), 0)
+      plata: plataTotal,
+      ingresado,
+      porCobrar,
+      waitlistTotal,
+      cumplimiento
     });
 
     // ---- Top clientes del período ----
@@ -272,13 +322,13 @@ export default function DashboardComplejo() {
         ))}
       </div>
 
-      {/* Métricas del período */}
+      {/* Métricas del período — operativas */}
       <section className="mt-4 grid grid-cols-4 gap-2">
         {[
           { n: stats.turnos, l: 'Turnos' },
           { n: stats.libres, l: 'Libres' },
           { n: `${stats.ocupacion}%`, l: 'Ocupación' },
-          { n: `$${(stats.plata / 1000).toFixed(0)}k`, l: 'Estimado' }
+          { n: `${stats.cumplimiento}%`, l: 'Cumplim.' }
         ].map(s => (
           <div key={s.l} className="bg-white/5 rounded-2xl p-3 text-center">
             <p className="font-display font-black text-xl text-ball">{s.n}</p>
@@ -286,6 +336,94 @@ export default function DashboardComplejo() {
           </div>
         ))}
       </section>
+
+      {/* Métricas de dinero */}
+      <section className="mt-3 grid grid-cols-3 gap-2">
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3 text-center">
+          <p className="font-display font-black text-lg text-emerald-300">
+            ${stats.ingresado.toLocaleString('es-AR')}
+          </p>
+          <p className="text-white/60 text-[10px] font-bold uppercase">💰 Ingresado</p>
+        </div>
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-3 text-center">
+          <p className="font-display font-black text-lg text-yellow-300">
+            ${stats.porCobrar.toLocaleString('es-AR')}
+          </p>
+          <p className="text-white/60 text-[10px] font-bold uppercase">⏳ Por cobrar</p>
+        </div>
+        <button onClick={async () => {
+          setWaitlistShow(true);
+          // Cargar detalle de waitlist cuando se abre el drawer
+          const courtIds = cx.courts.filter((c: any) => c.active).map((c: any) => c.id);
+          const { data: matchesWithBk } = await supabase.from('matches')
+            .select('id, booking:bookings!inner(court_id, starts_at, court:courts(name))')
+            .in('booking.court_id', courtIds)
+            .gte('booking.starts_at', new Date().toISOString());
+          const matchIds = (matchesWithBk ?? []).map((m: any) => m.id);
+          if (matchIds.length === 0) { setWaitlistList([]); return; }
+          const { data: wl } = await supabase.from('waitlist')
+            .select('created_at, match_id, profile:profiles!player_id(first_name, last_name, avatar_url, phone)')
+            .in('match_id', matchIds).order('created_at');
+          const byMatch = new Map((matchesWithBk ?? []).map((m: any) => [m.id, m.booking]));
+          setWaitlistList((wl ?? []).map((w: any) => ({ ...w, booking: byMatch.get(w.match_id) })));
+        }}
+          className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-3 text-center active:scale-95 transition">
+          <p className="font-display font-black text-lg text-purple-300">
+            {stats.waitlistTotal}
+          </p>
+          <p className="text-white/60 text-[10px] font-bold uppercase">⏱ En espera</p>
+        </button>
+      </section>
+
+      {/* Drawer: lista de gente en espera */}
+      {waitlistShow && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-end lg:items-center overflow-y-auto"
+          onClick={() => setWaitlistShow(false)}>
+          <div className="bg-[#0B0F16] border-2 border-white/15 rounded-t-3xl lg:rounded-2xl w-full max-w-lg mx-auto p-5 pb-10"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="font-display font-black text-lg">⏱ Lista de espera</p>
+              <button onClick={() => setWaitlistShow(false)}
+                className="w-9 h-9 rounded-full bg-white/10 text-white font-bold">✕</button>
+            </div>
+            {waitlistList.length === 0 ? (
+              <p className="text-white/50 text-sm mt-4 text-center py-6">Nadie está en espera ahora.</p>
+            ) : (
+              <ul className="mt-3 space-y-2 max-h-[60vh] overflow-y-auto">
+                {waitlistList.map((w: any, i: number) => {
+                  const when = w.booking?.starts_at ? new Date(w.booking.starts_at) : null;
+                  const wa = w.profile?.phone
+                    ? `https://wa.me/${w.profile.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hola, nos contactamos de ' + (cx?.name ?? '') + ' porque hay un lugar disponible en el turno del ' + (when?.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) ?? '') + '!')}`
+                    : null;
+                  return (
+                    <li key={i} className="bg-white/5 rounded-xl p-3 flex items-center gap-3">
+                      {w.profile?.avatar_url
+                        ? <img src={w.profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        : <span className="w-10 h-10 rounded-full bg-grafito flex items-center justify-center font-black">
+                            {w.profile?.first_name?.[0] ?? '?'}
+                          </span>}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">
+                          {w.profile?.first_name} {w.profile?.last_name}
+                        </p>
+                        <p className="text-white/50 text-xs truncate">
+                          {w.booking?.court?.name} · {when?.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} hs
+                        </p>
+                      </div>
+                      {wa && (
+                        <a href={wa} target="_blank" rel="noopener"
+                          className="bg-[#25D366] text-white text-xs font-black px-3 py-2 rounded-lg">
+                          💬 WA
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Chart de ocupación */}
       {(stats.turnos > 0 || stats.libres > 0) && (
