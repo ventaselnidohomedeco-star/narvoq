@@ -42,15 +42,16 @@ export async function GET(req: NextRequest) {
   const results: any[] = [];
 
   for (const cx of cxs ?? []) {
-    const full = [cx.address, cx.locality, cx.province, 'Argentina'].filter(Boolean).join(', ');
-    const coords = await geocodeAddress(full);
+    const coords = await geocodeAddress({
+      address: cx.address, locality: cx.locality, province: cx.province
+    });
     if (coords) {
       await admin.from('complexes').update({ lat: coords.lat, lng: coords.lng }).eq('id', cx.id);
       updated++;
       results.push({ id: cx.id, name: cx.name, status: 'ok', ...coords });
     } else {
       failed++;
-      results.push({ id: cx.id, name: cx.name, status: 'fail', address: full });
+      results.push({ id: cx.id, name: cx.name, status: 'fail' });
     }
     // Nominatim usage policy: 1 req/sec
     await new Promise(r => setTimeout(r, 1100));

@@ -27,28 +27,47 @@ export function distanceKm(a: Coords, b: Coords): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** Geocodificar dirección. Usa proxy `/api/geocode` en cliente, Nominatim directo en server. */
-export async function geocodeAddress(address: string): Promise<Coords | null> {
-  if (!address) return null;
-  // Server-side: llamar Nominatim directo (evita el ciclo)
-  if (typeof window === 'undefined') {
+/** Geocodifica con fallback: dirección exacta → localidad+prov → localidad sola.
+ *  Casi nunca falla si la localidad existe. */
+export async function geocodeAddress(parts: {
+  address?: string; locality?: string; province?: string;
+}): Promise<Coords | null> {
+  if (!parts.locality) return null;
+  const qs = new URLSearchParams();
+  if (parts.address) qs.set('address', parts.address);
+  if (parts.locality) qs.set('locality', parts.locality);
+  if (parts.province) qs.set('province', parts.province);
+
+  // Client-side
+  if (typeof window !== 'undefined') {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
+      const res = await fetch(`/api/geocode?${qs.toString()}`);
+      if (!res.ok) return null;
+      const j = await res.json();
+      return j.lat && j.lng ? { lat: j.lat, lng: j.lng } : null;
+    } catch { return null; }
+  }
+
+  // Server-side: llamar Nominatim directo con fallback
+  const attempts: string[] = [];
+  if (parts.address && parts.locality && parts.province)
+    attempts.push(`${parts.address}, ${parts.locality}, ${parts.province}, Argentina`);
+  if (parts.locality && parts.province)
+    attempts.push(`${parts.locality}, ${parts.province}, Argentina`);
+  if (parts.locality)
+    attempts.push(`${parts.locality}, Argentina`);
+
+  for (const q of attempts) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
       const res = await fetch(url, {
         headers: { 'User-Agent': 'NarvoQ/1.0 (contacto@narvoq.com.ar)', 'Accept-Language': 'es' }
       });
-      if (!res.ok) return null;
+      if (!res.ok) continue;
       const arr = await res.json();
-      if (!arr || arr.length === 0) return null;
-      return { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
-    } catch { return null; }
+      if (arr && arr.length > 0) return { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
+    } catch {}
+    await new Promise(r => setTimeout(r, 300));
   }
-  // Client-side: usar nuestro proxy
-  try {
-    const res = await fetch(`/api/geocode?q=${encodeURIComponent(address)}`);
-    if (!res.ok) return null;
-    const j = await res.json();
-    if (!j.lat || !j.lng) return null;
-    return { lat: j.lat, lng: j.lng };
-  } catch { return null; }
+  return null;
 }
