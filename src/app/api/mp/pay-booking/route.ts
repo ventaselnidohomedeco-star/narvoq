@@ -28,15 +28,30 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    // Traer booking + cancha + complejo con tokens MP + preferencias de pago
-    const { data: b } = await supabase.from('bookings')
-      .select('id, player_id, price, starts_at, court:courts(id, name, price_per_slot, deposit_amount, complex:complexes(id, name, mp_access_token, mp_exclude_credit, mp_only_deposit))')
+    // 1) Traer booking básico (evitando joins anidados que fallan por RLS)
+    const { data: b, error: bErr } = await supabase.from('bookings')
+      .select('id, player_id, court_id, price, starts_at')
       .eq('id', bookingId).maybeSingle();
-    if (!b) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 });
+    if (bErr) {
+      console.error('pay-booking: error trayendo booking', bErr);
+      return NextResponse.json({ error: `Error DB: ${bErr.message}` }, { status: 500 });
+    }
+    if (!b) return NextResponse.json({ error: 'Reserva no encontrada (id: ' + bookingId + ')' }, { status: 404 });
     if (b.player_id !== user.id) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
-    const cx = (b.court as any)?.complex;
-    if (!cx?.mp_access_token)
+    // 2) Traer cancha
+    const { data: court, error: cErr } = await supabase.from('courts')
+      .select('id, name, price_per_slot, deposit_amount, complex_id')
+      .eq('id', b.court_id).maybeSingle();
+    if (cErr || !court) return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 });
+
+    // 3) Traer complejo con tokens MP + preferencias
+    const { data: cx, error: xErr } = await supabase.from('complexes')
+      .select('id, name, mp_access_token, mp_exclude_credit, mp_only_deposit')
+      .eq('id', court.complex_id).maybeSingle();
+    if (xErr || !cx) return NextResponse.json({ error: 'Complejo no encontrado' }, { status: 404 });
+
+    if (!cx.mp_access_token)
       return NextResponse.json({ error: 'Este complejo todavía no conectó Mercado Pago' }, { status: 400 });
 
     // Si el complejo bloqueó pagar el total por MP, rechazar
@@ -45,8 +60,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Definir monto según kind
-    const priceTotal = Number((b.court as any).price_per_slot ?? 0);
-    const deposit = (b.court as any).deposit_amount != null ? Number((b.court as any).deposit_amount) : priceTotal;
+    const priceTotal = Number(court.price_per_slot ?? 0);
+    const deposit = court.deposit_amount != null ? Number(court.deposit_amount) : priceTotal;
     const amount = kind === 'total' ? priceTotal : deposit;
     if (!amount || amount <= 0) return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
 
@@ -66,7 +81,7 @@ export async function POST(req: NextRequest) {
     const pref = await createPreferenceForComplex({
       complexAccessToken: cx.mp_access_token,
       amount,
-      title: `${kind === 'total' ? 'Turno completo' : 'Seña'} · ${cx.name} · ${(b.court as any).name}`,
+      title: `${kind === 'total' ? 'Turno completo' : 'Seña'} · ${cx.name} · ${court.name}`,
       externalReference: `${b.id}|${kind}`,
       payerEmail,
       backUrl,

@@ -50,7 +50,7 @@ function PromoBox({ cxId }: { cxId: string }) {
 
 export default function DashboardComplejo() {
   const [cx, setCx] = useState<any>(null);
-  const [periodo, setPeriodo] = useState<'semana' | 'mes'>('semana');
+  const [periodo, setPeriodo] = useState<'semana' | 'mes' | 'mes_actual' | 'mes_anterior' | 'mes_2atras' | 'mes_3atras'>('mes_actual');
   const [today, setToday] = useState<any[]>([]);
   const [pending, setPending] = useState<any[]>([]);
   const [reservasPendientes, setReservasPendientes] = useState<any[]>([]);
@@ -75,14 +75,28 @@ export default function DashboardComplejo() {
     if (!complex) return;
     const courtIds = complex.courts.filter((c: any) => c.active).map((c: any) => c.id);
 
-    // ---- Período: semana (últimos 7 días) o mes (últimos 30) ----
-    const dias = periodo === 'semana' ? 7 : 30;
-    const desde = new Date(); desde.setDate(desde.getDate() - dias); desde.setHours(0, 0, 0, 0);
+    // ---- Período ----
+    let desde: Date, hasta: Date;
+    if (periodo === 'semana' || periodo === 'mes') {
+      const dias = periodo === 'semana' ? 7 : 30;
+      desde = new Date(); desde.setDate(desde.getDate() - dias); desde.setHours(0, 0, 0, 0);
+      hasta = new Date();
+    } else {
+      // Mes calendario: mes_actual = mes en curso, mes_anterior = mes previo, etc.
+      const offset = periodo === 'mes_actual' ? 0
+        : periodo === 'mes_anterior' ? 1
+        : periodo === 'mes_2atras' ? 2
+        : 3;
+      const now = new Date();
+      desde = new Date(now.getFullYear(), now.getMonth() - offset, 1, 0, 0, 0);
+      hasta = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0, 23, 59, 59); // último día del mes
+    }
+    const dias = Math.max(1, Math.ceil((hasta.getTime() - desde.getTime()) / (24 * 3600 * 1000)));
 
     const { data: periodBks } = await supabase.from('bookings')
       .select('price, type, starts_at, guest_name, player:profiles!player_id(id, username, first_name, last_name, avatar_url)')
       .in('court_id', courtIds).neq('status', 'cancelada')
-      .gte('starts_at', desde.toISOString()).lte('starts_at', new Date().toISOString());
+      .gte('starts_at', desde.toISOString()).lte('starts_at', hasta.toISOString());
 
     const reservas = (periodBks ?? []).filter(b => b.type === 'reserva');
     // Slots posibles del período
@@ -117,7 +131,7 @@ export default function DashboardComplejo() {
     const { data: allBksFull } = await supabase.from('bookings')
       .select('id, price, court:courts(price_per_slot)')
       .in('court_id', courtIds).neq('status', 'cancelada')
-      .gte('starts_at', desde.toISOString()).lte('starts_at', new Date().toISOString());
+      .gte('starts_at', desde.toISOString()).lte('starts_at', hasta.toISOString());
     (allBksFull ?? []).forEach((b: any) => {
       bookingsWithPartial.set(b.id, {
         paid: 0,
@@ -147,7 +161,7 @@ export default function DashboardComplejo() {
     const { data: allBks } = await supabase.from('bookings')
       .select('status')
       .in('court_id', courtIds).eq('type', 'reserva')
-      .gte('starts_at', desde.toISOString()).lte('starts_at', new Date().toISOString());
+      .gte('starts_at', desde.toISOString()).lte('starts_at', hasta.toISOString());
     const confirmadas = (allBks ?? []).filter((b: any) => b.status === 'confirmada' || b.status === 'completa' || b.status === 'jugada').length;
     const canceladas = (allBks ?? []).filter((b: any) => b.status === 'cancelada').length;
     const cumplimiento = (confirmadas + canceladas) > 0
@@ -350,12 +364,26 @@ export default function DashboardComplejo() {
 
       {/* Filtro de período */}
       <div className="mt-4 flex gap-2">
-        {(['semana', 'mes'] as const).map(k => (
-          <button key={k} onClick={() => setPeriodo(k)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold ${periodo === k ? 'bg-ball text-courtdark' : 'bg-white/10 text-white/60'}`}>
-            {k === 'semana' ? 'Últimos 7 días' : 'Últimos 30 días'}
-          </button>
-        ))}
+        {(() => {
+          const now = new Date();
+          const monthLabel = (offset: number) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+            return d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+          };
+          const options: { k: any; l: string }[] = [
+            { k: 'semana', l: '7 días' },
+            { k: 'mes_actual', l: `📅 ${monthLabel(0)} (actual)` },
+            { k: 'mes_anterior', l: monthLabel(1) },
+            { k: 'mes_2atras', l: monthLabel(2) },
+            { k: 'mes_3atras', l: monthLabel(3) }
+          ];
+          return options.map(o => (
+            <button key={o.k} onClick={() => setPeriodo(o.k)}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap ${periodo === o.k ? 'bg-ball text-courtdark' : 'bg-white/10 text-white/60'}`}>
+              {o.l}
+            </button>
+          ));
+        })()}
       </div>
 
       {/* Métricas del período — operativas */}
@@ -415,7 +443,11 @@ export default function DashboardComplejo() {
       <section className="mt-4 bg-white/5 rounded-2xl p-4">
         <p className="font-display font-black text-ball text-sm tracking-widest">💵 INGRESOS POR MÉTODO</p>
         <p className="text-white/50 text-xs mt-1">
-          {periodo === 'semana' ? 'Últimos 7 días' : 'Últimos 30 días'} · Total: <b className="text-white">${stats.ingresado.toLocaleString('es-AR')}</b>
+          {periodo === 'semana' ? 'Últimos 7 días'
+  : periodo === 'mes' ? 'Últimos 30 días'
+  : periodo === 'mes_actual' ? 'Mes en curso'
+  : periodo === 'mes_anterior' ? 'Mes anterior'
+  : 'Meses previos'} · Total: <b className="text-white">${stats.ingresado.toLocaleString('es-AR')}</b>
         </p>
         <div className="mt-3 space-y-2">
           {[

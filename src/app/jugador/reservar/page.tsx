@@ -279,7 +279,7 @@ function Reservar() {
 
       <div className="mt-5 space-y-4">
         <div><label className="label">Ciudad</label>
-          <select className="input" value={cityId} onChange={e => { setCityId(e.target.value); setComplex(null); }}>
+          <select className="input" value={cityId} onChange={e => { setCityId(e.target.value); setComplex(null); setCourt(null); setPending(null); }}>
             <option value="">Elegí ciudad</option>
             {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select></div>
