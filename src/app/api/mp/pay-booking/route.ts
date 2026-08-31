@@ -53,7 +53,16 @@ export async function POST(req: NextRequest) {
     const { data: cx, error: xErr } = await admin.from('complexes')
       .select('id, name, mp_access_token, mp_exclude_credit, mp_only_deposit')
       .eq('id', court.complex_id).maybeSingle();
-    if (xErr || !cx) return NextResponse.json({ error: 'Complejo no encontrado' }, { status: 404 });
+    if (xErr) return NextResponse.json({
+      error: `Error DB al buscar complejo: ${xErr.message}`,
+      court_complex_id: court.complex_id
+    }, { status: 500 });
+    if (!cx) return NextResponse.json({
+      error: 'Complejo no encontrado en DB',
+      court_id: court.id,
+      court_complex_id: court.complex_id,
+      booking_id: b.id
+    }, { status: 404 });
 
     if (!cx.mp_access_token)
       return NextResponse.json({ error: 'Este complejo todavía no conectó Mercado Pago' }, { status: 400 });

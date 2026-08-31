@@ -455,7 +455,7 @@ function Reservar() {
                         body: JSON.stringify({ bookingId: pending.booking.id, kind })
                       });
                       const data = await res.json();
-                      if (!res.ok) return alert(data.error ?? 'Error');
+                      if (!res.ok) return alert((data.error ?? 'Error') + '\n\n' + JSON.stringify(data, null, 2));
                       window.location.href = data.init_point;
                     };
                     // Si "solo seña por MP" está activado, solo botón de seña
