@@ -36,6 +36,7 @@ function Reservar() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<any>(null);
+  const [methodChooser, setMethodChooser] = useState<Slot | null>(null);   // slot esperando elección de método
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [offpeakRules, setOffpeakRules] = useState<OffpeakRule[]>([]);
@@ -526,7 +527,7 @@ function Reservar() {
                   <button key={i}
                     id={`slot-${slotHour}`}
                     disabled={saving}
-                    onClick={() => s.free ? reservar(s) : (inMyWaitlist ? salirDeLaEspera(s) : sumarmeALaEspera(s))}
+                    onClick={() => s.free ? setMethodChooser(s) : (inMyWaitlist ? salirDeLaEspera(s) : sumarmeALaEspera(s))}
                     className={`relative py-3 rounded-xl font-display font-bold text-sm
                       ${s.free ? 'bg-ball text-courtdark active:scale-95'
                         : inMyWaitlist ? 'bg-yellow-300/20 text-yellow-200 border border-yellow-300/40'
@@ -551,6 +552,79 @@ function Reservar() {
           </div>
         )}
       </div>
+
+      {/* Modal: elegir forma de pago ANTES de reservar */}
+      {methodChooser && complex && court && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-end lg:items-center overflow-y-auto"
+          onClick={() => setMethodChooser(null)}>
+          <div className="bg-[#0B0F16] border-2 border-white/15 rounded-t-3xl lg:rounded-2xl w-full max-w-lg mx-auto p-5 pb-10"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-display font-black text-lg">Elegí cómo pagás</p>
+                <p className="text-white/60 text-sm mt-1">
+                  {court.name} · {methodChooser.start.toLocaleString('es-AR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} hs
+                </p>
+              </div>
+              <button onClick={() => setMethodChooser(null)}
+                className="w-9 h-9 rounded-full bg-white/10 text-white font-bold shrink-0">✕</button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {/* MP */}
+              {(complex as any).mp_access_token && (complex as any).payment_mp_enabled && (
+                <button onClick={async () => {
+                  const s = methodChooser; setMethodChooser(null);
+                  await reservar(s);   // crea la reserva y setea pending
+                  // Después el user usa los botones de MP del card pending
+                }}
+                  className="w-full py-4 rounded-xl bg-[#009EE3] hover:bg-[#0088c9] text-white font-black text-left px-4 active:scale-95 transition">
+                  <p className="text-lg">💳 Mercado Pago</p>
+                  <p className="text-xs opacity-90 font-normal mt-0.5">Pagás ahora, la reserva se confirma automáticamente</p>
+                </button>
+              )}
+
+              {/* Transferencia */}
+              {(complex as any).payment_transfer_enabled !== false && (
+                <button onClick={async () => {
+                  const s = methodChooser; setMethodChooser(null);
+                  await reservar(s);
+                }}
+                  className="w-full py-4 rounded-xl bg-blue-500/15 border-2 border-blue-500/40 text-blue-200 font-black text-left px-4 active:scale-95 transition">
+                  <p className="text-lg">🏦 Transferencia</p>
+                  <p className="text-xs opacity-80 font-normal mt-0.5">Transferís y subís el comprobante. El club aprueba.</p>
+                </button>
+              )}
+
+              {/* Efectivo */}
+              {(complex as any).payment_cash_enabled !== false && (
+                <button onClick={async () => {
+                  const s = methodChooser; setMethodChooser(null);
+                  await reservar(s);
+                }}
+                  className="w-full py-4 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-200 font-black text-left px-4 active:scale-95 transition">
+                  <p className="text-lg">💵 Efectivo en cancha</p>
+                  <p className="text-xs opacity-80 font-normal mt-0.5">
+                    Reservás y pagás cuando llegás.
+                    {(complex as any).payment_cash_discount_pct > 0 && (
+                      <> <b>{(complex as any).payment_cash_discount_pct}% descuento</b> en efectivo</>
+                    )}
+                  </p>
+                </button>
+              )}
+
+              {/* Si no hay métodos habilitados */}
+              {!((complex as any).mp_access_token && (complex as any).payment_mp_enabled) &&
+               (complex as any).payment_transfer_enabled === false &&
+               (complex as any).payment_cash_enabled === false && (
+                <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/40 p-3 text-sm text-yellow-300">
+                  ⚠️ Este complejo no tiene métodos de pago activos. Contactalo antes de reservar.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

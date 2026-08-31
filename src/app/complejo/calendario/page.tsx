@@ -98,6 +98,19 @@ export default function Calendario() {
   }
   useEffect(() => { if (cx || dayOffset >= 0) load(); }, [dayOffset]); // eslint-disable-line
 
+  // Auto-sync silencioso de pagos MP pendientes al abrir el calendario.
+  // Reconcilía pagos que el webhook no llegó a procesar (evita quedar en "pendiente").
+  useEffect(() => {
+    if (!cx) return;
+    fetch('/api/mp/sync-pending-payments').then(async r => {
+      const j = await r.json().catch(() => ({}));
+      if (j?.updated > 0) {
+        // Recargar el calendario para ver los pagos actualizados
+        load();
+      }
+    }).catch(() => {});
+  }, [cx?.id]);
+
   // Cada vez que se abre una reserva, cargar cuánto ya se cobró + con qué métodos
   useEffect(() => {
     (async () => {
