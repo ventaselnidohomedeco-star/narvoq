@@ -15,7 +15,7 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
   return (
     <ProfileGuard>
       <Banner />
-      <div className="min-h-dvh bg-black pb-32 lg:pb-8 lg:pl-60">
+      <div className="min-h-dvh bg-black pb-24 lg:pb-8 lg:pl-60">
         <div className="max-w-3xl xl:max-w-5xl mx-auto">
           <header className="px-3 pt-3 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5 bg-black overflow-hidden">
             <Link href="/jugador/dashboard" className="shrink min-w-0 active:scale-95 transition">

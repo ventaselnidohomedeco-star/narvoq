@@ -74,7 +74,7 @@ export default function Calendario() {
     }
     const to = new Date(day); to.setDate(to.getDate() + 1);
     const { data, error } = await supabase.from('bookings')
-      .select('*, player:profiles!player_id(first_name, last_name, phone, avatar_url)')
+      .select('*, player:profiles!player_id(username, first_name, last_name, phone, avatar_url)')
       .in('court_id', complex.courts.map((c: any) => c.id))
       .gte('starts_at', day.toISOString()).lt('starts_at', to.toISOString())
       .neq('status', 'cancelada');
@@ -522,16 +522,30 @@ export default function Calendario() {
             {sel.booking ? (
               <div className="mt-4">
                 <div className="bg-white/5 rounded-2xl p-4 flex items-center gap-3">
-                  {sel.booking.type === 'block'
-                    ? <span className="text-2xl">⛔</span>
-                    : <Avatar url={sel.booking.player?.avatar_url}
-                        name={sel.booking.player?.first_name ?? sel.booking.guest_name ?? '?'} />}
-                  <div>
-                    <p className="font-semibold">
-                      {sel.booking.type === 'block' ? 'Horario bloqueado'
-                        : sel.booking.player ? `${sel.booking.player.first_name} ${sel.booking.player.last_name}`
-                        : sel.booking.guest_name}
-                    </p>
+                  {sel.booking.type === 'block' ? (
+                    <span className="text-2xl">⛔</span>
+                  ) : sel.booking.player?.username ? (
+                    <a href={`/u/${sel.booking.player.username}`} target="_blank" rel="noopener"
+                      className="active:scale-95 transition">
+                      <Avatar url={sel.booking.player?.avatar_url}
+                        name={sel.booking.player?.first_name ?? sel.booking.guest_name ?? '?'} />
+                    </a>
+                  ) : (
+                    <Avatar url={sel.booking.player?.avatar_url}
+                      name={sel.booking.player?.first_name ?? sel.booking.guest_name ?? '?'} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    {sel.booking.player?.username ? (
+                      <a href={`/u/${sel.booking.player.username}`} target="_blank" rel="noopener"
+                        className="font-semibold text-ball active:underline">
+                        {sel.booking.player.first_name} {sel.booking.player.last_name}
+                        <span className="text-white/40 text-xs font-normal ml-1">👤</span>
+                      </a>
+                    ) : (
+                      <p className="font-semibold">
+                        {sel.booking.type === 'block' ? 'Horario bloqueado' : sel.booking.guest_name}
+                      </p>
+                    )}
                     <p className="text-white/50 text-sm">
                       {sel.booking.player?.phone ?? sel.booking.guest_phone ?? ''}
                     </p>

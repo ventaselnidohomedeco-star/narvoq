@@ -68,7 +68,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-dvh text-white pb-32 lg:pb-8 lg:pl-60">
+    <div className="min-h-dvh text-white pb-24 lg:pb-8 lg:pl-60">
       <Banner />
 
       {/* Sidebar desktop */}
