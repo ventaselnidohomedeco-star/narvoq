@@ -27,17 +27,28 @@ export function distanceKm(a: Coords, b: Coords): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** Geocodificar dirección con la API de OpenStreetMap Nominatim (gratis). */
+/** Geocodificar dirección. Usa proxy `/api/geocode` en cliente, Nominatim directo en server. */
 export async function geocodeAddress(address: string): Promise<Coords | null> {
   if (!address) return null;
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address + ', Argentina')}`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
-    if (!res.ok) return null;
-    const arr = await res.json();
-    if (!arr || arr.length === 0) return null;
-    return { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
-  } catch {
-    return null;
+  // Server-side: llamar Nominatim directo (evita el ciclo)
+  if (typeof window === 'undefined') {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'NarvoQ/1.0 (contacto@narvoq.com.ar)', 'Accept-Language': 'es' }
+      });
+      if (!res.ok) return null;
+      const arr = await res.json();
+      if (!arr || arr.length === 0) return null;
+      return { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
+    } catch { return null; }
   }
+  // Client-side: usar nuestro proxy
+  try {
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(address)}`);
+    if (!res.ok) return null;
+    const j = await res.json();
+    if (!j.lat || !j.lng) return null;
+    return { lat: j.lat, lng: j.lng };
+  } catch { return null; }
 }
