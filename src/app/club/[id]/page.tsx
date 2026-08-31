@@ -14,6 +14,23 @@ export default function ClubPublico() {
   const [me, setMe] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
+  const [claimOpen, setClaimOpen] = useState(false);
+  const [claim, setClaim] = useState({ name: '', email: '', phone: '', message: '' });
+  const [claimSent, setClaimSent] = useState(false);
+
+  async function enviarReclamo() {
+    if (!claim.name || !claim.email) { alert('Nombre y email son obligatorios'); return; }
+    const { error } = await supabase.from('complex_claim_requests').insert({
+      complex_id: cx.id,
+      name: claim.name.trim(),
+      email: claim.email.trim().toLowerCase(),
+      phone: claim.phone.trim() || null,
+      message: claim.message.trim() || null
+    });
+    if (error) return alert('Error: ' + error.message);
+    setClaimSent(true);
+    setTimeout(() => { setClaimOpen(false); setClaimSent(false); }, 3000);
+  }
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -144,6 +161,14 @@ export default function ClubPublico() {
           <Link href="/jugador/reservar" className="btn-ball text-center">Reservar cancha</Link>
           {cx.whatsapp && <a href={`https://wa.me/${cx.whatsapp}`} target="_blank" className="text-center py-3 rounded-xl border border-white/20 font-semibold">WhatsApp</a>}
         </div>
+
+        {/* Banner reclamar — solo si es complejo precargado */}
+        {cx.is_precargado && (
+          <button onClick={() => setClaimOpen(true)}
+            className="mt-3 w-full py-3 rounded-xl bg-yellow-500/10 border-2 border-yellow-500/50 text-yellow-300 font-black text-sm animate-pulse">
+            👋 ¿Sos dueño de este complejo? Reclamalo →
+          </button>
+        )}
 
         {/* Ubicación con Google Maps */}
         {cx.address && (
@@ -276,6 +301,45 @@ export default function ClubPublico() {
 
         {msg && <p className="mt-4 text-sm text-ball font-semibold">{msg}</p>}
       </section>
+
+      {/* Modal reclamar complejo */}
+      {claimOpen && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex items-end lg:items-center overflow-y-auto"
+          onClick={() => setClaimOpen(false)}>
+          <div className="bg-[#0B0F16] border-2 border-ball/40 rounded-t-3xl lg:rounded-2xl w-full max-w-md mx-auto p-5 pb-10"
+            onClick={e => e.stopPropagation()}>
+            {claimSent ? (
+              <div className="text-center py-8">
+                <p className="text-5xl">✓</p>
+                <p className="font-display font-black text-xl mt-3 text-ball">Solicitud enviada</p>
+                <p className="text-white/60 text-sm mt-2">Te vamos a contactar por email o WhatsApp para verificar y transferirte el complejo.</p>
+              </div>
+            ) : (
+              <>
+                <p className="font-display font-black text-lg">Reclamar {cx.name}</p>
+                <p className="text-white/60 text-sm mt-1">
+                  Dejanos tus datos y te contactamos para verificarte y darte acceso al panel de tu complejo.
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div><label className="label">Tu nombre completo *</label>
+                    <input className="input" value={claim.name} onChange={e => setClaim({ ...claim, name: e.target.value })} required /></div>
+                  <div><label className="label">Email *</label>
+                    <input className="input" type="email" value={claim.email} onChange={e => setClaim({ ...claim, email: e.target.value })} required /></div>
+                  <div><label className="label">WhatsApp (recomendado)</label>
+                    <input className="input" inputMode="tel" value={claim.phone} onChange={e => setClaim({ ...claim, phone: e.target.value })} /></div>
+                  <div><label className="label">Mensaje (opcional)</label>
+                    <textarea className="input resize-none" rows={2} value={claim.message} onChange={e => setClaim({ ...claim, message: e.target.value })} /></div>
+                  <button onClick={enviarReclamo} className="btn-ball w-full">
+                    📩 Enviar solicitud
+                  </button>
+                  <button onClick={() => setClaimOpen(false)}
+                    className="w-full py-2 text-white/50 text-sm">Cancelar</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

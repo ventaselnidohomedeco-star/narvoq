@@ -108,8 +108,14 @@ export default function AdminComplejos() {
   return (
     <main className="min-h-dvh max-w-5xl mx-auto px-5 py-8">
       <Link href="/admin" className="text-white/60 text-sm font-bold">← Volver al admin</Link>
-      <h1 className="font-display font-black text-3xl mt-3">Complejos</h1>
-      <p className="text-white/50 text-sm mt-1">Aprobar, rechazar o suspender complejos registrados.</p>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <h1 className="font-display font-black text-3xl">Complejos</h1>
+        <Link href="/admin/complejos/nuevo"
+          className="btn-ball text-sm !py-2 !px-4 shrink-0">
+          + Precargar complejo
+        </Link>
+      </div>
+      <p className="text-white/50 text-sm mt-1">Aprobar, rechazar o suspender complejos registrados. También podés precargar complejos vos mismo para mostrarlos como demo.</p>
 
       {/* Chips de filtro */}
       <section className="mt-6 flex flex-wrap gap-2">
