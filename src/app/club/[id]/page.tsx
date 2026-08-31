@@ -170,9 +170,11 @@ export default function ClubPublico() {
           </button>
         )}
 
-        {/* Ubicación con Google Maps */}
+        {/* Ubicación con Google Maps — prioriza lat/lng, sino address+localidad+prov para no caer en otra ciudad homónima */}
         {cx.address && (
-          <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cx.address)}`}
+          <a href={cx.lat && cx.lng
+              ? `https://www.google.com/maps/search/?api=1&query=${cx.lat},${cx.lng}`
+              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([cx.address, cx.locality, cx.province, 'Argentina'].filter(Boolean).join(', '))}`}
             target="_blank" rel="noopener"
             className="mt-3 flex items-center gap-2 bg-white/5 rounded-xl p-3 hover:bg-white/10">
             <span className="text-2xl">📍</span>

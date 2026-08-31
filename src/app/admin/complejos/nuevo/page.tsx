@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 import { geocodeAddress } from '@/lib/geo';
+import { uploadImage } from '@/lib/upload';
 
 // Admin crea un complejo PRECARGADO (sin dueño). Aparece en el buscador
 // como cualquier complejo real. Cuando el dueño real llega, lo reclama.
@@ -12,6 +13,7 @@ export default function NuevoComplejoPrecargado() {
   const router = useRouter();
   const [ok, setOk] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState('');
   const [f, setF] = useState({
     name: '', responsible: '', phone: '', email: '',
@@ -149,8 +151,32 @@ export default function NuevoComplejoPrecargado() {
             <div><label className="label">Instagram (sin @)</label>
               <input className="input" placeholder="micomplejo" value={f.instagram} onChange={e => setF({ ...f, instagram: e.target.value })} /></div>
           </div>
-          <div><label className="label">URL del logo (opcional)</label>
-            <input className="input" placeholder="https://..." value={f.logo_url} onChange={e => setF({ ...f, logo_url: e.target.value })} /></div>
+          <div>
+            <label className="label">Logo del complejo (JPG/PNG)</label>
+            <div className="flex items-center gap-3">
+              {f.logo_url && (
+                <img src={f.logo_url} alt="logo" className="w-16 h-16 rounded-lg object-cover border border-white/10" />
+              )}
+              <label className="btn-ghost cursor-pointer text-sm !py-2 !px-3">
+                {uploading ? 'Subiendo…' : (f.logo_url ? 'Cambiar imagen' : '📤 Subir imagen')}
+                <input type="file" accept="image/jpeg,image/png,image/jpg" className="hidden"
+                  onChange={async e => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setUploading(true);
+                    const url = await uploadImage(file, 'complexes');
+                    setUploading(false);
+                    if (url) setF({ ...f, logo_url: url });
+                    else setMsg('❌ No se pudo subir la imagen');
+                  }} />
+              </label>
+              {f.logo_url && (
+                <button type="button" onClick={() => setF({ ...f, logo_url: '' })}
+                  className="text-xs text-red-400">Quitar</button>
+              )}
+            </div>
+            <p className="text-xs text-white/40 mt-1">O pegá una URL: </p>
+            <input className="input mt-1" placeholder="https://..." value={f.logo_url} onChange={e => setF({ ...f, logo_url: e.target.value })} />
+          </div>
           <div><label className="label">Notas internas</label>
             <textarea className="input resize-none" rows={2} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} /></div>
         </div>
