@@ -22,11 +22,14 @@ export default function UserMenu() {
   }, []);
 
   useEffect(() => {
-    function handler(e: MouseEvent) {
+    function handler(e: Event) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    if (open) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    // Uso 'click' + un pequeño delay para no interceptar el mismo tap que abrió el menú
+    if (open) {
+      const t = setTimeout(() => document.addEventListener('click', handler), 50);
+      return () => { clearTimeout(t); document.removeEventListener('click', handler); };
+    }
   }, [open]);
 
   async function logout() {

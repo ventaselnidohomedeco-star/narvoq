@@ -17,7 +17,7 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
       <Banner />
       <div className="min-h-dvh bg-black pb-24 lg:pb-8 lg:pl-60">
         <div className="max-w-3xl xl:max-w-5xl mx-auto">
-          <header className="px-3 pt-3 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5 bg-black overflow-hidden">
+          <header className="px-3 pt-3 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5 bg-black relative z-30">
             <Link href="/jugador/dashboard" className="shrink min-w-0 active:scale-95 transition">
               <img src="/brand/logo.png?v=9" alt="NarvoQ"
                 className="h-12 w-auto object-contain max-w-[55vw]"
