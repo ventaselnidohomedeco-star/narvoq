@@ -31,9 +31,12 @@ export default function BuscarCanchas() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setIsPremium(false); return; }
       const { data } = await supabase.from('profiles')
-        .select('is_premium, city_id').eq('id', user.id).maybeSingle();
+        .select('is_premium, city_id, province, locality').eq('id', user.id).maybeSingle();
       setIsPremium(!!data?.is_premium);
-      if (data?.city_id) setCityId(data.city_id);
+      // Pre-cargar provincia+localidad del perfil (así el jugador no re-elige cada vez)
+      if (data?.province && data?.locality) {
+        setFilterProvince(data.province); setFilterLocality(data.locality);
+      } else if (data?.city_id) setCityId(data.city_id);
     })();
     (async () => {
       const [{ data: dbCities }, { data: cx }] = await Promise.all([

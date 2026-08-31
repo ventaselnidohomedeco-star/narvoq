@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import PhotoPicker from '@/components/PhotoPicker';
 import PushEnableButton from '@/components/PushEnableButton';
+import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 
 export default function Perfil() {
   const router = useRouter();
@@ -75,8 +76,14 @@ export default function Perfil() {
           <div><label className="label">Celular</label>
             <input className="input" defaultValue={p.phone} onBlur={e => save({ phone: e.target.value })} /></div>
         </div>
-        <div><label className="label">Zona / localidad</label>
-          <input className="input" defaultValue={p.zone ?? ''} onBlur={e => save({ zone: e.target.value })} /></div>
+        <div>
+          <label className="label">Provincia y localidad</label>
+          <ProvinciaLocalidadSelect
+            provincia={p.province ?? ''} localidad={p.locality ?? ''}
+            onChange={({ provincia, localidad }) => save({ province: provincia, locality: localidad, zone: localidad })}
+          />
+          <p className="text-white/40 text-[11px] mt-1">Al buscar canchas, NarvoQ va a mostrarte automáticamente los complejos de esta localidad.</p>
+        </div>
         <div>
           <label className="label">Correo de registro</label>
           <input className="input opacity-60" value={email} readOnly

@@ -81,8 +81,12 @@ function Reservar() {
   useEffect(() => { (async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('is_premium').eq('id', user.id).maybeSingle();
+    const { data } = await supabase.from('profiles').select('is_premium, province, locality').eq('id', user.id).maybeSingle();
     setIsPremium(!!data?.is_premium);
+    // Pre-cargar provincia+localidad del perfil para no obligar al jugador a re-elegir
+    if (data?.province && data?.locality) {
+      setFilterProvince(data.province); setFilterLocality(data.locality);
+    }
   })(); }, []);
 
   useEffect(() => {
