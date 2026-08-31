@@ -17,6 +17,10 @@ type Complex = {
   status_updated_at: string | null;
   rejection_reason: string | null;
   created_at: string;
+  is_precargado: boolean | null;
+  logo_url: string | null;
+  locality: string | null;
+  province: string | null;
   city: { name: string } | null;
   courts: { id: string }[];
 };
@@ -28,7 +32,7 @@ const STATUS_LABELS = {
   rejected: { label: 'Rechazado', color: 'bg-red-500/15 border-red-500/40 text-red-300', emoji: '✕' }
 };
 
-type FilterStatus = 'all' | Complex['status'];
+type FilterStatus = 'all' | 'precargado' | Complex['status'];
 
 export default function AdminComplejos() {
   const [complexes, setComplexes] = useState<Complex[]>([]);
@@ -43,6 +47,7 @@ export default function AdminComplejos() {
       .select(`
         id, name, responsible, phone, email, address, status,
         status_updated_at, rejection_reason, created_at,
+        is_precargado, logo_url, locality, province,
         city:cities(name),
         courts(id)
       `)
@@ -54,7 +59,8 @@ export default function AdminComplejos() {
 
   const filtered = useMemo(() => {
     let list = complexes;
-    if (filter !== 'all') list = list.filter(c => c.status === filter);
+    if (filter === 'precargado') list = list.filter(c => c.is_precargado);
+    else if (filter !== 'all') list = list.filter(c => c.status === filter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(c =>
@@ -69,6 +75,7 @@ export default function AdminComplejos() {
 
   const counts = useMemo(() => ({
     all: complexes.length,
+    precargado: complexes.filter(c => c.is_precargado).length,
     pending_review: complexes.filter(c => c.status === 'pending_review').length,
     active: complexes.filter(c => c.status === 'active').length,
     suspended: complexes.filter(c => c.status === 'suspended').length,
@@ -119,8 +126,10 @@ export default function AdminComplejos() {
 
       {/* Chips de filtro */}
       <section className="mt-6 flex flex-wrap gap-2">
-        {(['pending_review', 'active', 'suspended', 'rejected', 'all'] as const).map(k => {
-          const info = k === 'all' ? { label: 'Todos', color: 'bg-white/10 border-white/20 text-white' } : STATUS_LABELS[k];
+        {(['pending_review', 'active', 'precargado', 'suspended', 'rejected', 'all'] as const).map(k => {
+          const info = k === 'all' ? { label: 'Todos', color: 'bg-white/10 border-white/20 text-white' }
+            : k === 'precargado' ? { label: '📦 Precargados', color: 'bg-white/10 border-white/20 text-white/70' }
+            : STATUS_LABELS[k];
           const active = filter === k;
           return (
             <button key={k} onClick={() => setFilter(k)}
@@ -151,18 +160,26 @@ export default function AdminComplejos() {
           return (
             <div key={cx.id} className="card !p-4">
               <div className="flex items-start gap-3">
+                {cx.logo_url && (
+                  <img src={cx.logo_url} alt="" className="w-12 h-12 rounded-lg object-cover border border-white/10 shrink-0" />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-display font-black text-lg truncate">{cx.name}</p>
                     <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${info.color}`}>
                       {info.emoji} {info.label}
                     </span>
+                    {cx.is_precargado && (
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-white/10 border-white/20 text-white/70">
+                        📦 Precargado
+                      </span>
+                    )}
                   </div>
                   <div className="text-white/60 text-xs mt-1 flex flex-wrap gap-x-4 gap-y-1">
                     <span>👤 {cx.responsible}</span>
                     <span>📱 {cx.phone}</span>
                     <span>✉ {cx.email}</span>
-                    <span>📍 {cx.city?.name ?? '—'} · {cx.address}</span>
+                    <span>📍 {cx.locality ?? cx.city?.name ?? '—'}{cx.province ? `, ${cx.province}` : ''} · {cx.address}</span>
                     <span>🎾 {cx.courts?.length ?? 0} canchas</span>
                     <span>📅 Registrado {new Date(cx.created_at).toLocaleDateString('es-AR')}</span>
                   </div>
@@ -178,6 +195,10 @@ export default function AdminComplejos() {
 
               {/* Acciones */}
               <div className="mt-3 flex flex-wrap gap-2 pt-3 border-t border-white/10">
+                <Link href={`/admin/complejos/${cx.id}/editar`}
+                  className="text-xs font-black px-3 py-2 rounded-lg bg-ball/15 border border-ball/40 text-ball">
+                  ✏ Editar
+                </Link>
                 {cx.status !== 'active' && (
                   <button onClick={() => changeStatus(cx, 'active')}
                     className="text-xs font-black px-3 py-2 rounded-lg bg-ball/15 border border-ball/40 text-ball">
