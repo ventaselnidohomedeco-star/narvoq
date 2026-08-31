@@ -95,59 +95,156 @@ export default function PerfilComplejo() {
             defaultValue={cx.services ?? ''} onBlur={e => save({ services: e.target.value })} /></div>
       </div>
 
-      {/* Pagos automáticos por Mercado Pago (marketplace) */}
-      <div className="mt-4 bg-gradient-to-br from-[#009EE3]/10 to-transparent border-2 border-[#009EE3]/30 rounded-2xl p-4">
-        <div className="flex items-start gap-3">
-          <span className="text-3xl">💳</span>
-          <div className="flex-1">
-            <p className="font-display font-black text-white">Cobrar automáticamente</p>
-            <p className="text-white/60 text-xs mt-1">
-              Conectá tu cuenta de Mercado Pago y los jugadores podrán pagar la seña o el turno completo directo desde NarvoQ. La plata cae en tu cuenta MP.
-            </p>
-          </div>
-        </div>
-        {cx.mp_connected_at ? (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-sm font-black text-center">
-              ✓ Mercado Pago conectado
-            </span>
-            <a href="/api/mp/oauth/authorize"
-              className="py-2.5 px-3 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold">
-              Reconectar
-            </a>
-          </div>
-        ) : (
-          <a href="/api/mp/oauth/authorize"
-            className="mt-3 block text-center py-3 rounded-xl bg-[#009EE3] hover:bg-[#0088c9] text-white font-black text-sm active:scale-95 transition">
-            💳 Conectar Mercado Pago
-          </a>
-        )}
-        <p className="text-white/40 text-[11px] mt-2 text-center">
-          Comisión de NarvoQ: por ahora <b className="text-ball">0%</b>. Solo pagás la comisión estándar de Mercado Pago.
+      {/* 💰 Formas de pago — sección unificada */}
+      <div className="mt-4 bg-white/5 rounded-2xl p-4">
+        <p className="font-display font-black text-ball text-sm tracking-widest">💰 FORMAS DE PAGO</p>
+        <p className="text-white/50 text-xs mt-1">
+          Configurá qué opciones ofrecés a tus jugadores. Podés activar/desactivar cada una y elegir cómo cobrás.
         </p>
-      </div>
 
-      {/* Datos de cobro manuales (siguen disponibles como respaldo) */}
-      <div className="mt-4 bg-white/5 rounded-2xl p-4 space-y-4">
-        <p className="font-display font-bold text-ball text-sm">Datos para recibir transferencias (respaldo manual)</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div><label className="label text-white/60">Alias</label>
-            <input className="input" placeholder="ej: club.padel.mp"
-              defaultValue={cx.payment_alias ?? ''} onBlur={e => save({ payment_alias: e.target.value })} /></div>
-          <div><label className="label text-white/60">Banco / billetera</label>
-            <input className="input" placeholder="Mercado Pago, Banco..."
-              defaultValue={cx.payment_bank ?? ''} onBlur={e => save({ payment_bank: e.target.value })} /></div>
+        {/* 💵 Efectivo */}
+        <div className={`mt-4 rounded-2xl p-4 border-2 ${cx.payment_cash_enabled !== false ? 'bg-emerald-500/5 border-emerald-500/40' : 'bg-white/5 border-white/10'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">💵</span>
+              <p className="font-display font-black">Efectivo</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer"
+                defaultChecked={cx.payment_cash_enabled !== false}
+                onChange={e => save({ payment_cash_enabled: e.target.checked })} />
+              <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-ball transition after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition peer-checked:after:translate-x-5 peer-checked:after:bg-courtdark"></div>
+            </label>
+          </div>
+          {cx.payment_cash_enabled !== false && (
+            <div className="mt-3 space-y-2">
+              <div>
+                <label className="label text-white/60 text-xs">Descuento en efectivo (%)</label>
+                <div className="relative">
+                  <input className="input pr-10" type="number" step="0.5" min={0} max={30}
+                    placeholder="0"
+                    defaultValue={cx.payment_cash_discount_pct ?? 0}
+                    onBlur={e => save({ payment_cash_discount_pct: Number(e.target.value) || 0 })} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 font-black">%</span>
+                </div>
+                <p className="text-white/40 text-[11px] mt-1">Se aplica al total del turno cuando el jugador elige pagar en efectivo en la cancha.</p>
+              </div>
+              <div>
+                <label className="label text-white/60 text-xs">Notas / horarios de atención</label>
+                <textarea className="input resize-none" rows={2}
+                  placeholder="Ej: Cobramos efectivo en el mostrador. Traé exacto."
+                  defaultValue={cx.payment_cash_notes ?? ''}
+                  onBlur={e => save({ payment_cash_notes: e.target.value })} />
+              </div>
+            </div>
+          )}
         </div>
-        <div><label className="label text-white/60">CBU / CVU</label>
-          <input className="input" inputMode="numeric"
-            defaultValue={cx.payment_cbu ?? ''} onBlur={e => save({ payment_cbu: e.target.value })} /></div>
-        <div><label className="label text-white/60">Titular de la cuenta</label>
-          <input className="input"
-            defaultValue={cx.payment_holder ?? ''} onBlur={e => save({ payment_holder: e.target.value })} /></div>
-        <div><label className="label text-white/60">Instrucciones para el jugador</label>
-          <textarea className="input resize-none" rows={3}
-            placeholder="Ej: transferi el total y subi el comprobante. La reserva se confirma cuando validamos el pago."
-            defaultValue={cx.payment_notes ?? ''} onBlur={e => save({ payment_notes: e.target.value })} /></div>
+
+        {/* 🏦 Transferencia */}
+        <div className={`mt-3 rounded-2xl p-4 border-2 ${cx.payment_transfer_enabled !== false ? 'bg-blue-500/5 border-blue-500/40' : 'bg-white/5 border-white/10'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏦</span>
+              <p className="font-display font-black">Transferencia</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer"
+                defaultChecked={cx.payment_transfer_enabled !== false}
+                onChange={e => save({ payment_transfer_enabled: e.target.checked })} />
+              <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-ball transition after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition peer-checked:after:translate-x-5 peer-checked:after:bg-courtdark"></div>
+            </label>
+          </div>
+          {cx.payment_transfer_enabled !== false && (
+            <div className="mt-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label text-white/60 text-xs">Alias</label>
+                  <input className="input" placeholder="ej: club.padel.mp"
+                    defaultValue={cx.payment_alias ?? ''} onBlur={e => save({ payment_alias: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label text-white/60 text-xs">Banco / billetera</label>
+                  <input className="input" placeholder="Mercado Pago, Santander..."
+                    defaultValue={cx.payment_bank ?? ''} onBlur={e => save({ payment_bank: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="label text-white/60 text-xs">CBU / CVU</label>
+                <input className="input" inputMode="numeric"
+                  defaultValue={cx.payment_cbu ?? ''} onBlur={e => save({ payment_cbu: e.target.value })} />
+              </div>
+              <div>
+                <label className="label text-white/60 text-xs">Titular de la cuenta</label>
+                <input className="input"
+                  defaultValue={cx.payment_holder ?? ''} onBlur={e => save({ payment_holder: e.target.value })} />
+              </div>
+              <div>
+                <label className="label text-white/60 text-xs">Instrucciones para el jugador</label>
+                <textarea className="input resize-none" rows={2}
+                  placeholder="Ej: Transferí el total y subí el comprobante. La reserva se confirma cuando validamos el pago."
+                  defaultValue={cx.payment_notes ?? ''} onBlur={e => save({ payment_notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 💳 Mercado Pago automático */}
+        <div className={`mt-3 rounded-2xl p-4 border-2 ${cx.payment_mp_enabled ? 'bg-[#009EE3]/10 border-[#009EE3]/50' : 'bg-white/5 border-white/10'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">💳</span>
+              <div>
+                <p className="font-display font-black">Mercado Pago (automático)</p>
+                <p className="text-white/50 text-[11px]">Pagos online — la plata cae directo en tu cuenta MP</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer"
+                checked={!!cx.payment_mp_enabled}
+                onChange={e => save({ payment_mp_enabled: e.target.checked })} />
+              <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-ball transition after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition peer-checked:after:translate-x-5 peer-checked:after:bg-courtdark"></div>
+            </label>
+          </div>
+
+          {cx.payment_mp_enabled && (
+            <div className="mt-3">
+              {cx.mp_connected_at ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-xs font-black text-center">
+                      ✓ Cuenta MP conectada · {new Date(cx.mp_connected_at).toLocaleDateString('es-AR')}
+                    </span>
+                    <a href="/api/mp/oauth/authorize"
+                      className="py-2 px-3 rounded-xl bg-white/10 border border-white/20 text-white text-[11px] font-bold">
+                      Reconectar
+                    </a>
+                  </div>
+                  <p className="text-white/50 text-[11px]">
+                    Los jugadores verán el botón "Pagar con MP" al reservar. Podrán pagar la seña o el turno completo.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <a href="/api/mp/oauth/authorize"
+                    className="block text-center py-3 rounded-xl bg-[#009EE3] hover:bg-[#0088c9] text-white font-black text-sm active:scale-95 transition">
+                    💳 Conectar Mercado Pago ahora
+                  </a>
+                  <p className="text-white/40 text-[11px] mt-2 text-center">
+                    Comisión NarvoQ: <b className="text-ball">0%</b> · Solo pagás la comisión estándar de MP.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Alerta si desactivaron todo */}
+        {cx.payment_cash_enabled === false && cx.payment_transfer_enabled === false && !cx.payment_mp_enabled && (
+          <div className="mt-3 rounded-2xl bg-red-500/10 border border-red-500/40 p-3">
+            <p className="text-red-300 font-black text-sm">⚠️ No tenés ningún método de pago activo</p>
+            <p className="text-white/60 text-xs mt-1">Los jugadores no van a poder reservar. Activá al menos uno.</p>
+          </div>
+        )}
       </div>
 
       {/* Horarios y reglas */}

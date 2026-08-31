@@ -397,19 +397,37 @@ function Reservar() {
               <p>{pending.slot.start.toLocaleDateString('es-AR')} · {pending.slot.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs</p>
               <p className="font-display font-black text-ball text-lg">${Number(pending.booking.price ?? 0).toLocaleString('es-AR')}</p>
             </div>
-            <div className="mt-3 rounded-2xl bg-white/5 p-3 text-sm space-y-1">
-              <p className="font-display font-bold text-ball">Transferencia</p>
-              {pending.complex?.payment_alias && <p>Alias: <b>{pending.complex.payment_alias}</b></p>}
-              {pending.complex?.payment_cbu && <p>CBU/CVU: <b>{pending.complex.payment_cbu}</b></p>}
-              {pending.complex?.payment_holder && <p>Titular: <b>{pending.complex.payment_holder}</b></p>}
-              {pending.complex?.payment_bank && <p>Banco/billetera: {pending.complex.payment_bank}</p>}
-              {pending.complex?.payment_notes && <p className="text-white/60">{pending.complex.payment_notes}</p>}
-              {!pending.complex?.payment_alias && !pending.complex?.payment_cbu && (
-                <p className="text-yellow-300">Este complejo todavia no cargo datos de transferencia. Contactalo antes de pagar.</p>
-              )}
-            </div>
-            {/* Pagar automático con Mercado Pago (si el complejo lo tiene conectado) */}
-            {(pending.complex as any)?.mp_access_token && (
+            {/* Transferencia (si el complejo la tiene habilitada) */}
+            {(pending.complex as any)?.payment_transfer_enabled !== false && (
+              <div className="mt-3 rounded-2xl bg-blue-500/10 border border-blue-500/30 p-3 text-sm space-y-1">
+                <p className="font-display font-bold text-blue-300">🏦 Transferencia</p>
+                {pending.complex?.payment_alias && <p>Alias: <b>{pending.complex.payment_alias}</b></p>}
+                {pending.complex?.payment_cbu && <p>CBU/CVU: <b>{pending.complex.payment_cbu}</b></p>}
+                {pending.complex?.payment_holder && <p>Titular: <b>{pending.complex.payment_holder}</b></p>}
+                {pending.complex?.payment_bank && <p>Banco/billetera: {pending.complex.payment_bank}</p>}
+                {pending.complex?.payment_notes && <p className="text-white/60">{pending.complex.payment_notes}</p>}
+                {!pending.complex?.payment_alias && !pending.complex?.payment_cbu && (
+                  <p className="text-yellow-300">Este complejo todavia no cargo datos de transferencia. Contactalo antes de pagar.</p>
+                )}
+              </div>
+            )}
+
+            {/* Efectivo (informativo — se paga en cancha) */}
+            {(pending.complex as any)?.payment_cash_enabled !== false && (
+              <div className="mt-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm">
+                <p className="font-display font-bold text-emerald-300">💵 Efectivo en cancha</p>
+                {(pending.complex as any)?.payment_cash_discount_pct > 0 && (
+                  <p className="text-white mt-1">
+                    <b className="text-ball">{(pending.complex as any).payment_cash_discount_pct}% de descuento</b> pagando en efectivo.
+                  </p>
+                )}
+                {(pending.complex as any)?.payment_cash_notes && (
+                  <p className="text-white/60 mt-1">{(pending.complex as any).payment_cash_notes}</p>
+                )}
+              </div>
+            )}
+            {/* Pagar automático con Mercado Pago (si el complejo lo tiene conectado Y habilitado) */}
+            {(pending.complex as any)?.mp_access_token && (pending.complex as any)?.payment_mp_enabled && (
               <div className="mt-3 rounded-2xl bg-gradient-to-br from-[#009EE3]/15 to-transparent border-2 border-[#009EE3]/40 p-3">
                 <p className="font-display font-black text-white">💳 Pagar por Mercado Pago</p>
                 <p className="text-white/60 text-xs mt-0.5">La reserva se confirma automáticamente al terminar el pago.</p>
