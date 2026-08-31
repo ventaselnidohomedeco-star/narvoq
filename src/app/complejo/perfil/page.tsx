@@ -140,9 +140,22 @@ export default function PerfilComplejo() {
         <div><label className="label text-white/60">Instagram (sin @)</label>
           <input className="input" defaultValue={cx.instagram ?? ''}
             onBlur={e => save({ instagram: e.target.value })} /></div>
-        <div><label className="label text-white/60">Link de Google Maps</label>
+        <div>
+          <label className="label text-white/60">📍 Link de Google Maps (te ubica exacto en el mapa)</label>
           <input className="input" placeholder="https://maps.app.goo.gl/..."
-            defaultValue={cx.maps_url ?? ''} onBlur={e => save({ maps_url: e.target.value })} /></div>
+            defaultValue={cx.maps_url ?? ''}
+            onBlur={async e => {
+              const url = e.target.value.trim();
+              const patch: any = { maps_url: url || null };
+              if (url) {
+                const r = await fetch(`/api/gmaps-resolve?url=${encodeURIComponent(url)}`);
+                const j = await r.json();
+                if (j.lat && j.lng) { patch.lat = j.lat; patch.lng = j.lng; }
+              }
+              save(patch);
+            }} />
+          <p className="text-xs text-white/40 mt-1">Abrí Google Maps → tocá tu complejo → Compartir → Copiar link. Con esto los jugadores te ven en el mapa exacto.</p>
+        </div>
         <div><label className="label text-white/60">Servicios (separados por coma)</label>
           <input className="input" placeholder="Buffet, Vestuarios, Estacionamiento, Alquiler de paletas"
             defaultValue={cx.services ?? ''} onBlur={e => save({ services: e.target.value })} /></div>

@@ -15,9 +15,10 @@ export default function NuevoComplejoPrecargado() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState('');
-  const [f, setF] = useState({
+  const [f, setF] = useState<any>({
     name: '', responsible: '', phone: '', email: '',
     address: '', province: '', locality: '',
+    gmaps_url: '', lat: null as number | null, lng: null as number | null,
     open_time: '08:00', close_time: '00:00', slot_minutes: '90',
     courts: '4', price: '10000', deposit: '3000',
     whatsapp: '', instagram: '', logo_url: '', notes: ''
@@ -39,10 +40,14 @@ export default function NuevoComplejoPrecargado() {
     }
     setSaving(true); setMsg('Creando complejo...');
 
-    // 1) Geocodificar
-    const coords = await geocodeAddress({
-      address: f.address, locality: f.locality, province: f.province
-    });
+    // 1) Coordenadas: prioridad al link de Maps (ya aplicado). Si no hay, fallback geocoding.
+    let lat = f.lat, lng = f.lng;
+    if (!lat || !lng) {
+      const coords = await geocodeAddress({
+        address: f.address, locality: f.locality, province: f.province
+      });
+      lat = coords?.lat ?? null; lng = coords?.lng ?? null;
+    }
 
     // 2) Owner = null (precargado). Cuando alguien lo reclame, se lo asignamos.
     const claim_key = crypto.randomUUID();
@@ -64,8 +69,7 @@ export default function NuevoComplejoPrecargado() {
         instagram: f.instagram.trim() || null,
         logo_url: f.logo_url.trim() || null,
         payment_notes: f.notes.trim() || null,
-        lat: coords?.lat ?? null,
-        lng: coords?.lng ?? null,
+        lat, lng,
         is_precargado: true,
         claim_key,
         courts: Number(f.courts),
@@ -76,7 +80,7 @@ export default function NuevoComplejoPrecargado() {
     const json = await res.json();
     setSaving(false);
     if (!res.ok) return setMsg('❌ ' + (json.error ?? 'Error creando complejo'));
-    setMsg(`✓ Complejo "${f.name}" creado ${coords ? 'con GPS' : 'SIN GPS'}. Ver: /club/${json.id}`);
+    setMsg(`✓ Complejo "${f.name}" creado ${lat ? 'con GPS' : 'SIN GPS'}. Ver: /club/${json.id}`);
     setTimeout(() => router.push(`/club/${json.id}`), 2000);
   }
 
@@ -117,6 +121,28 @@ export default function NuevoComplejoPrecargado() {
             onChange={({ provincia, localidad }) => setF({ ...f, province: provincia, locality: localidad })}
             required
           />
+          <div className="pt-2 border-t border-white/10 space-y-2">
+            <label className="label">📍 Link de Google Maps (recomendado — GPS exacto)</label>
+            <div className="flex gap-2">
+              <input className="input flex-1" placeholder="https://maps.app.goo.gl/..."
+                value={f.gmaps_url ?? ''} onChange={e => setF({ ...f, gmaps_url: e.target.value })} />
+              <button type="button"
+                onClick={async () => {
+                  const url = (f.gmaps_url ?? '').trim();
+                  if (!url) return;
+                  setMsg('Resolviendo link…');
+                  const r = await fetch(`/api/gmaps-resolve?url=${encodeURIComponent(url)}`);
+                  const j = await r.json();
+                  if (j.lat && j.lng) { setF({ ...f, lat: j.lat, lng: j.lng }); setMsg(`✓ GPS aplicado: ${j.lat.toFixed(4)}, ${j.lng.toFixed(4)}`); }
+                  else setMsg('❌ No se pudo extraer coords del link');
+                }}
+                className="btn-ball text-sm !py-2 !px-4">Aplicar</button>
+            </div>
+            <p className="text-xs text-white/40">Abrí Google Maps → tocá el complejo → botón Compartir → Copiar link → pegalo acá.</p>
+            {f.lat && f.lng && (
+              <p className="text-xs text-ball">✓ GPS: {f.lat.toFixed(6)}, {f.lng.toFixed(6)}</p>
+            )}
+          </div>
         </div>
 
         <div className="card space-y-3">

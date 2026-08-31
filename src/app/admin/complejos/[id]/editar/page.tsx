@@ -129,14 +129,33 @@ export default function EditarComplejo() {
             onChange={({ provincia, localidad }) => setF({ ...f, province: provincia, locality: localidad })}
             required
           />
-          <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-            <p className="text-xs text-white/60">
-              GPS: {f.lat && f.lng ? `${f.lat.toFixed(4)}, ${f.lng.toFixed(4)}` : 'sin coordenadas'}
-            </p>
-            <button type="button" onClick={regeocode} disabled={regeoing}
-              className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white/10 border border-white/20">
-              {regeoing ? '…' : '🔄 Recalcular GPS'}
-            </button>
+          <div className="pt-2 border-t border-white/10 space-y-2">
+            <label className="label">📍 Link de Google Maps (recomendado — GPS exacto)</label>
+            <div className="flex gap-2">
+              <input className="input flex-1" placeholder="https://maps.app.goo.gl/..." id="gmaps-input" />
+              <button type="button" onClick={async () => {
+                const el = document.getElementById('gmaps-input') as HTMLInputElement;
+                const url = el.value.trim();
+                if (!url) return;
+                setMsg('Resolviendo link…');
+                const r = await fetch(`/api/gmaps-resolve?url=${encodeURIComponent(url)}`);
+                const j = await r.json();
+                if (j.lat && j.lng) { setF({ ...f, lat: j.lat, lng: j.lng }); setMsg('✓ GPS actualizado (recordá guardar).'); el.value = ''; }
+                else setMsg('❌ No se pudo extraer coords del link');
+              }}
+                className="btn-ball text-sm !py-2 !px-4">Aplicar</button>
+            </div>
+            <p className="text-xs text-white/40">Abrí Google Maps → tocá el complejo → botón Compartir → Copiar link → pegalo acá.</p>
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <p className="text-xs text-white/60">
+                GPS: {f.lat && f.lng ? <a target="_blank" rel="noopener" className="text-ball underline"
+                  href={`https://www.google.com/maps?q=${f.lat},${f.lng}`}>{f.lat.toFixed(6)}, {f.lng.toFixed(6)} ↗</a> : 'sin coordenadas'}
+              </p>
+              <button type="button" onClick={regeocode} disabled={regeoing}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white/10 border border-white/20">
+                {regeoing ? '…' : '🔄 Auto (por dirección)'}
+              </button>
+            </div>
           </div>
         </div>
 
