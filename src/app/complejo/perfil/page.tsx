@@ -219,6 +219,23 @@ export default function PerfilComplejo() {
                       Reconectar
                     </a>
                   </div>
+
+                  {/* Opción: no permitir tarjeta de crédito (ahorra comisión) */}
+                  <div className="rounded-xl bg-white/5 p-3 flex items-start gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
+                      <input type="checkbox" className="sr-only peer"
+                        defaultChecked={cx.mp_exclude_credit !== false}
+                        onChange={e => save({ mp_exclude_credit: e.target.checked })} />
+                      <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-ball transition after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition peer-checked:after:translate-x-5 peer-checked:after:bg-courtdark"></div>
+                    </label>
+                    <div className="flex-1">
+                      <p className="text-white font-black text-sm">🚫 Bloquear tarjeta de crédito</p>
+                      <p className="text-white/60 text-[11px] mt-0.5">
+                        Recomendado: MP cobra ~10% de comisión por crédito. Con esto solo aceptan débito, dinero en cuenta y transferencia (~3% comisión).
+                      </p>
+                    </div>
+                  </div>
+
                   <p className="text-white/50 text-[11px]">
                     Los jugadores verán el botón "Pagar con MP" al reservar. Podrán pagar la seña o el turno completo.
                   </p>

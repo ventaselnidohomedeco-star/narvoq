@@ -26,6 +26,7 @@ export default function Calendario() {
   const [selWaitlist, setSelWaitlist] = useState<any[]>([]); // gente en espera del turno seleccionado
   const [cobro, setCobro] = useState<{ show: boolean; monto: string; metodo: 'efectivo' | 'transferencia' }>({ show: false, monto: '', metodo: 'efectivo' });
   const [selPaid, setSelPaid] = useState<number>(0);   // ya cobrado de la reserva seleccionada
+  const [selMethods, setSelMethods] = useState<{ method: string; amount: number; kind: string }[]>([]);
 
   const day = useMemo(() => {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dayOffset);
@@ -97,12 +98,25 @@ export default function Calendario() {
   }
   useEffect(() => { if (cx || dayOffset >= 0) load(); }, [dayOffset]); // eslint-disable-line
 
-  // Cada vez que se abre una reserva, cargar cuánto ya se cobró
+  // Cada vez que se abre una reserva, cargar cuánto ya se cobró + con qué métodos
   useEffect(() => {
     (async () => {
-      if (!sel?.booking?.id) { setSelPaid(0); setCobro({ show: false, monto: '', metodo: 'efectivo' }); return; }
+      if (!sel?.booking?.id) {
+        setSelPaid(0); setSelMethods([]);
+        setCobro({ show: false, monto: '', metodo: 'efectivo' }); return;
+      }
       const { data } = await supabase.rpc('get_booking_paid', { p_booking_id: sel.booking.id });
       setSelPaid(Number(data ?? 0));
+
+      // Cargar métodos de pago usados
+      const { data: ledger } = await supabase.from('player_ledger')
+        .select('method, amount, kind')
+        .eq('ref_booking_id', sel.booking.id)
+        .in('kind', ['seña_paid', 'restante_paid'])
+        .order('created_at');
+      setSelMethods((ledger ?? []).map((r: any) => ({
+        method: r.method, amount: Math.abs(Number(r.amount)), kind: r.kind
+      })));
     })();
   }, [sel?.booking?.id]);
 
@@ -513,6 +527,22 @@ export default function Calendario() {
                         <p className={`text-xs font-bold mt-1 ${sel.booking.payment_status === 'pagado' ? 'text-green-400' : 'text-yellow-300'}`}>
                           Pago: {sel.booking.payment_status === 'pagado' ? 'pagado y confirmado' : sel.booking.payment_proof_url ? 'comprobante en revision' : 'pendiente'}
                         </p>
+                        {selMethods.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {selMethods.map((m, i) => {
+                              const label = m.method === 'efectivo' ? '💵 Efectivo'
+                                : m.method === 'transferencia' ? '🏦 Transferencia'
+                                : m.method === 'mp' ? '💳 Mercado Pago'
+                                : m.method;
+                              const kindLabel = m.kind === 'seña_paid' ? 'seña' : 'restante';
+                              return (
+                                <span key={i} className="text-[10px] font-bold bg-white/10 rounded px-2 py-0.5">
+                                  {label} · ${m.amount.toLocaleString('es-AR')} <span className="text-white/40">({kindLabel})</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                         {sel.booking.payment_status !== 'pagado' && sel.booking.payment_deadline_at && (
                           <p className="text-white/50 text-[11px] mt-1">
                             {new Date(sel.booking.payment_deadline_at) > new Date()

@@ -431,11 +431,13 @@ function Reservar() {
               <div className="mt-3 rounded-2xl bg-gradient-to-br from-[#009EE3]/15 to-transparent border-2 border-[#009EE3]/40 p-3">
                 <p className="font-display font-black text-white">💳 Pagar por Mercado Pago</p>
                 <p className="text-white/60 text-xs mt-0.5">La reserva se confirma automáticamente al terminar el pago.</p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-3">
                   {(() => {
                     const priceTotal = Number((pending.court as any)?.price_per_slot ?? 0);
-                    const deposit = (pending.court as any)?.deposit_amount != null
-                      ? Number((pending.court as any).deposit_amount) : priceTotal;
+                    const senaCustom = (pending.court as any)?.deposit_amount;
+                    // Solo mostrar botón seña si el complejo configuró una específica (distinta al total)
+                    const hasSena = senaCustom != null && Number(senaCustom) > 0 && Number(senaCustom) < priceTotal;
+                    const deposit = hasSena ? Number(senaCustom) : priceTotal;
                     const payMP = async (kind: 'seña' | 'total') => {
                       const res = await fetch('/api/mp/pay-booking', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -446,16 +448,18 @@ function Reservar() {
                       window.location.href = data.init_point;
                     };
                     return (
-                      <>
-                        <button onClick={() => payMP('seña')}
-                          className="py-3 rounded-xl bg-[#009EE3] text-white font-black text-sm active:scale-95">
-                          Seña<br/><span className="text-xs">${deposit.toLocaleString('es-AR')}</span>
-                        </button>
+                      <div className={hasSena ? 'grid grid-cols-2 gap-2' : ''}>
+                        {hasSena && (
+                          <button onClick={() => payMP('seña')}
+                            className="py-3 rounded-xl bg-[#009EE3] text-white font-black text-sm active:scale-95">
+                            Seña<br/><span className="text-xs">${deposit.toLocaleString('es-AR')}</span>
+                          </button>
+                        )}
                         <button onClick={() => payMP('total')}
                           className="py-3 rounded-xl bg-ball text-courtdark font-black text-sm active:scale-95">
                           Turno completo<br/><span className="text-xs">${priceTotal.toLocaleString('es-AR')}</span>
                         </button>
-                      </>
+                      </div>
                     );
                   })()}
                 </div>

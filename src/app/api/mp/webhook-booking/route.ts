@@ -70,19 +70,37 @@ export async function POST(req: NextRequest) {
     if (status === 'approved') {
       await admin.from('bookings').update({
         status: 'confirmada',
-        payment_status: 'pagado'
+        payment_status: 'pagado',
+        payment_confirmed_at: new Date().toISOString()
       }).eq('id', matched.booking_id);
 
-      const kind = matched.kind === 'total' ? 'seña_paid' : 'seña_paid'; // el ledger no distingue; contamos como cobro
+      // Traer el player_id del booking (paymentData.payer.id es el user MP, no nuestro)
+      const { data: bookingRow } = await admin.from('bookings')
+        .select('player_id').eq('id', matched.booking_id).maybeSingle();
+
+      const kind = matched.kind === 'total' ? 'restante_paid' : 'seña_paid';
       await admin.from('player_ledger').insert({
-        player_id: paymentData.payer?.id ? undefined : undefined, // player desde booking
+        player_id: bookingRow?.player_id ?? null,
         complex_id: matched.complex_id,
         kind,
         amount: paymentData.transaction_amount,
         method: 'mp',
-        description: `Pago por Mercado Pago (${matched.kind})`,
+        description: `Pago por Mercado Pago (${matched.kind === 'total' ? 'turno completo' : 'seña'})`,
         ref_booking_id: matched.booking_id
       });
+
+      // Notificar al complejo que se acreditó el pago
+      const { data: cxRow } = await admin.from('complexes')
+        .select('owner_id, name').eq('id', matched.complex_id).maybeSingle();
+      if (cxRow?.owner_id) {
+        await admin.from('notifications').insert({
+          user_id: cxRow.owner_id,
+          kind: 'reserva_ok',
+          title: '💳 Pago aprobado por MP',
+          body: `Se confirmó una reserva pagada con Mercado Pago · $${Number(paymentData.transaction_amount).toLocaleString('es-AR')}`,
+          link: '/complejo/calendario'
+        });
+      }
     }
 
     return NextResponse.json({ ok: true });

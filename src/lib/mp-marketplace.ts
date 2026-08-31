@@ -52,6 +52,7 @@ export async function createPreferenceForComplex(opts: {
   backUrl: string;
   notificationUrl: string;
   feePct: number;   // 0..100
+  excludeCredit?: boolean;   // si true, no permite pagar con tarjeta de crédito
 }): Promise<{ id: string; init_point: string; sandbox_init_point: string }> {
   const applicationFee = opts.feePct > 0
     ? Number((opts.amount * opts.feePct / 100).toFixed(2))
@@ -76,6 +77,11 @@ export async function createPreferenceForComplex(opts: {
   };
   if (opts.payerEmail) body.payer = { email: opts.payerEmail };
   if (applicationFee > 0) body.marketplace_fee = applicationFee;
+  if (opts.excludeCredit) {
+    body.payment_methods = {
+      excluded_payment_types: [{ id: 'credit_card' }]
+    };
+  }
 
   const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
     method: 'POST',

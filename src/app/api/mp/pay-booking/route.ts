@@ -28,9 +28,9 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    // Traer booking + cancha + complejo con tokens MP
+    // Traer booking + cancha + complejo con tokens MP + preferencias de pago
     const { data: b } = await supabase.from('bookings')
-      .select('id, player_id, price, starts_at, court:courts(id, name, price_per_slot, deposit_amount, complex:complexes(id, name, mp_access_token))')
+      .select('id, player_id, price, starts_at, court:courts(id, name, price_per_slot, deposit_amount, complex:complexes(id, name, mp_access_token, mp_exclude_credit))')
       .eq('id', bookingId).maybeSingle();
     if (!b) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 });
     if (b.player_id !== user.id) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
       payerEmail,
       backUrl,
       notificationUrl,
-      feePct
+      feePct,
+      excludeCredit: !!cx.mp_exclude_credit
     });
 
     // Registrar el intento

@@ -65,6 +65,8 @@ export default function DashboardComplejo() {
   });
   const [waitlistShow, setWaitlistShow] = useState(false);
   const [waitlistList, setWaitlistList] = useState<any[]>([]);
+  const [incomeByMethod, setIncomeByMethod] = useState<Record<string, number>>({ efectivo: 0, transferencia: 0, mp: 0, otros: 0 });
+  const [restantePendiente, setRestantePendiente] = useState<{ monto: number; cantidad: number }>({ monto: 0, cantidad: 0 });
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -92,14 +94,54 @@ export default function DashboardComplejo() {
     const ocupados = (periodBks ?? []).length; // reservas + bloqueos
     const plataTotal = reservas.reduce((a, b) => a + Number(b.price ?? 0), 0);
 
-    // Ingresos reales del período (ledger)
+    // Ingresos reales del período (ledger) + desglose por método
     const { data: ledger } = await supabase.from('player_ledger')
-      .select('amount, kind')
+      .select('amount, kind, method')
       .eq('complex_id', complex.id)
       .in('kind', ['seña_paid', 'restante_paid'])
       .gte('created_at', desde.toISOString());
     const ingresado = (ledger ?? []).reduce((a: number, r: any) => a + Math.abs(Number(r.amount ?? 0)), 0);
     const porCobrar = Math.max(0, plataTotal - ingresado);
+
+    // Desglose por método
+    const byMethod: Record<string, number> = { efectivo: 0, transferencia: 0, mp: 0, otros: 0 };
+    (ledger ?? []).forEach((r: any) => {
+      const m = ['efectivo', 'transferencia', 'mp'].includes(r.method) ? r.method : 'otros';
+      byMethod[m] = (byMethod[m] ?? 0) + Math.abs(Number(r.amount ?? 0));
+    });
+    setIncomeByMethod(byMethod);
+
+    // Reservas con seña pagada pero sin restante: "cobros pendientes en cancha"
+    // Estas son las reservas donde el jugador pagó solo la seña y falta cobrar el resto
+    const bookingsWithPartial = new Map<string, { paid: number; total: number }>();
+    const { data: allBksFull } = await supabase.from('bookings')
+      .select('id, price, court:courts(price_per_slot)')
+      .in('court_id', courtIds).neq('status', 'cancelada')
+      .gte('starts_at', desde.toISOString()).lte('starts_at', new Date().toISOString());
+    (allBksFull ?? []).forEach((b: any) => {
+      bookingsWithPartial.set(b.id, {
+        paid: 0,
+        total: Number(b.court?.price_per_slot ?? b.price ?? 0)
+      });
+    });
+    const { data: ledgerByBooking } = await supabase.from('player_ledger')
+      .select('ref_booking_id, amount')
+      .eq('complex_id', complex.id)
+      .in('kind', ['seña_paid', 'restante_paid'])
+      .in('ref_booking_id', Array.from(bookingsWithPartial.keys()));
+    (ledgerByBooking ?? []).forEach((r: any) => {
+      const b = bookingsWithPartial.get(r.ref_booking_id);
+      if (b) b.paid += Math.abs(Number(r.amount ?? 0));
+    });
+    let restantePendiente = 0;
+    let cantPendientes = 0;
+    bookingsWithPartial.forEach(v => {
+      if (v.paid > 0 && v.paid < v.total) {
+        restantePendiente += (v.total - v.paid);
+        cantPendientes++;
+      }
+    });
+    setRestantePendiente({ monto: restantePendiente, cantidad: cantPendientes });
 
     // Cumplimiento: reservas confirmadas / (confirmadas + canceladas)
     const { data: allBks } = await supabase.from('bookings')
@@ -368,6 +410,60 @@ export default function DashboardComplejo() {
           <p className="text-white/60 text-[10px] font-bold uppercase">⏱ En espera</p>
         </button>
       </section>
+
+      {/* 💵 Desglose de ingresos por método de pago */}
+      <section className="mt-4 bg-white/5 rounded-2xl p-4">
+        <p className="font-display font-black text-ball text-sm tracking-widest">💵 INGRESOS POR MÉTODO</p>
+        <p className="text-white/50 text-xs mt-1">
+          {periodo === 'semana' ? 'Últimos 7 días' : 'Últimos 30 días'} · Total: <b className="text-white">${stats.ingresado.toLocaleString('es-AR')}</b>
+        </p>
+        <div className="mt-3 space-y-2">
+          {[
+            { key: 'efectivo', label: '💵 Efectivo', color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+            { key: 'transferencia', label: '🏦 Transferencia', color: 'text-blue-300', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+            { key: 'mp', label: '💳 Mercado Pago', color: 'text-[#009EE3]', bg: 'bg-[#009EE3]/10', border: 'border-[#009EE3]/30' }
+          ].map(m => {
+            const amount = incomeByMethod[m.key] ?? 0;
+            const pct = stats.ingresado > 0 ? Math.round((amount / stats.ingresado) * 100) : 0;
+            return (
+              <div key={m.key} className={`rounded-xl p-3 border ${m.bg} ${m.border}`}>
+                <div className="flex items-center justify-between">
+                  <p className={`text-sm font-black ${m.color}`}>{m.label}</p>
+                  <p className={`text-sm font-display font-black ${m.color}`}>
+                    ${amount.toLocaleString('es-AR')} <span className="text-white/40 text-xs">({pct}%)</span>
+                  </p>
+                </div>
+                <div className="mt-1.5 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className={`h-full ${m.color.replace('text-', 'bg-')}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-white/40 text-[10px] mt-3">
+          💡 Efectivo y MP tienen tratamiento fiscal distinto. Usalo para armar tu facturación mensual.
+        </p>
+      </section>
+
+      {/* ⏳ Cobros pendientes (seña pagada, restante por cobrar) */}
+      {restantePendiente.cantidad > 0 && (
+        <section className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="font-display font-black text-yellow-300 text-sm tracking-widest">⏳ COBROS PENDIENTES EN CANCHA</p>
+              <p className="text-white/70 text-sm mt-2">
+                <b className="text-yellow-300 text-xl">{restantePendiente.cantidad}</b> reserva{restantePendiente.cantidad > 1 ? 's' : ''} con seña paga pero <b>saldo pendiente</b>.
+              </p>
+              <p className="text-white/50 text-xs mt-1">
+                Total a cobrar en cancha: <b className="text-yellow-300">${restantePendiente.monto.toLocaleString('es-AR')}</b>
+              </p>
+            </div>
+          </div>
+          <Link href="/complejo/calendario" className="mt-3 inline-block py-2 px-4 rounded-lg bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 text-xs font-black">
+            Ver calendario →
+          </Link>
+        </section>
+      )}
 
       {/* Drawer: lista de gente en espera */}
       {waitlistShow && (
