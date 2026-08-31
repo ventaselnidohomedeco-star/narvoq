@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import PhotoPicker from '@/components/PhotoPicker';
+import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 import { uploadImage } from '@/lib/upload';
+import { geocodeAddress } from '@/lib/geo';
 
 export default function PerfilComplejo() {
   const router = useRouter();
@@ -23,6 +25,21 @@ export default function PerfilComplejo() {
   }, []);
 
   async function save(patch: any) {
+    // Si cambia address / province / locality, geocodifico auto para que
+    // aparezca en el buscador por cercanía del jugador.
+    const changesGeo = 'address' in patch || 'province' in patch || 'locality' in patch;
+    if (changesGeo) {
+      const fullAddress = [
+        patch.address ?? cx.address,
+        patch.locality ?? cx.locality,
+        patch.province ?? cx.province,
+        'Argentina'
+      ].filter(Boolean).join(', ');
+      const coords = await geocodeAddress(fullAddress);
+      if (coords) {
+        patch = { ...patch, lat: coords.lat, lng: coords.lng };
+      }
+    }
     await supabase.from('complexes').update(patch).eq('id', cx.id);
     setCx({ ...cx, ...patch });
     setSaved(true); setTimeout(() => setSaved(false), 1500);
@@ -70,12 +87,35 @@ export default function PerfilComplejo() {
           <div><label className="label text-white/60">Teléfono</label>
             <input className="input" defaultValue={cx.phone} onBlur={e => save({ phone: e.target.value })} /></div>
         </div>
-        <div><label className="label text-white/60">Dirección</label>
-          <input className="input" defaultValue={cx.address} onBlur={e => save({ address: e.target.value })} /></div>
-        <div><label className="label text-white/60">Ciudad</label>
-          <select className="input" value={cx.city_id} onChange={e => save({ city_id: e.target.value })}>
+        <div><label className="label text-white/60">Dirección (calle + altura)</label>
+          <input className="input" defaultValue={cx.address}
+            placeholder="Av. Corrientes 1234"
+            onBlur={e => save({ address: e.target.value })} /></div>
+
+        <ProvinciaLocalidadSelect
+          provincia={cx.province ?? ''} localidad={cx.locality ?? ''}
+          onChange={({ provincia, localidad }) => save({ province: provincia, locality: localidad })}
+        />
+
+        {cx.lat && cx.lng ? (
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/40 p-3 text-emerald-300 text-xs">
+            📍 Ubicación detectada: {Number(cx.lat).toFixed(4)}, {Number(cx.lng).toFixed(4)}
+            <span className="text-white/50 ml-2">(los jugadores te ven en el buscador por cercanía)</span>
+          </div>
+        ) : cx.address ? (
+          <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/40 p-3 text-yellow-300 text-xs">
+            ⚠️ Sin ubicación GPS. Actualizá la dirección para que Narvoq la geolocalice automáticamente.
+          </div>
+        ) : null}
+
+        {/* Ciudad legacy — se autopobla cuando eligen provincia+localidad */}
+        <details className="text-white/40 text-xs">
+          <summary className="cursor-pointer">Ciudad (legacy)</summary>
+          <select className="input mt-2" value={cx.city_id ?? ''} onChange={e => save({ city_id: e.target.value })}>
+            <option value="">—</option>
             {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select></div>
+          </select>
+        </details>
       </div>
 
       {/* Contacto y redes */}
