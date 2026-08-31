@@ -601,8 +601,8 @@ export default function Calendario() {
                   </div>
                 )}
 
-                {/* Cobrar restante — solo si es reserva de jugador registrado y ya está confirmada */}
-                {sel.booking.type !== 'block' && sel.booking.player_id && sel.booking.status === 'confirmada' && (
+                {/* Estado de pago + cobrar restante — aparece si hay al menos un pago hecho */}
+                {sel.booking.type !== 'block' && sel.booking.player_id && (selPaid > 0 || sel.booking.status === 'confirmada') && (
                   <div className="mt-4 bg-white/5 rounded-2xl p-4">
                     <div className="grid grid-cols-3 gap-2 text-center text-xs">
                       <div>

@@ -19,12 +19,33 @@ function ReservasInner() {
     const { data: mp } = await supabase.from('match_players')
       .select(`match:matches(id, status, tournament_match_id,
         booking:bookings(id, court_id, starts_at, ends_at, price, status, payment_status, payment_proof_url,
-          court:courts(name, photo_url, complex:complexes(name, address, cancel_hours))),
+          court:courts(name, photo_url, price_per_slot, complex:complexes(id, name, address, cancel_hours, payment_alias, payment_cbu, payment_holder, payment_bank, payment_transfer_enabled, payment_cash_enabled))),
         result:results(id, status, sets, winner_team),
         players:match_players(player_id, team, profile:profiles!player_id(username, first_name, last_name, avatar_url)))`)
       .eq('player_id', user.id).limit(100);
 
     const matches = (mp ?? []).map((r: any) => r.match).filter((m: any) => m?.booking);
+
+    // Cargar pagos hechos por booking (para mostrar cuánto pagó, método, restante)
+    const bookingIds = matches.map((m: any) => m.booking.id);
+    if (bookingIds.length > 0) {
+      const { data: ledger } = await supabase.from('player_ledger')
+        .select('ref_booking_id, method, amount, kind')
+        .in('kind', ['seña_paid', 'restante_paid'])
+        .in('ref_booking_id', bookingIds);
+      const byBooking = new Map<string, { paid: number; methods: any[] }>();
+      (ledger ?? []).forEach((r: any) => {
+        const b = byBooking.get(r.ref_booking_id) ?? { paid: 0, methods: [] };
+        b.paid += Math.abs(Number(r.amount ?? 0));
+        b.methods.push({ method: r.method, amount: Math.abs(Number(r.amount)), kind: r.kind });
+        byBooking.set(r.ref_booking_id, b);
+      });
+      matches.forEach((m: any) => {
+        const p = byBooking.get(m.booking.id);
+        m.booking.paid = p?.paid ?? 0;
+        m.booking.methods = p?.methods ?? [];
+      });
+    }
     const now = new Date();
     setUpcoming(matches
       .filter((m: any) => new Date(m.booking.starts_at) > now && m.booking.status !== 'cancelada')
@@ -129,25 +150,91 @@ function ReservasInner() {
     );
   };
 
-  const Card = ({ m, cta, cancelable }: any) => (
-    <Link href={`/partido/${m.id}`} className="card !p-0 overflow-hidden flex">
-      {m.booking.court.photo_url
-        ? <img src={m.booking.court.photo_url} alt="" className="w-24 object-cover shrink-0" />
-        : <span className="w-24 bg-grafito/10 flex items-center justify-center text-2xl shrink-0">PA</span>}
-      <div className="p-3 flex-1 min-w-0">
-        <p className="font-display font-bold truncate">{m.booking.court.complex.name}</p>
-        <p className="text-white/50 text-sm">{m.booking.court.name} - {fmt(m.booking.starts_at)} hs</p>
-        <p className={`text-xs font-black mt-1 ${m.booking.payment_status === 'pagado' ? 'text-green-400' : m.booking.payment_proof_url ? 'text-yellow-300' : 'text-red-300'}`}>
-          {paymentText(m.booking)}
-        </p>
-        <p className="text-ball text-sm font-bold mt-1">{cta}</p>
+  const Card = ({ m, cta, cancelable }: any) => {
+    const total = Number(m.booking.court?.price_per_slot ?? m.booking.price ?? 0);
+    const paid = Number(m.booking.paid ?? 0);
+    const remaining = Math.max(0, total - paid);
+    const methods = m.booking.methods ?? [];
+    const cx = m.booking.court.complex;
+    return (
+      <div className="card !p-0 overflow-hidden">
+        <Link href={`/partido/${m.id}`} className="flex">
+          {m.booking.court.photo_url
+            ? <img src={m.booking.court.photo_url} alt="" className="w-24 object-cover shrink-0" />
+            : <span className="w-24 bg-grafito/10 flex items-center justify-center text-2xl shrink-0">PA</span>}
+          <div className="p-3 flex-1 min-w-0">
+            <p className="font-display font-bold truncate">{cx.name}</p>
+            <p className="text-white/50 text-sm">{m.booking.court.name} - {fmt(m.booking.starts_at)} hs</p>
+            <p className={`text-xs font-black mt-1 ${m.booking.payment_status === 'pagado' ? 'text-green-400' : m.booking.payment_proof_url ? 'text-yellow-300' : 'text-red-300'}`}>
+              {paymentText(m.booking)}
+            </p>
+            <p className="text-ball text-sm font-bold mt-1">{cta}</p>
+          </div>
+        </Link>
+
+        {/* Detalle de pagos si hay algún cobro */}
+        {(paid > 0 || total > 0) && (
+          <div className="border-t border-white/10 p-3 bg-white/[0.02]">
+            <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+              <div>
+                <p className="text-white/40 uppercase font-black">Total</p>
+                <p className="font-display font-black text-white text-sm mt-0.5">${total.toLocaleString('es-AR')}</p>
+              </div>
+              <div>
+                <p className="text-white/40 uppercase font-black">Pagaste</p>
+                <p className="font-display font-black text-ball text-sm mt-0.5">${paid.toLocaleString('es-AR')}</p>
+              </div>
+              <div>
+                <p className="text-white/40 uppercase font-black">Restante</p>
+                <p className={`font-display font-black text-sm mt-0.5 ${remaining > 0 ? 'text-yellow-300' : 'text-green-400'}`}>
+                  ${remaining.toLocaleString('es-AR')}
+                </p>
+              </div>
+            </div>
+
+            {/* Métodos usados */}
+            {methods.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {methods.map((m: any, i: number) => {
+                  const label = m.method === 'efectivo' ? '💵'
+                    : m.method === 'transferencia' ? '🏦'
+                    : m.method === 'mp' ? '💳 MP' : m.method;
+                  return (
+                    <span key={i} className="text-[10px] font-bold bg-white/10 rounded px-2 py-0.5">
+                      {label} ${m.amount.toLocaleString('es-AR')} <span className="text-white/40">({m.kind === 'seña_paid' ? 'seña' : 'restante'})</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Info de cómo pagar el restante */}
+            {remaining > 0 && (
+              <div className="mt-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-2 text-[11px] text-white/80">
+                <p className="font-black text-yellow-300">💰 Falta pagar ${remaining.toLocaleString('es-AR')}</p>
+                {cx.payment_cash_enabled !== false && (
+                  <p className="mt-0.5">💵 <b>Efectivo en cancha</b> cuando llegues.</p>
+                )}
+                {cx.payment_transfer_enabled !== false && cx.payment_alias && (
+                  <p className="mt-0.5">🏦 <b>Transferencia:</b> {cx.payment_alias}
+                    {cx.payment_cbu && <> · CBU {cx.payment_cbu}</>}
+                    {cx.payment_holder && <> · {cx.payment_holder}</>}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {cancelable && (
           <button onClick={e => cancelar(m, e)}
-            className="mt-1 text-xs font-bold text-red-500">Cancelar reserva</button>
+            className="border-t border-white/10 w-full py-2 text-xs font-bold text-red-500 hover:bg-red-500/5">
+            Cancelar reserva
+          </button>
         )}
       </div>
-    </Link>
-  );
+    );
+  };
 
   return (
     <main className="px-5 pt-8">
