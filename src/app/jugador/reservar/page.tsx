@@ -174,7 +174,19 @@ function Reservar() {
       price: senaAmount,   // el "price" del booking es la seña que el jugador paga ahora
       payment_deadline_at: deadline.toISOString()
     }).select().single();
-    if (bErr) { setError('Ese turno acaba de ocuparse. Elegí otro.'); setSaving(false); return; }
+    if (bErr) {
+      // Constraint no_overlap_bookings o similar → otro jugador se adelantó
+      const msg = String(bErr.message ?? '').toLowerCase();
+      if (msg.includes('overlap') || msg.includes('no_overlap') || msg.includes('exclusion') || bErr.code === '23P01') {
+        setError('Otro jugador reservó ese turno justo antes que vos. Refrescamos la disponibilidad — elegí otro.');
+      } else {
+        setError('Ese turno acaba de ocuparse. Elegí otro.');
+      }
+      setSaving(false);
+      // Fuerza refetch tocando la cancha (dispara el useEffect que recarga slots)
+      const c = court; setCourt(null); setTimeout(() => setCourt(c), 100);
+      return;
+    }
 
     const { data: profile } = await supabase.from('profiles').select('category').eq('id', user!.id).single();
     const { data: match } = await supabase.from('matches').insert({

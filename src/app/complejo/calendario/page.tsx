@@ -86,9 +86,11 @@ export default function Calendario() {
       .in('court_id', complex.courts.map((c: any) => c.id))
       .gte('starts_at', day.toISOString()).lt('starts_at', to.toISOString())
       .is('fulfilled_at', null);
+    // Normalizar starts_at con new Date().toISOString() para que matchee con
+    // lo que después usamos como key en el grid (JS y Postgres formatean diferente).
     const counts = new Map<string, number>();
     (wl ?? []).forEach((w: any) => {
-      const key = `${w.court_id}|${w.starts_at}`;
+      const key = `${w.court_id}|${new Date(w.starts_at).toISOString()}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     });
     setWaitlistCounts(counts);
@@ -417,7 +419,7 @@ export default function Calendario() {
                 </td>
                 {cx.courts.map((c: any) => {
                   const b = cellBooking(c.id, t);
-                  const wlCount = waitlistCounts.get(`${c.id}|${t.toISOString()}`) ?? 0;
+                  const wlCount = waitlistCounts.get(`${c.id}|${new Date(t).toISOString()}`) ?? 0;
                   if (b) {
                     const name = b.type === 'block' ? 'Bloqueado'
                       : b.player ? `${b.player.first_name} ${b.player.last_name?.[0] ?? ''}.`
@@ -530,11 +532,30 @@ export default function Calendario() {
                     </a>
                   </div>
                 )}
-                {sel.booking.type !== 'block' && sel.booking.payment_status !== 'pagado' && sel.booking.payment_proof_url && (
-                  <button onClick={() => marcarPagado(sel.booking)}
-                    className="mt-3 w-full py-3 rounded-xl bg-ball text-courtdark font-display font-black">
-                    Marcar pagado y confirmar reserva
-                  </button>
+                {/* Aprobar/rechazar — reservas de jugadores pendientes (con o sin comprobante) */}
+                {sel.booking.type !== 'block' &&
+                 sel.booking.player_id &&
+                 sel.booking.payment_status !== 'pagado' && (
+                  <div className="mt-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/40 p-3">
+                    <p className="font-display font-black text-yellow-300 text-sm">
+                      ⏳ Reserva pendiente de aprobación
+                    </p>
+                    <p className="text-white/60 text-xs mt-1">
+                      {sel.booking.payment_proof_url
+                        ? 'El jugador subió un comprobante. Revisalo y aprobá si está OK.'
+                        : 'El jugador todavía no subió comprobante. Podés aprobar igual (si te pagó por afuera) o rechazar.'}
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button onClick={() => marcarPagado(sel.booking)}
+                        className="py-3 rounded-xl bg-ball text-courtdark font-display font-black text-sm">
+                        ✓ Aprobar
+                      </button>
+                      <button onClick={() => cancelar(sel.booking)}
+                        className="py-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 font-black text-sm">
+                        ✕ Rechazar
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {/* Cobrar restante — solo si es reserva de jugador registrado y ya está confirmada */}
