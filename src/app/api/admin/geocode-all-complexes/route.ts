@@ -23,16 +23,20 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'no auth' }, { status: 401 });
 
   const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'super_admin') return NextResponse.json({ error: 'solo super_admin' }, { status: 403 });
+  const isSuper = me?.role === 'super_admin';
 
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data: cxs } = await admin.from('complexes')
+  // super_admin: procesa TODOS los complejos sin coordenadas
+  // otros: solo el/los que sean suyos
+  let q = admin.from('complexes')
     .select('id, name, address, locality, province')
     .is('lat', null);
+  if (!isSuper) q = q.eq('owner_id', user.id);
+  const { data: cxs } = await q;
 
   let updated = 0, failed = 0;
   const results: any[] = [];

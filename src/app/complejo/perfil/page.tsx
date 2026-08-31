@@ -21,6 +21,17 @@ export default function PerfilComplejo() {
       setCx(data);
       const { data: cs } = await supabase.from('cities').select('id,name');
       setCities(cs ?? []);
+
+      // Auto-geocoding silencioso: si el complejo tiene dirección + prov + loc
+      // pero NO tiene lat/lng, lo geocodificamos ahora sin pedirle nada.
+      if (data && !data.lat && data.address && data.province && data.locality) {
+        const full = [data.address, data.locality, data.province, 'Argentina'].join(', ');
+        const coords = await geocodeAddress(full);
+        if (coords) {
+          await supabase.from('complexes').update({ lat: coords.lat, lng: coords.lng }).eq('id', data.id);
+          setCx({ ...data, lat: coords.lat, lng: coords.lng });
+        }
+      }
     })();
   }, []);
 
