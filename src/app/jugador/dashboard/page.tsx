@@ -67,9 +67,10 @@ export default function Dashboard() {
         )}
         <div className="flex-1 min-w-0">
           <p className="text-white/60 text-base">Hola,</p>
-          <h1 className="font-display font-black text-3xl md:text-4xl leading-tight truncate">
+          <h1 className="font-display font-black leading-tight break-words"
+            style={{ fontSize: 'clamp(1.1rem, 4.5vw, 2rem)' }}>
             {profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() : '…'}
-            <VerifiedBadge show={(profile as any)?.is_premium} size="lg" />
+            <VerifiedBadge show={(profile as any)?.is_premium} size="md" />
           </h1>
           {profile?.username && (
             <p className="text-white/50 text-sm font-semibold mt-0.5">@{profile.username}</p>

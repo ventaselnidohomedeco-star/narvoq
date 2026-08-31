@@ -17,12 +17,13 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
       <Banner />
       <div className="min-h-dvh bg-black pb-32 lg:pb-8 lg:pl-60">
         <div className="max-w-3xl xl:max-w-5xl mx-auto">
-          <header className="px-5 pt-4 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5 bg-black">
-            <Link href="/jugador/dashboard" className="shrink-0 active:scale-95 transition">
+          <header className="px-3 pt-3 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5 bg-black overflow-hidden">
+            <Link href="/jugador/dashboard" className="shrink min-w-0 active:scale-95 transition">
               <img src="/brand/logo.png?v=9" alt="NarvoQ"
-                style={{ height: 70, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
+                className="h-12 w-auto object-contain max-w-[55vw]"
+                style={{ mixBlendMode: 'screen' }} />
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 shrink-0">
               <InstallButton variant="ghost" />
               <Bell />
               <UserMenu />

@@ -61,13 +61,17 @@ export async function middleware(req: NextRequest) {
   if (path.startsWith('/complejo') && !isComplexAuth) {
     if (!user) return redirect(res, req, '/complejo/login');
     const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', user.id).single();
-    const isAdmin = profile?.role === 'complex_admin' || profile?.role === 'super_admin';
-    if (!isAdmin) {
-      const { data: emp } = await supabase.from('complex_employees')
-        .select('complex_id').eq('user_id', user.id).eq('active', true).limit(1);
-      if (!emp || emp.length === 0)
-        return redirect(res, req, '/jugador/dashboard');
+      .from('profiles').select('role').eq('id', user.id).maybeSingle();
+    // Si por alguna razón no encontramos profile, NO lo echamos — lo dejamos
+    // pasar. La app maneja la UI vacía sin problemas.
+    if (profile) {
+      const isAdmin = profile.role === 'complex_admin' || profile.role === 'super_admin';
+      if (!isAdmin) {
+        const { data: emp } = await supabase.from('complex_employees')
+          .select('complex_id').eq('user_id', user.id).eq('active', true).limit(1);
+        if (!emp || emp.length === 0)
+          return redirect(res, req, '/jugador/dashboard');
+      }
     }
   }
 
@@ -102,4 +106,4 @@ function redirect(res: NextResponse, req: NextRequest, to: string): NextResponse
   return redirected;
 }
 
-export const config = { matcher: ['/jugador/:path*', '/complejo/:path*', '/admin/:path*', '/training/:path*'] };
+export const config = { matcher: ['/jugador/:path*', '/complejo/:path*', '/admin/:path*', '/training/:path*', '/u/:path*'] };
