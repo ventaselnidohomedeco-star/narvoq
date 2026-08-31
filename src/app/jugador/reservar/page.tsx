@@ -8,6 +8,7 @@ import type { Complex, Court } from '@/lib/types';
 import { uploadImage } from '@/lib/upload';
 import { ruleFor, priceWithRule, type OffpeakRule } from '@/lib/offpeak';
 import { notify } from '@/lib/notify';
+import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 
 export default function ReservarPage() {
   return (
@@ -28,6 +29,9 @@ function Reservar() {
   const paramTime = searchParams?.get('time');
   const [cities, setCities] = useState<any[]>([]);
   const [cityId, setCityId] = useState('');
+  // Nuevo: selector por provincia+localidad (cobertura total Argentina via GeoRef)
+  const [filterProvince, setFilterProvince] = useState('');
+  const [filterLocality, setFilterLocality] = useState('');
   const [complexes, setComplexes] = useState<Complex[]>([]);
   const [myLoc, setMyLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [locStatus, setLocStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
@@ -82,24 +86,23 @@ function Reservar() {
   })(); }, []);
 
   useEffect(() => {
-    if (!cityId) return setComplexes([]);
-    // Solo complejos APROBADOS (status='active') y operativos (active=true).
-    // Match por city_id (viejo) O por locality que coincida con el nombre de la city
-    // (así los precargados con province+locality aparecen también).
+    // Cargar complejos según el filtro activo: provincia+localidad (nuevo) o cityId (legacy)
     (async () => {
-      const selected = cities.find((c: any) => c.id === cityId);
-      const isVirtual = String(cityId).startsWith('loc:');
-      const cityName = selected?.name ?? '';
       let q = supabase.from('complexes').select('*').eq('active', true).eq('status', 'active');
-      if (isVirtual) {
-        q = q.ilike('locality', cityName);
+      if (filterProvince && filterLocality) {
+        q = q.ilike('locality', filterLocality).ilike('province', filterProvince);
+      } else if (cityId) {
+        const selected = cities.find((c: any) => c.id === cityId);
+        const cityName = selected?.name ?? '';
+        if (String(cityId).startsWith('loc:')) q = q.ilike('locality', cityName);
+        else q = q.or(`city_id.eq.${cityId}${cityName ? `,locality.ilike.${cityName}` : ''}`);
       } else {
-        q = q.or(`city_id.eq.${cityId}${cityName ? `,locality.ilike.${cityName}` : ''}`);
+        return setComplexes([]);
       }
       const { data } = await q;
       setComplexes(data ?? []);
     })();
-  }, [cityId, cities]);
+  }, [cityId, cities, filterProvince, filterLocality]);
 
   // Al aceptar geoloc, traemos TODOS los complejos con lat/lng y los ordenamos por distancia
   async function activarUbicacion() {
@@ -371,17 +374,22 @@ function Reservar() {
           <p className="text-yellow-300 text-sm">No hay complejos con ubicación registrada cerca tuyo. Buscá por ciudad ↓</p>
         )}
 
-        {/* Selector por ciudad (siempre disponible como fallback) */}
+        {/* Selector por provincia + localidad (cobertura total AR via GeoRef) */}
         {locStatus !== 'granted' && (
-          <div><label className="label">O elegí por ciudad</label>
-            <select className="input" value={cityId} onChange={e => { setCityId(e.target.value); setComplex(null); setCourt(null); setPending(null); }}>
-              <option value="">Elegí ciudad</option>
-              {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+          <div>
+            <label className="label">O elegí por provincia y localidad</label>
+            <ProvinciaLocalidadSelect
+              provincia={filterProvince}
+              localidad={filterLocality}
+              onChange={({ provincia, localidad }) => {
+                setFilterProvince(provincia); setFilterLocality(localidad);
+                setCityId(''); setComplex(null); setCourt(null); setPending(null);
+              }}
+            />
           </div>
         )}
 
-        {cityId && (
+        {(cityId || (filterProvince && filterLocality)) && (
           <div>
             <label className="label">Complejo</label>
 
@@ -389,13 +397,13 @@ function Reservar() {
             {complexes.length > 0 && (
               <div className="rounded-2xl overflow-hidden border border-white/10 mb-3">
                 <iframe
-                  key={cityId}
+                  key={filterLocality || cityId}
                   title="Mapa de complejos"
                   className="w-full h-56 border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                    'canchas de padel ' + (cities.find(c => c.id === cityId)?.name ?? '')
+                    'canchas de padel ' + (filterLocality || cities.find(c => c.id === cityId)?.name || '')
                   )}&output=embed`}
                 />
               </div>
@@ -404,9 +412,16 @@ function Reservar() {
             <div className="grid gap-2">
               {complexes.map(cx => (
                 <div key={cx.id} className={`card ${complex?.id === cx.id ? 'ring-2 ring-ball' : ''}`}>
-                  <button onClick={() => { setComplex(cx); setCourt(null); setPending(null); }} className="text-left w-full">
-                    <p className="font-display font-bold">{cx.name}</p>
-                    <p className="text-white/50 text-sm">{cx.address}</p>
+                  <button onClick={() => { setComplex(cx); setCourt(null); setPending(null); }} className="text-left w-full flex items-center gap-3">
+                    {(cx as any).logo_url ? (
+                      <img src={(cx as any).logo_url} alt="" className="w-12 h-12 rounded-lg object-cover border border-white/10 shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/40 text-lg shrink-0">🎾</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display font-bold truncate">{cx.name}</p>
+                      <p className="text-white/50 text-sm truncate">{cx.address}</p>
+                    </div>
                   </button>
                   <div className="mt-2 flex items-center gap-3">
                     <Link href={`/club/${cx.id}`} className="text-ball text-xs font-bold">
@@ -420,7 +435,7 @@ function Reservar() {
                   </div>
                 </div>
               ))}
-              {complexes.length === 0 && <p className="text-white/50 text-sm">Todavía no hay complejos en esta ciudad.</p>}
+              {complexes.length === 0 && <p className="text-white/50 text-sm">Todavía no hay complejos en {filterLocality || 'esta ciudad'}.</p>}
             </div>
           </div>
         )}

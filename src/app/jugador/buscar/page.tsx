@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 
 // /jugador/buscar — Buscador inteligente de canchas libres. PREMIUM.
 // Input: ciudad + fecha + hora + duración → devuelve complejos con canchas
@@ -15,6 +16,8 @@ export default function BuscarCanchas() {
   const [isPremium, setIsPremium] = useState<boolean | null>(null);
   const [cities, setCities] = useState<any[]>([]);
   const [cityId, setCityId] = useState('');
+  const [filterProvince, setFilterProvince] = useState('');
+  const [filterLocality, setFilterLocality] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState('20:00');
   const [duration, setDuration] = useState(90);
@@ -51,7 +54,7 @@ export default function BuscarCanchas() {
   }, []);
 
   async function buscar() {
-    if (!cityId) return setMsg('Elegí una ciudad primero.');
+    if (!cityId && !(filterProvince && filterLocality)) return setMsg('Elegí una localidad primero.');
     setMsg(''); setLoading(true); setResults([]); setSearched(true);
 
     // Rango de tiempo a chequear
@@ -60,15 +63,19 @@ export default function BuscarCanchas() {
     from.setHours(hh, mm, 0, 0);
     const to = new Date(from.getTime() + duration * 60 * 1000);
 
-    // Complejos aprobados: por city_id (viejo) O por locality (nuevo/precargados)
-    const selected = cities.find((c: any) => c.id === cityId);
-    const isVirtual = String(cityId).startsWith('loc:');
-    const cityName = selected?.name ?? '';
+    // Complejos aprobados: prioridad provincia+localidad, sino city_id (viejo) O por locality (nuevo)
     let cq = supabase.from('complexes')
       .select('id, name, address, logo_url, city_id')
       .eq('active', true).eq('status', 'active');
-    if (isVirtual) cq = cq.ilike('locality', cityName);
-    else cq = cq.or(`city_id.eq.${cityId}${cityName ? `,locality.ilike.${cityName}` : ''}`);
+    if (filterProvince && filterLocality) {
+      cq = cq.ilike('locality', filterLocality).ilike('province', filterProvince);
+    } else {
+      const selected = cities.find((c: any) => c.id === cityId);
+      const isVirtual = String(cityId).startsWith('loc:');
+      const cityName = selected?.name ?? '';
+      if (isVirtual) cq = cq.ilike('locality', cityName);
+      else cq = cq.or(`city_id.eq.${cityId}${cityName ? `,locality.ilike.${cityName}` : ''}`);
+    }
     const { data: complexes } = await cq;
 
     if (!complexes || complexes.length === 0) { setLoading(false); return; }
@@ -159,11 +166,17 @@ export default function BuscarCanchas() {
       {/* Filtros */}
       <section className="mt-6 card space-y-3">
         <div>
-          <label className="text-white/60 text-xs font-black uppercase">Ciudad</label>
-          <select className="input mt-1" value={cityId} onChange={e => setCityId(e.target.value)}>
-            <option value="">Elegí tu ciudad…</option>
-            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <label className="text-white/60 text-xs font-black uppercase">Ubicación</label>
+          <div className="mt-1">
+            <ProvinciaLocalidadSelect
+              provincia={filterProvince}
+              localidad={filterLocality}
+              onChange={({ provincia, localidad }) => {
+                setFilterProvince(provincia); setFilterLocality(localidad);
+                setCityId('');
+              }}
+            />
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div>
