@@ -29,8 +29,16 @@ export function parseGoogleMapsUrl(url: string): MapCoords | null {
   const ll = s.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (ll) return { lat: parseFloat(ll[1]), lng: parseFloat(ll[2]) };
 
-  // 5) Formato "lat,lng" pelado (por si el usuario copia solo las coords)
-  const plain = s.match(/^(-?\d+\.\d+),\s*(-?\d+\.\d+)$/);
+  // 5) /maps/search/LAT,+LNG (formato que Google devuelve al resolver acortados)
+  const search = s.match(/\/maps\/search\/(-?\d+\.\d+),\s*\+?(-?\d+\.\d+)/);
+  if (search) return { lat: parseFloat(search[1]), lng: parseFloat(search[2]) };
+
+  // 6) /maps/place/.../LAT,+LNG
+  const place = s.match(/\/maps\/place\/[^/]+\/(-?\d+\.\d+),\s*\+?(-?\d+\.\d+)/);
+  if (place) return { lat: parseFloat(place[1]), lng: parseFloat(place[2]) };
+
+  // 7) Formato "lat,lng" pelado (por si el usuario copia solo las coords) — con o sin espacio/+
+  const plain = s.match(/^\s*(-?\d+\.\d+)\s*,\s*\+?(-?\d+\.\d+)\s*$/);
   if (plain) return { lat: parseFloat(plain[1]), lng: parseFloat(plain[2]) };
 
   return null;
