@@ -7,6 +7,7 @@ import PlacaButton from '@/components/PlacaButton';
 import CourtLayout from '@/components/CourtLayout';
 import BackButton from '@/components/BackButton';
 import { sharePlaca } from '@/lib/placas';
+import { drawPartidoPlaca, sharePlacaAsync } from '@/lib/placas-perfil';
 import { notify } from '@/lib/notify';
 
 export default function Partido() {
@@ -335,12 +336,26 @@ export default function Partido() {
               )}
             </div>
           )}
-          <button onClick={() => sharePlaca({
-            kind: spots > 0 ? 'busco_jugadores' : 'partido_completo',
-            title: spots > 0 ? `Falta${spots > 1 ? 'n' : ''} ${spots}` : 'Partido completo',
-            main: `${match.booking?.court.complex.name} · ${match.booking?.court.name}`,
-            detail: `${when?.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} hs · Nivel promedio ${avg}`
-          })} className="self-start inline-flex items-center gap-1 bg-white/5 border border-white/10 text-white/60 text-xs font-bold rounded-lg px-3 py-1.5 active:scale-95 transition">📸 Compartir placa</button>
+          <button onClick={() => sharePlacaAsync(
+            () => drawPartidoPlaca({
+              players: players.map((p: any) => ({
+                first_name: p.profile?.first_name,
+                last_name: p.profile?.last_name,
+                avatar_url: p.profile?.avatar_url,
+                category: p.profile?.category,
+                team: p.team
+              })),
+              needed: spots,
+              complex: match.booking?.court.complex.name ?? '',
+              court: match.booking?.court.name ?? '',
+              when: when!
+            }),
+            `narvoq-partido-${id}.jpg`,
+            spots > 0 ? '¡Buscamos jugadores!' : 'Partido completo'
+          )}
+            className="self-start inline-flex items-center gap-1 bg-ball/10 border border-ball/40 text-ball text-sm font-black rounded-lg px-4 py-2 active:scale-95 transition">
+            📸 Compartir placa con avatares
+          </button>
         </div>
       )}
 

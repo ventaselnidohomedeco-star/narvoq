@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { DonutChart } from '@/components/Charts';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { drawPerfilPlaca, sharePlacaAsync } from '@/lib/placas-perfil';
 
 // Perfil público completo: /u/juanperez
 // Muestra dashboard con winrate, ranking zonal, seguidores, sesiones de
@@ -180,12 +181,32 @@ export default function PerfilPublico() {
           {p.racket && <span className="bg-white/10 text-xs font-bold rounded-full px-3 py-1">🏓 {p.racket}</span>}
           {p.city?.name && <span className="bg-white/10 text-xs font-bold rounded-full px-3 py-1">📍 {p.city.name}{p.zone ? ` · ${p.zone}` : ''}</span>}
         </div>
-        {me && !isMe && (
-          <button onClick={toggleFollow}
-            className={`mt-4 w-full py-3 rounded-xl font-display font-black ${iFollow ? 'bg-white/15 text-white' : 'bg-ball text-courtdark'}`}>
-            {iFollow ? 'Siguiendo ✓' : '+ Seguir'}
+        <div className="mt-4 grid gap-2">
+          {me && !isMe && (
+            <button onClick={toggleFollow}
+              className={`w-full py-3 rounded-xl font-display font-black ${iFollow ? 'bg-white/15 text-white' : 'bg-ball text-courtdark'}`}>
+              {iFollow ? 'Siguiendo ✓' : '+ Seguir'}
+            </button>
+          )}
+          {/* Compartir placa del perfil */}
+          <button onClick={() => sharePlacaAsync(
+            () => drawPerfilPlaca({
+              first_name: p.first_name,
+              last_name: p.last_name,
+              username: p.username,
+              avatar_url: p.avatar_url,
+              category: p.category,
+              side: p.side,
+              bio: p.bio,
+              city: p.city?.name
+            }),
+            `narvoq-${p.username}.jpg`,
+            `${p.first_name} ${p.last_name} · NarvoQ`
+          )}
+            className="w-full py-3 rounded-xl bg-white/10 border border-ball/30 text-ball font-display font-black text-sm active:scale-95">
+            📸 Compartir placa
           </button>
-        )}
+        </div>
       </div>
 
       {/* Stats de un vistazo */}
