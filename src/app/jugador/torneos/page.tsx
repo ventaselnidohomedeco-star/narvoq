@@ -17,22 +17,36 @@ export default function TorneosJugador() {
   const [myPair, setMyPair] = useState<any>(null);
   const [filtro, setFiltro] = useState<'abiertos' | 'finalizados'>('abiertos');
 
-  // Live search de pareja: al tipear 2+ chars, busca por nombre/apellido/username/celular/email
+  // Live search de pareja — misma lógica que Amigos: nombre / apellido / "nombre apellido" / @user / celular
   useEffect(() => {
-    if (partnerPick) return; // ya eligió
-    const q = partnerQuery.trim();
-    if (q.length < 2) { setPartnerResults([]); return; }
-    const t = setTimeout(async () => {
+    if (partnerPick) return;
+    const raw = partnerQuery.trim();
+    if (raw.length < 2) { setPartnerResults([]); return; }
+    const timer = setTimeout(async () => {
       setSearching(true);
-      const like = `%${q}%`;
+      const clean = raw.replace(/^@/, '');
+      const t = `%${clean}%`;
+      const digits = raw.replace(/\D/g, '');
+      const phoneT = digits.length >= 3 ? `%${digits}%` : null;
+      const parts = clean.split(/\s+/);
+      const orClauses = [
+        `username.ilike.${t}`,
+        `first_name.ilike.${t}`,
+        `last_name.ilike.${t}`
+      ];
+      if (phoneT) orClauses.push(`phone.ilike.${phoneT}`);
+      if (parts.length >= 2) {
+        orClauses.push(`and(first_name.ilike.%${parts[0]}%,last_name.ilike.%${parts.slice(1).join(' ')}%)`);
+      }
+      const { data: { user } } = await supabase.auth.getUser();
       const { data } = await supabase.from('profiles')
-        .select('id, username, first_name, last_name, avatar_url, category, sex, phone, email')
-        .or(`first_name.ilike.${like},last_name.ilike.${like},username.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
-        .limit(8);
-      setPartnerResults(data ?? []);
+        .select('id, username, first_name, last_name, avatar_url, category, sex')
+        .or(orClauses.join(','))
+        .limit(15);
+      setPartnerResults((data ?? []).filter(p => p.id !== user?.id));
       setSearching(false);
     }, 250);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [partnerQuery, partnerPick]);
 
   useEffect(() => {
