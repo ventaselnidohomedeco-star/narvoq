@@ -33,8 +33,12 @@ export async function POST(req: NextRequest) {
 
     // 1) Crear complejo con owner_id = user (super_admin) para que no rompa el FK.
     //    Marcamos is_precargado=true así se puede reclamar después.
+    // Email/phone son NOT NULL en complexes; usamos placeholders si están vacíos
     const { data: cx, error: cxErr } = await admin.from('complexes').insert({
       ...cxData,
+      email: cxData.email || 'precargado@narvoq.com.ar',
+      phone: cxData.phone || '0',
+      responsible: cxData.responsible || 'Complejo cargado por Narvoq',
       owner_id: user.id,   // temporal — el super_admin es el "owner" hasta que alguien lo reclame
       active: true,
       status: 'active'
