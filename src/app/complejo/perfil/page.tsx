@@ -101,12 +101,47 @@ export default function PerfilComplejo() {
           <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/40 p-3 text-emerald-300 text-xs">
             📍 Ubicación detectada: {Number(cx.lat).toFixed(4)}, {Number(cx.lng).toFixed(4)}
             <span className="text-white/50 ml-2">(los jugadores te ven en el buscador por cercanía)</span>
+            <button className="ml-2 underline text-emerald-200"
+              onClick={async () => {
+                const full = [cx.address, cx.locality, cx.province, 'Argentina'].filter(Boolean).join(', ');
+                const coords = await geocodeAddress(full);
+                if (coords) {
+                  await save({ lat: coords.lat, lng: coords.lng });
+                  alert('Ubicación actualizada ✓');
+                } else alert('No se pudo geocodificar. Chequeá la dirección.');
+              }}>Actualizar</button>
           </div>
-        ) : cx.address ? (
-          <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/40 p-3 text-yellow-300 text-xs">
-            ⚠️ Sin ubicación GPS. Actualizá la dirección para que Narvoq la geolocalice automáticamente.
+        ) : (
+          <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/40 p-3">
+            <p className="text-yellow-300 text-sm font-black">⚠️ Sin ubicación GPS</p>
+            <p className="text-white/60 text-xs mt-1">Los jugadores no te ven en el buscador por cercanía. Detectá tu ubicación:</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button onClick={async () => {
+                const full = [cx.address, cx.locality, cx.province, 'Argentina'].filter(Boolean).join(', ');
+                if (!full || full === 'Argentina') return alert('Cargá dirección, provincia y localidad primero.');
+                const coords = await geocodeAddress(full);
+                if (coords) {
+                  await save({ lat: coords.lat, lng: coords.lng });
+                  alert('Ubicación detectada ✓');
+                } else alert('No se encontró esa dirección. Probá el otro método (GPS actual del cel).');
+              }}
+                className="py-2 rounded-lg bg-white/10 border border-white/20 text-white text-xs font-black">
+                🗺️ Detectar por dirección
+              </button>
+              <button onClick={async () => {
+                try {
+                  const { getMyLocation } = await import('@/lib/geo');
+                  const loc = await getMyLocation();
+                  await save({ lat: loc.lat, lng: loc.lng });
+                  alert('Ubicación GPS del cel guardada ✓');
+                } catch { alert('No pudimos obtener tu ubicación GPS.'); }
+              }}
+                className="py-2 rounded-lg bg-ball text-courtdark text-xs font-black">
+                📱 Usar GPS del cel
+              </button>
+            </div>
           </div>
-        ) : null}
+        )}
 
         {/* Ciudad legacy — se autopobla cuando eligen provincia+localidad */}
         <details className="text-white/40 text-xs">
