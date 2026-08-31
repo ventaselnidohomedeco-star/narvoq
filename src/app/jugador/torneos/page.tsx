@@ -9,10 +9,31 @@ export default function TorneosJugador() {
   const [torneos, setTorneos] = useState<any[]>([]);
   const [circuitos, setCircuitos] = useState<any[]>([]);
   const [sel, setSel] = useState<any>(null);
-  const [partnerUser, setPartnerUser] = useState('');
+  const [partnerQuery, setPartnerQuery] = useState('');
+  const [partnerResults, setPartnerResults] = useState<any[]>([]);
+  const [partnerPick, setPartnerPick] = useState<any>(null);
+  const [searching, setSearching] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [myPair, setMyPair] = useState<any>(null);
   const [filtro, setFiltro] = useState<'abiertos' | 'finalizados'>('abiertos');
+
+  // Live search de pareja: al tipear 2+ chars, busca por nombre/apellido/username/celular/email
+  useEffect(() => {
+    if (partnerPick) return; // ya eligió
+    const q = partnerQuery.trim();
+    if (q.length < 2) { setPartnerResults([]); return; }
+    const t = setTimeout(async () => {
+      setSearching(true);
+      const like = `%${q}%`;
+      const { data } = await supabase.from('profiles')
+        .select('id, username, first_name, last_name, avatar_url, category, sex, phone, email')
+        .or(`first_name.ilike.${like},last_name.ilike.${like},username.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
+        .limit(8);
+      setPartnerResults(data ?? []);
+      setSearching(false);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [partnerQuery, partnerPick]);
 
   useEffect(() => {
     supabase.from('circuits').select('*, complex:complexes(name, logo_url), tournaments:tournaments(id, status)')
@@ -37,7 +58,7 @@ export default function TorneosJugador() {
       ? ['inscripcion', 'completo', 'en_juego']
       : ['finalizado'];
     supabase.from('tournaments')
-      .select('*, complex:complexes(name, city:cities(name)), pairs:tournament_pairs(id)')
+      .select('*, complex:complexes(name, owner_id, city:cities(name)), pairs:tournament_pairs(id)')
       .in('status', statuses)
       .order('starts_on', { ascending: false })
       .then(({ data }) => setTorneos(data ?? []));
@@ -45,12 +66,11 @@ export default function TorneosJugador() {
 
   async function inscribirse() {
     setMsg(null);
+    if (!partnerPick) return setMsg({ ok: false, text: 'Elegí a tu compañero/a de la lista.' });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: me } = await supabase.from('profiles').select('id,category,sex').eq('id', user.id).single();
-    const { data: partner } = await supabase.from('profiles')
-      .select('id,category,sex').eq('username', partnerUser.toLowerCase().trim()).single();
-    if (!partner) return setMsg({ ok: false, text: 'No encontramos ese usuario. Tu compañero debe estar registrado.' });
+    const { data: me } = await supabase.from('profiles').select('id,category,sex,first_name,last_name').eq('id', user.id).single();
+    const partner = partnerPick;
 
     const check = validatePair(
       { sum_target: sel.sum_target, sum_exact: sel.sum_exact, categories: sel.categories ?? [], sex: sel.sex },
@@ -67,6 +87,21 @@ export default function TorneosJugador() {
       author_profile_id: me!.id, kind: 'inscripcion', ref_tournament_id: sel.id,
       text_content: `Nos anotamos en ${sel.name} 🏆`
     });
+
+    // Notificar al complejo/organizador del torneo
+    try {
+      const orgOwnerId = sel.complex?.owner_id ?? sel.owner_coach_id ?? null;
+      if (orgOwnerId) {
+        await supabase.from('notifications').insert({
+          user_id: orgOwnerId,
+          kind: 'tournament_inscription',
+          title: `Nueva inscripción en ${sel.name}`,
+          body: `${me!.first_name} ${me!.last_name} + ${partner.first_name} ${partner.last_name}${Number(sel.price) > 0 ? ` · $${Number(sel.price).toLocaleString('es-AR')} pendiente de cobro` : ''}`,
+          link: `/complejo/torneos/${sel.id}`
+        });
+      }
+    } catch { /* silencioso */ }
+
     setMsg({ ok: true, text: '¡Pareja inscripta! Los esperamos en la cancha.' });
   }
 
@@ -175,15 +210,54 @@ export default function TorneosJugador() {
         </div>
       )}
 
-      {/* Helper Chip inline via JSX return */}
+      {/* Buscador live de pareja */}
       {sel?.status === 'inscripcion' && !myPair && (
         <div className="card mt-5">
           <h2 className="font-display font-bold">Anotarme en {sel.name}</h2>
           {sel.rules && <p className="text-xs text-white/50 mt-1 whitespace-pre-line">{sel.rules}</p>}
-          <label className="label mt-3">Usuario de tu compañero/a</label>
-          <input className="input" value={partnerUser} onChange={e => setPartnerUser(e.target.value)} placeholder="ej: juanperez" />
+          <label className="label mt-3">Compañero/a</label>
+          {partnerPick ? (
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-ball/10 border border-ball/40">
+              {partnerPick.avatar_url
+                ? <img src={partnerPick.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                : <span className="w-10 h-10 rounded-full bg-court flex items-center justify-center text-xs font-black">{(partnerPick.first_name?.[0] ?? '?')}</span>}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold truncate">{partnerPick.first_name} {partnerPick.last_name}</p>
+                <p className="text-white/50 text-xs truncate">@{partnerPick.username} · Cat {partnerPick.category ?? '—'}</p>
+              </div>
+              <button onClick={() => { setPartnerPick(null); setPartnerQuery(''); }}
+                className="text-red-400 text-xs font-bold">✕ Quitar</button>
+            </div>
+          ) : (
+            <div className="relative">
+              <input className="input" value={partnerQuery} onChange={e => setPartnerQuery(e.target.value)}
+                placeholder="Buscá por nombre, usuario, celu o email…" />
+              {searching && <p className="text-white/40 text-xs mt-1">Buscando…</p>}
+              {partnerResults.length > 0 && (
+                <div className="mt-2 border border-white/10 rounded-xl bg-black/60 max-h-64 overflow-y-auto divide-y divide-white/5">
+                  {partnerResults.map(r => (
+                    <button key={r.id} onClick={() => { setPartnerPick(r); setPartnerResults([]); }}
+                      className="w-full flex items-center gap-3 p-2 text-left hover:bg-white/5">
+                      {r.avatar_url
+                        ? <img src={r.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+                        : <span className="w-9 h-9 rounded-full bg-court flex items-center justify-center text-xs font-black">{(r.first_name?.[0] ?? '?')}</span>}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate">{r.first_name} {r.last_name}</p>
+                        <p className="text-white/50 text-xs truncate">@{r.username} · Cat {r.category ?? '—'}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {partnerQuery.trim().length >= 2 && !searching && partnerResults.length === 0 && (
+                <p className="text-white/40 text-xs mt-1">No encontramos a nadie con ese dato. El jugador debe estar registrado en NarvoQ.</p>
+              )}
+            </div>
+          )}
           {msg && <p className={`text-sm mt-2 ${msg.ok ? 'text-green-600' : 'text-red-600'}`}>{msg.text}</p>}
-          <button onClick={inscribirse} className="btn-ball w-full mt-3">Inscribir pareja</button>
+          <button onClick={inscribirse} disabled={!partnerPick} className="btn-ball w-full mt-3 disabled:opacity-40">
+            Inscribir pareja
+          </button>
         </div>
       )}
     </main>

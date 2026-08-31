@@ -67,6 +67,7 @@ export default function DashboardComplejo() {
   const [waitlistList, setWaitlistList] = useState<any[]>([]);
   const [incomeByMethod, setIncomeByMethod] = useState<Record<string, number>>({ efectivo: 0, transferencia: 0, mp: 0, otros: 0 });
   const [restantePendiente, setRestantePendiente] = useState<{ monto: number; cantidad: number }>({ monto: 0, cantidad: 0 });
+  const [torneoCobros, setTorneoCobros] = useState<{ pendCount: number; sumPend: number; sumApr: number }>({ pendCount: 0, sumPend: 0, sumApr: 0 });
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -188,6 +189,21 @@ export default function DashboardComplejo() {
       waitlistTotal,
       cumplimiento
     });
+
+    // ---- Cobros de torneos ----
+    const { data: torneos } = await supabase.from('tournaments').select('id, price').eq('complex_id', complex.id);
+    if (torneos && torneos.length > 0) {
+      const tIds = torneos.map(t => t.id);
+      const priceMap = new Map(torneos.map(t => [t.id, Number(t.price) || 0]));
+      const { data: pairs } = await supabase.from('tournament_pairs').select('tournament_id, status').in('tournament_id', tIds);
+      let pendCount = 0, sumPend = 0, sumApr = 0;
+      (pairs ?? []).forEach((p: any) => {
+        const price = priceMap.get(p.tournament_id) ?? 0;
+        if (p.status === 'pendiente') { pendCount++; sumPend += price; }
+        else if (p.status === 'aprobada') { sumApr += price; }
+      });
+      setTorneoCobros({ pendCount, sumPend, sumApr });
+    }
 
     // ---- Top clientes del período ----
     const map = new Map<string, any>();
@@ -476,6 +492,27 @@ export default function DashboardComplejo() {
           💡 Efectivo y MP tienen tratamiento fiscal distinto. Usalo para armar tu facturación mensual.
         </p>
       </section>
+
+      {/* 🏆 Cobros de torneos (inscripciones) */}
+      {(torneoCobros.pendCount > 0 || torneoCobros.sumApr > 0) && (
+        <section className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+          <p className="font-display font-black text-ball text-sm tracking-widest">🏆 COBROS DE TORNEOS</p>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div>
+              <p className="text-white/60 text-[11px] font-bold uppercase">Pendientes</p>
+              <p className="font-display font-black text-2xl text-yellow-300">${torneoCobros.sumPend.toLocaleString('es-AR')}</p>
+              <p className="text-white/50 text-xs">{torneoCobros.pendCount} inscripciones</p>
+            </div>
+            <div>
+              <p className="text-white/60 text-[11px] font-bold uppercase">Cobrado</p>
+              <p className="font-display font-black text-2xl text-ball">${torneoCobros.sumApr.toLocaleString('es-AR')}</p>
+            </div>
+          </div>
+          <Link href="/complejo/cobros" className="mt-3 inline-block py-2 px-4 rounded-lg bg-ball/15 border border-ball/40 text-ball text-xs font-black">
+            Gestionar cobros de torneos →
+          </Link>
+        </section>
+      )}
 
       {/* ⏳ Cobros pendientes (seña pagada, restante por cobrar) */}
       {restantePendiente.cantidad > 0 && (

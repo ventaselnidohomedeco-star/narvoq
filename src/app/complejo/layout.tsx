@@ -29,6 +29,7 @@ const DESKTOP_SECTIONS: Section[] = [
       { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '🏠' },
       { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
       { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
+      { href: '/complejo/cobros', label: 'Cobros de torneos', icon: '💵' },
       { href: '/complejo/socios', label: 'Socios · Membresías', icon: '💳' }
     ]
   },
