@@ -307,7 +307,7 @@ function Reservar() {
             <div className="grid gap-2">
               {complexes.map(cx => (
                 <div key={cx.id} className={`card ${complex?.id === cx.id ? 'ring-2 ring-ball' : ''}`}>
-                  <button onClick={() => setComplex(cx)} className="text-left w-full">
+                  <button onClick={() => { setComplex(cx); setCourt(null); setPending(null); }} className="text-left w-full">
                     <p className="font-display font-bold">{cx.name}</p>
                     <p className="text-white/50 text-sm">{cx.address}</p>
                   </button>
@@ -333,7 +333,7 @@ function Reservar() {
             <div><label className="label">Cancha</label>
               <div className="grid gap-2">
                 {courts.map((c: any) => (
-                  <button key={c.id} onClick={() => setCourt(c)}
+                  <button key={c.id} onClick={() => { setCourt(c); setPending(null); }}
                     className={`card !p-0 overflow-hidden text-left flex ${court?.id === c.id ? 'ring-2 ring-ball' : ''}`}>
                     {c.photo_url
                       ? <img src={c.photo_url} alt="" className="w-24 h-20 object-cover shrink-0" />
@@ -382,7 +382,18 @@ function Reservar() {
 
         {pending && (
           <section className="card border border-ball/30">
-            <p className="font-display font-black text-xl text-ball">Reserva pendiente de pago</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-display font-black text-xl text-ball flex-1">Reserva pendiente de pago</p>
+              <button onClick={async () => {
+                if (!confirm('¿Descartar esta reserva pendiente? El turno vuelve a estar disponible.')) return;
+                // Cancelar el booking pendiente en la DB
+                await supabase.from('bookings').update({ status: 'cancelada' }).eq('id', pending.booking.id);
+                setPending(null);
+              }}
+                className="text-red-400 text-xs font-bold px-3 py-1.5 rounded-lg border border-red-400/40 hover:bg-red-500/10">
+                ✕ Descartar
+              </button>
+            </div>
             <p className="text-white/60 text-sm mt-1">
               Tu turno queda reservado mientras el complejo revisa el comprobante. Cuando lo marque como pagado, pasa a confirmada.
             </p>
