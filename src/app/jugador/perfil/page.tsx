@@ -10,7 +10,7 @@ import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 export default function Perfil() {
   const router = useRouter();
   const [p, setP] = useState<any>(null);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [email, setEmail] = useState<string>('');
 
   useEffect(() => {
@@ -24,10 +24,12 @@ export default function Perfil() {
   }, []);
 
   async function save(patch: any) {
+    setStatus('saving');
     const { error } = await supabase.from('profiles').update(patch).eq('id', p.id);
-    if (error) return alert(error.message);
+    if (error) { setStatus('error'); alert(error.message); return; }
     setP({ ...p, ...patch });
-    setSaved(true); setTimeout(() => setSaved(false), 1500);
+    setStatus('saved');
+    setTimeout(() => setStatus('idle'), 1800);
   }
 
   if (!p) return <main className="p-8 text-white/50">Cargando perfil…</main>;
@@ -38,7 +40,19 @@ export default function Perfil() {
         <h1 className="font-display font-black text-2xl">Mi perfil</h1>
         <Link href={`/u/${p.username}`} className="text-ball text-sm font-semibold">Ver como público →</Link>
       </div>
-      {saved && <p className="text-green-600 text-sm font-semibold mt-1">✓ Guardado</p>}
+      {/* Chip flotante de estado de guardado */}
+      {status !== 'idle' && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full shadow-lg text-sm font-black flex items-center gap-2 transition-all
+          ${status === 'saving' ? 'bg-white/10 border border-white/20 text-white' : ''}
+          ${status === 'saved' ? 'bg-ball text-black' : ''}
+          ${status === 'error' ? 'bg-red-500 text-white' : ''}`}>
+          {status === 'saving' && (
+            <><span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Guardando…</>
+          )}
+          {status === 'saved' && <>✓ Guardado</>}
+          {status === 'error' && <>❌ Error al guardar</>}
+        </div>
+      )}
 
       {/* Foto */}
       <div className="card mt-4 flex items-center gap-4">
