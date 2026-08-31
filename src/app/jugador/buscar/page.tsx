@@ -32,7 +32,22 @@ export default function BuscarCanchas() {
       setIsPremium(!!data?.is_premium);
       if (data?.city_id) setCityId(data.city_id);
     })();
-    supabase.from('cities').select('*').eq('active', true).then(({ data }) => setCities(data ?? []));
+    (async () => {
+      const [{ data: dbCities }, { data: cx }] = await Promise.all([
+        supabase.from('cities').select('*').eq('active', true),
+        supabase.from('complexes').select('locality, province').eq('active', true).eq('status', 'active').not('locality', 'is', null)
+      ]);
+      const merged: any[] = [...(dbCities ?? [])];
+      const existingNames = new Set(merged.map((c: any) => (c.name ?? '').toLowerCase()));
+      for (const c of cx ?? []) {
+        const loc = (c as any).locality?.trim();
+        if (!loc || existingNames.has(loc.toLowerCase())) continue;
+        existingNames.add(loc.toLowerCase());
+        merged.push({ id: `loc:${loc}`, name: loc, _fromLocality: true });
+      }
+      merged.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+      setCities(merged);
+    })();
   }, []);
 
   async function buscar() {
@@ -45,10 +60,16 @@ export default function BuscarCanchas() {
     from.setHours(hh, mm, 0, 0);
     const to = new Date(from.getTime() + duration * 60 * 1000);
 
-    // Traer complejos aprobados y activos de la ciudad
-    const { data: complexes } = await supabase.from('complexes')
+    // Complejos aprobados: por city_id (viejo) O por locality (nuevo/precargados)
+    const selected = cities.find((c: any) => c.id === cityId);
+    const isVirtual = String(cityId).startsWith('loc:');
+    const cityName = selected?.name ?? '';
+    let cq = supabase.from('complexes')
       .select('id, name, address, logo_url, city_id')
-      .eq('city_id', cityId).eq('active', true).eq('status', 'active');
+      .eq('active', true).eq('status', 'active');
+    if (isVirtual) cq = cq.ilike('locality', cityName);
+    else cq = cq.or(`city_id.eq.${cityId}${cityName ? `,locality.ilike.${cityName}` : ''}`);
+    const { data: complexes } = await cq;
 
     if (!complexes || complexes.length === 0) { setLoading(false); return; }
 

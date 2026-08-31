@@ -55,9 +55,23 @@ function Reservar() {
   })();
 
   useEffect(() => {
-    supabase.from('cities').select('*').eq('active', true).then(({ data }) => setCities(data ?? []));
-    // Auto-liberar slots de reservas con deadline vencido (para que aparezcan
-    // como libres al jugador). Es idempotente y barato.
+    (async () => {
+      // Cities "oficiales" (sistema viejo) + localidades únicas de complejos activos (sistema nuevo)
+      const [{ data: dbCities }, { data: cx }] = await Promise.all([
+        supabase.from('cities').select('*').eq('active', true),
+        supabase.from('complexes').select('locality, province').eq('active', true).eq('status', 'active').not('locality', 'is', null)
+      ]);
+      const merged: any[] = [...(dbCities ?? [])];
+      const existingNames = new Set(merged.map((c: any) => (c.name ?? '').toLowerCase()));
+      for (const c of cx ?? []) {
+        const loc = (c as any).locality?.trim();
+        if (!loc || existingNames.has(loc.toLowerCase())) continue;
+        existingNames.add(loc.toLowerCase());
+        merged.push({ id: `loc:${loc}`, name: loc, province: (c as any).province, _fromLocality: true });
+      }
+      merged.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+      setCities(merged);
+    })();
     supabase.rpc('cancel_expired_bookings').then(() => {});
   }, []);
   useEffect(() => { (async () => {
@@ -69,11 +83,23 @@ function Reservar() {
 
   useEffect(() => {
     if (!cityId) return setComplexes([]);
-    // Solo complejos APROBADOS por admin (status='active') y operativos (active=true)
-    supabase.from('complexes').select('*')
-      .eq('city_id', cityId).eq('active', true).eq('status', 'active')
-      .then(({ data }) => setComplexes(data ?? []));
-  }, [cityId]);
+    // Solo complejos APROBADOS (status='active') y operativos (active=true).
+    // Match por city_id (viejo) O por locality que coincida con el nombre de la city
+    // (así los precargados con province+locality aparecen también).
+    (async () => {
+      const selected = cities.find((c: any) => c.id === cityId);
+      const isVirtual = String(cityId).startsWith('loc:');
+      const cityName = selected?.name ?? '';
+      let q = supabase.from('complexes').select('*').eq('active', true).eq('status', 'active');
+      if (isVirtual) {
+        q = q.ilike('locality', cityName);
+      } else {
+        q = q.or(`city_id.eq.${cityId}${cityName ? `,locality.ilike.${cityName}` : ''}`);
+      }
+      const { data } = await q;
+      setComplexes(data ?? []);
+    })();
+  }, [cityId, cities]);
 
   // Al aceptar geoloc, traemos TODOS los complejos con lat/lng y los ordenamos por distancia
   async function activarUbicacion() {
