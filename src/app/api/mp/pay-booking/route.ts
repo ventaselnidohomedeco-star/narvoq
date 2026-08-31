@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { createPreferenceForComplex } from '@/lib/mp-marketplace';
 
 type CookieToSet = { name: string; value: string; options?: any };
@@ -28,25 +29,28 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    // 1) Traer booking básico (evitando joins anidados que fallan por RLS)
-    const { data: b, error: bErr } = await supabase.from('bookings')
+    // Usamos service_role para los lookups internos (después de validar el user con cookies)
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // 1) Traer booking (con admin — evitamos que RLS deje campos vacíos)
+    const { data: b, error: bErr } = await admin.from('bookings')
       .select('id, player_id, court_id, price, starts_at')
       .eq('id', bookingId).maybeSingle();
-    if (bErr) {
-      console.error('pay-booking: error trayendo booking', bErr);
-      return NextResponse.json({ error: `Error DB: ${bErr.message}` }, { status: 500 });
-    }
+    if (bErr) return NextResponse.json({ error: `Error DB: ${bErr.message}` }, { status: 500 });
     if (!b) return NextResponse.json({ error: 'Reserva no encontrada (id: ' + bookingId + ')' }, { status: 404 });
     if (b.player_id !== user.id) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
     // 2) Traer cancha
-    const { data: court, error: cErr } = await supabase.from('courts')
+    const { data: court, error: cErr } = await admin.from('courts')
       .select('id, name, price_per_slot, deposit_amount, complex_id')
       .eq('id', b.court_id).maybeSingle();
     if (cErr || !court) return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 });
 
     // 3) Traer complejo con tokens MP + preferencias
-    const { data: cx, error: xErr } = await supabase.from('complexes')
+    const { data: cx, error: xErr } = await admin.from('complexes')
       .select('id, name, mp_access_token, mp_exclude_credit, mp_only_deposit')
       .eq('id', court.complex_id).maybeSingle();
     if (xErr || !cx) return NextResponse.json({ error: 'Complejo no encontrado' }, { status: 404 });
@@ -90,8 +94,8 @@ export async function POST(req: NextRequest) {
       excludeCredit: !!cx.mp_exclude_credit
     });
 
-    // Registrar el intento
-    await supabase.from('mp_payments').insert({
+    // Registrar el intento (con admin — el user client puede ser bloqueado por RLS)
+    await admin.from('mp_payments').insert({
       booking_id: b.id,
       complex_id: cx.id,
       player_id: user.id,
