@@ -435,9 +435,9 @@ function Reservar() {
                   {(() => {
                     const priceTotal = Number((pending.court as any)?.price_per_slot ?? 0);
                     const senaCustom = (pending.court as any)?.deposit_amount;
-                    // Solo mostrar botón seña si el complejo configuró una específica (distinta al total)
                     const hasSena = senaCustom != null && Number(senaCustom) > 0 && Number(senaCustom) < priceTotal;
                     const deposit = hasSena ? Number(senaCustom) : priceTotal;
+                    const onlyDeposit = !!(pending.complex as any)?.mp_only_deposit;
                     const payMP = async (kind: 'seña' | 'total') => {
                       const res = await fetch('/api/mp/pay-booking', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -447,6 +447,20 @@ function Reservar() {
                       if (!res.ok) return alert(data.error ?? 'Error');
                       window.location.href = data.init_point;
                     };
+                    // Si "solo seña por MP" está activado, solo botón de seña
+                    if (onlyDeposit && hasSena) {
+                      return (
+                        <div>
+                          <button onClick={() => payMP('seña')}
+                            className="w-full py-3 rounded-xl bg-[#009EE3] text-white font-black text-sm active:scale-95">
+                            Pagar seña<br/><span className="text-xs">${deposit.toLocaleString('es-AR')}</span>
+                          </button>
+                          <p className="text-white/50 text-[10px] mt-1 text-center">
+                            El resto (${(priceTotal - deposit).toLocaleString('es-AR')}) se paga en cancha
+                          </p>
+                        </div>
+                      );
+                    }
                     return (
                       <div className={hasSena ? 'grid grid-cols-2 gap-2' : ''}>
                         {hasSena && (
