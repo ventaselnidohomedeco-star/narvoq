@@ -29,6 +29,9 @@ function Reservar() {
   const [cities, setCities] = useState<any[]>([]);
   const [cityId, setCityId] = useState('');
   const [complexes, setComplexes] = useState<Complex[]>([]);
+  const [myLoc, setMyLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [locStatus, setLocStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
+  const [nearbyComplexes, setNearbyComplexes] = useState<any[]>([]);
   const [complex, setComplex] = useState<Complex | null>(null);
   const [courts, setCourts] = useState<Court[]>([]);
   const [court, setCourt] = useState<Court | null>(null);
@@ -71,6 +74,26 @@ function Reservar() {
       .eq('city_id', cityId).eq('active', true).eq('status', 'active')
       .then(({ data }) => setComplexes(data ?? []));
   }, [cityId]);
+
+  // Al aceptar geoloc, traemos TODOS los complejos con lat/lng y los ordenamos por distancia
+  async function activarUbicacion() {
+    setLocStatus('loading');
+    try {
+      const { getMyLocation, distanceKm } = await import('@/lib/geo');
+      const loc = await getMyLocation();
+      setMyLoc(loc);
+      setLocStatus('granted');
+      const { data } = await supabase.from('complexes').select('*')
+        .eq('active', true).eq('status', 'active')
+        .not('lat', 'is', null).not('lng', 'is', null);
+      const sorted = (data ?? []).map((c: any) => ({
+        ...c, distanceKm: distanceKm(loc, { lat: c.lat, lng: c.lng })
+      })).sort((a: any, b: any) => a.distanceKm - b.distanceKm).slice(0, 20);
+      setNearbyComplexes(sorted);
+    } catch {
+      setLocStatus('denied');
+    }
+  }
 
   useEffect(() => {
     if (!complex) { setCourts([]); setOffpeakRules([]); return; }
@@ -279,11 +302,58 @@ function Reservar() {
       <h1 className="font-display font-black text-2xl">Reservar cancha</h1>
 
       <div className="mt-5 space-y-4">
-        <div><label className="label">Ciudad</label>
-          <select className="input" value={cityId} onChange={e => { setCityId(e.target.value); setComplex(null); setCourt(null); setPending(null); }}>
-            <option value="">Elegí ciudad</option>
-            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select></div>
+        {/* 📍 Ubicación — muestra complejos cercanos automáticamente */}
+        {locStatus !== 'granted' && (
+          <button onClick={activarUbicacion} disabled={locStatus === 'loading'}
+            className="w-full py-3 rounded-xl bg-ball/10 border border-ball/40 text-ball font-black text-sm active:scale-95 flex items-center justify-center gap-2">
+            {locStatus === 'loading' ? '📍 Buscando tu ubicación…'
+              : locStatus === 'denied' ? '⚠️ Permitir ubicación para ver canchas cerca'
+              : '📍 Ver canchas cerca mío'}
+          </button>
+        )}
+
+        {locStatus === 'granted' && nearbyComplexes.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="label">Complejos cerca tuyo</label>
+              <button onClick={() => { setMyLoc(null); setLocStatus('idle'); setNearbyComplexes([]); }}
+                className="text-white/50 text-xs font-bold">✕ Buscar por ciudad</button>
+            </div>
+            <div className="grid gap-2 mt-2">
+              {nearbyComplexes.map((cx: any) => (
+                <button key={cx.id}
+                  onClick={() => { setComplex(cx); setCourt(null); setPending(null); }}
+                  className={`flex items-center gap-3 p-3 rounded-xl border text-left active:scale-[0.99]
+                    ${complex?.id === cx.id ? 'border-ball bg-ball/10' : 'border-white/10 bg-white/5'}`}>
+                  {cx.logo_url
+                    ? <img src={cx.logo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    : <span className="w-10 h-10 rounded-full bg-court flex items-center justify-center text-xs font-black">PA</span>}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{cx.name}</p>
+                    <p className="text-white/50 text-xs truncate">{cx.address ?? ''}</p>
+                  </div>
+                  <span className="text-ball text-xs font-black shrink-0">
+                    {cx.distanceKm.toFixed(1)} km
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {locStatus === 'granted' && nearbyComplexes.length === 0 && (
+          <p className="text-yellow-300 text-sm">No hay complejos con ubicación registrada cerca tuyo. Buscá por ciudad ↓</p>
+        )}
+
+        {/* Selector por ciudad (siempre disponible como fallback) */}
+        {locStatus !== 'granted' && (
+          <div><label className="label">O elegí por ciudad</label>
+            <select className="input" value={cityId} onChange={e => { setCityId(e.target.value); setComplex(null); setCourt(null); setPending(null); }}>
+              <option value="">Elegí ciudad</option>
+              {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        )}
 
         {cityId && (
           <div>

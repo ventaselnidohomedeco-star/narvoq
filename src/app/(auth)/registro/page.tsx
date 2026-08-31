@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
 import GoogleAuthButton, { AuthDivider } from '@/components/GoogleAuthButton';
+import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 import { trialProfileFields, TRIAL_DAYS } from '@/lib/trial';
 
 const CATS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -18,7 +19,8 @@ function RegistroForm() {
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
   const [f, setF] = useState({
     first_name: '', last_name: '', phone: '', age: '', sex: 'M',
-    city_id: '', zone: '', category: '8', username: '', email: '', password: ''
+    city_id: '', zone: '', category: '8', username: '', email: '', password: '',
+    province: '', locality: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,7 @@ function RegistroForm() {
       id: data.user.id, role: 'player', username: f.username.toLowerCase(),
       first_name: f.first_name, last_name: f.last_name, phone: f.phone,
       age: Number(f.age), sex: f.sex, city_id: f.city_id || null,
+      province: f.province || null, locality: f.locality || null,
       zone: f.zone, category: Number(f.category),
       ...trialProfileFields()   // 🎁 Trial Premium automático 60 días
     });
@@ -75,12 +78,12 @@ function RegistroForm() {
               {CATS.map(c => <option key={c} value={c}>{c}</option>)}
             </select></div>
         </div>
-        <div><label className="label">Ciudad</label>
-          <select className="input" value={f.city_id} onChange={set('city_id')} required>
-            <option value="">Elegí tu ciudad</option>
-            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select></div>
-        <div><label className="label">Zona / localidad</label><input className="input" value={f.zone} onChange={set('zone')} /></div>
+        <ProvinciaLocalidadSelect
+          provincia={f.province} localidad={f.locality}
+          onChange={({ provincia, localidad }) => setF({ ...f, province: provincia, locality: localidad })}
+          required
+        />
+        <div><label className="label">Zona / barrio (opcional)</label><input className="input" value={f.zone} onChange={set('zone')} placeholder="ej: Palermo, Zona Norte" /></div>
         <div className="court-divider my-2" />
         <div><label className="label">Usuario</label><input className="input" value={f.username} onChange={set('username')} required /></div>
         <div><label className="label">Email</label><input className="input" type="email" value={f.email} onChange={set('email')} required /></div>

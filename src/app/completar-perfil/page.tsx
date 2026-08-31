@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Brand from '@/components/Brand';
+import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 import { trialProfileFields } from '@/lib/trial';
 
 // Página que pide los datos que faltan del perfil (ciudad, celular, categoría, etc.).
@@ -14,7 +15,8 @@ export default function CompletarPerfil() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [f, setF] = useState({
-    phone: '', age: '', sex: 'M', city_id: '', zone: '', category: '8', username: ''
+    phone: '', age: '', sex: 'M', city_id: '', zone: '', category: '8', username: '',
+    province: '', locality: ''
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -38,7 +40,9 @@ export default function CompletarPerfil() {
           city_id: prof.city_id ?? '',
           zone: prof.zone ?? '',
           category: prof.category ? String(prof.category) : '8',
-          username: prof.username ?? ''
+          username: prof.username ?? '',
+          province: prof.province ?? '',
+          locality: prof.locality ?? ''
         });
       }
       setLoading(false);
@@ -51,7 +55,8 @@ export default function CompletarPerfil() {
 
     if (!f.phone.trim()) { setError('El celular es obligatorio.'); setSaving(false); return; }
     if (!f.age || Number(f.age) < 10 || Number(f.age) > 99) { setError('Poné una edad válida.'); setSaving(false); return; }
-    if (!f.city_id) { setError('Elegí tu ciudad.'); setSaving(false); return; }
+    if (!f.province) { setError('Elegí tu provincia.'); setSaving(false); return; }
+    if (!f.locality) { setError('Elegí tu localidad.'); setSaving(false); return; }
     if (!f.username.trim()) { setError('Elegí un nombre de usuario.'); setSaving(false); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -64,7 +69,9 @@ export default function CompletarPerfil() {
         phone: f.phone.trim(),
         age: Number(f.age),
         sex: f.sex,
-        city_id: f.city_id,
+        city_id: f.city_id || null,
+        province: f.province,
+        locality: f.locality,
         zone: f.zone.trim() || null,
         category: Number(f.category),
         username: f.username.toLowerCase().trim()
@@ -84,7 +91,9 @@ export default function CompletarPerfil() {
         phone: f.phone.trim(),
         age: Number(f.age),
         sex: f.sex,
-        city_id: f.city_id,
+        city_id: f.city_id || null,
+        province: f.province,
+        locality: f.locality,
         zone: f.zone.trim() || null,
         category: Number(f.category),
         ...trialProfileFields()   // 🎁 Trial Premium 60 días
@@ -162,16 +171,14 @@ export default function CompletarPerfil() {
           </div>
         </div>
 
-        <div>
-          <label className="label">Ciudad</label>
-          <select className="input" value={f.city_id} onChange={e => setF({ ...f, city_id: e.target.value })} required>
-            <option value="">Elegí tu ciudad</option>
-            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
+        <ProvinciaLocalidadSelect
+          provincia={f.province} localidad={f.locality}
+          onChange={({ provincia, localidad }) => setF({ ...f, province: provincia, locality: localidad })}
+          required
+        />
 
         <div>
-          <label className="label">Zona / localidad (opcional)</label>
+          <label className="label">Zona / barrio (opcional)</label>
           <input className="input" value={f.zone}
             onChange={e => setF({ ...f, zone: e.target.value })}
             placeholder="ej: Palermo, Zona Norte…" />
