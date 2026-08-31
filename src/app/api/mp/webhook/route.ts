@@ -26,6 +26,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ignored: 'sin topic o id' });
     }
 
+    // Si es un pago normal (checkout preferences → reservas), delegamos al handler de bookings
+    if (topic === 'payment' || topic === 'payments') {
+      const base = new URL(req.url).origin;
+      try {
+        await fetch(`${base}/api/mp/webhook-booking`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'payment', data: { id: resourceId } })
+        });
+      } catch (e: any) {
+        console.error('[MP webhook] delegar a booking falló:', e.message);
+      }
+      return NextResponse.json({ ok: true, delegated_to: 'webhook-booking' });
+    }
+
     // Solo nos importan preapprovals (suscripciones). authorized_payment es cada cobro periódico.
     if (topic !== 'preapproval' && topic !== 'subscription_preapproval') {
       return NextResponse.json({ ok: true, ignored: `topic ${topic} no manejado` });
