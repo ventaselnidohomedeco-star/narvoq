@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase/client';
 import BackButton from '@/components/BackButton';
 import PremiumGate from '@/components/PremiumGate';
 import { uploadImage } from '@/lib/upload';
-import { toCsv, downloadCsv, parseCsv } from '@/lib/csv';
+import { parseCsv } from '@/lib/csv';
+import { downloadXls, parseXlsHtml } from '@/lib/xls';
 
 type Product = {
   id: string;
@@ -39,42 +40,43 @@ export default function ProductosPage() {
   // Columnas en castellano, fáciles de entender
   const CSV_COLS = ['Nombre', 'Categoria', 'Precio venta', 'Precio costo', 'Stock', 'Alerta stock bajo', 'Codigo interno (SKU)', 'Codigo de barras (EAN)', 'Es servicio (SI/NO)'];
 
-  function exportCsv() {
-    const rows = products.map(p => ({
-      'Nombre': p.name,
-      'Categoria': p.category ?? '',
-      'Precio venta': p.price,
-      'Precio costo': p.cost,
-      'Stock': p.stock,
-      'Alerta stock bajo': p.min_stock,
-      'Codigo interno (SKU)': p.sku ?? '',
-      'Codigo de barras (EAN)': p.ean ?? '',
-      'Es servicio (SI/NO)': p.is_service ? 'SI' : 'NO'
-    }));
-    downloadCsv(`productos-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, CSV_COLS));
+  function exportXls() {
+    const rows: (string | number)[][] = products.map(p => [
+      p.name,
+      p.category ?? '',
+      p.price,
+      p.cost,
+      p.stock,
+      p.min_stock,
+      p.sku ?? '',
+      p.ean ?? '',
+      p.is_service ? 'SI' : 'NO'
+    ]);
+    downloadXls(`productos-${new Date().toISOString().slice(0, 10)}.xls`, CSV_COLS, rows);
   }
 
   function downloadTemplate() {
-    // Ejemplos claros. Instrucciones arriba como una fila "guía".
-    const example = [
-      {
-        'Nombre': '👉 EJEMPLOS (borrá esta fila antes de importar)',
-        'Categoria': 'Bebida / Snack / Paleta / Pelota / Servicio / Otro',
-        'Precio venta': 'Cuánto lo vendés (número, sin $)',
-        'Precio costo': 'Cuánto te sale a vos (opcional)',
-        'Stock': 'Cuántos tenés hoy',
-        'Alerta stock bajo': 'Avisa cuando quedan menos de este numero',
-        'Codigo interno (SKU)': 'Opcional — tu código',
-        'Codigo de barras (EAN)': 'Opcional — el número del código de barras',
-        'Es servicio (SI/NO)': 'SI si no descuenta stock (ej: alquiler de paleta)'
-      },
-      { 'Nombre': 'Coca-Cola 500ml', 'Categoria': 'Bebida', 'Precio venta': 1200, 'Precio costo': 700, 'Stock': 24, 'Alerta stock bajo': 6, 'Codigo interno (SKU)': 'COCA500', 'Codigo de barras (EAN)': '7790895000133', 'Es servicio (SI/NO)': 'NO' },
-      { 'Nombre': 'Cerveza Quilmes 473ml', 'Categoria': 'Bebida', 'Precio venta': 1800, 'Precio costo': 1100, 'Stock': 36, 'Alerta stock bajo': 12, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'NO' },
-      { 'Nombre': 'Sándwich de miga (x3)', 'Categoria': 'Snack', 'Precio venta': 2500, 'Precio costo': 1200, 'Stock': 10, 'Alerta stock bajo': 3, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'NO' },
-      { 'Nombre': 'Tubo de pelotas Head', 'Categoria': 'Pelota', 'Precio venta': 8500, 'Precio costo': 5500, 'Stock': 8, 'Alerta stock bajo': 2, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'NO' },
-      { 'Nombre': 'Alquiler de paleta', 'Categoria': 'Servicio', 'Precio venta': 2000, 'Precio costo': 0, 'Stock': 0, 'Alerta stock bajo': 0, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'SI' }
+    // Archivo Excel real (.xls) con títulos en negrita y fondo verde de NarvoQ.
+    // Excel lo abre nativo. La fila-guía queda en amarillo suave, se ignora al importar.
+    const rows: (string | number)[][] = [
+      [
+        '👉 EJEMPLO — borrá esta fila antes de importar',
+        'Bebida / Snack / Paleta / Pelota / Servicio / Otro',
+        'Cuánto lo vendés (solo número)',
+        'Cuánto te cuesta (opcional)',
+        'Cuántos tenés hoy',
+        'Avisar cuando quedan menos de X',
+        'Opcional — tu código interno',
+        'Opcional — número del código de barras',
+        'SI o NO'
+      ],
+      ['Coca-Cola 500ml', 'Bebida', 1200, 700, 24, 6, 'COCA500', '7790895000133', 'NO'],
+      ['Cerveza Quilmes 473ml', 'Bebida', 1800, 1100, 36, 12, '', '', 'NO'],
+      ['Sándwich de miga (x3)', 'Snack', 2500, 1200, 10, 3, '', '', 'NO'],
+      ['Tubo de pelotas Head', 'Pelota', 8500, 5500, 8, 2, '', '', 'NO'],
+      ['Alquiler de paleta', 'Servicio', 2000, 0, 0, 0, '', '', 'SI']
     ];
-    downloadCsv('plantilla-productos.csv', toCsv(example, CSV_COLS));
+    downloadXls('plantilla-productos.xls', CSV_COLS, rows);
   }
 
   // Devuelve el valor de la fila probando varios nombres de columna posibles
@@ -90,7 +92,9 @@ export default function ProductosPage() {
     setImporting(true); setImportMsg('Leyendo archivo…');
     try {
       const text = await file.text();
-      const rows = parseCsv(text);
+      // Detectar formato: si empieza con <html o <table es un .xls (HTML), sino CSV
+      const isXlsHtml = /^\s*(<!doctype|<html|<table)/i.test(text);
+      const rows = isXlsHtml ? parseXlsHtml(text) : parseCsv(text);
       if (rows.length === 0) { setImportMsg('❌ Archivo vacío o sin filas válidas'); setImporting(false); return; }
 
       const toInsert = rows.map(r => ({
@@ -175,13 +179,13 @@ export default function ProductosPage() {
             className="bg-white/10 text-white/80 border border-white/20 font-black px-3 py-2 rounded-lg text-xs">
             📄 Plantilla Excel
           </button>
-          <button onClick={exportCsv}
+          <button onClick={exportXls}
             className="bg-white/10 text-white/80 border border-white/20 font-black px-3 py-2 rounded-lg text-xs">
-            ⬇ Exportar CSV
+            ⬇ Exportar Excel
           </button>
           <label className="bg-white/10 text-white/80 border border-white/20 font-black px-3 py-2 rounded-lg text-xs cursor-pointer">
-            {importing ? '⏳ Importando…' : '⬆ Importar CSV'}
-            <input type="file" accept=".csv,text/csv" className="hidden"
+            {importing ? '⏳ Importando…' : '⬆ Importar Excel'}
+            <input type="file" accept=".xls,.xlsx,.csv,text/csv,application/vnd.ms-excel" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) importCsv(f); e.target.value = ''; }} />
           </label>
           <button onClick={() => { setCreating(true); setEditing(null); }}
