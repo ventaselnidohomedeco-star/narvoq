@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { uploadImage } from '@/lib/upload';
 import { canAddMore, FREE_LIMITS } from '@/lib/limits';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import OffpeakRulesManager from '@/components/OffpeakRulesManager';
 
 const SURFACES = ['cemento', 'sintetico', 'cristal'];
 
@@ -151,6 +152,13 @@ export default function Canchas() {
           </div>
         ))}
       </div>
+
+      {/* 🕐 Descuentos por baja demanda — antes vivía en Rentabilidad */}
+      {cx && (
+        <section className="mt-8">
+          <OffpeakRulesManager complexId={cx.id} />
+        </section>
+      )}
     </main>
   );
 }
