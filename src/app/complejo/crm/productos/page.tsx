@@ -6,7 +6,7 @@ import BackButton from '@/components/BackButton';
 import PremiumGate from '@/components/PremiumGate';
 import { uploadImage } from '@/lib/upload';
 import { parseCsv } from '@/lib/csv';
-import { downloadXls, parseXlsHtml } from '@/lib/xls';
+import { downloadXls, parseXlsxFile } from '@/lib/xls';
 
 type Product = {
   id: string;
@@ -91,10 +91,8 @@ export default function ProductosPage() {
   async function importCsv(file: File) {
     setImporting(true); setImportMsg('Leyendo archivo…');
     try {
-      const text = await file.text();
-      // Detectar formato: si empieza con <html o <table es un .xls (HTML), sino CSV
-      const isXlsHtml = /^\s*(<!doctype|<html|<table)/i.test(text);
-      const rows = isXlsHtml ? parseXlsHtml(text) : parseCsv(text);
+      const isXlsx = /\.(xlsx|xls)$/i.test(file.name);
+      const rows = isXlsx ? await parseXlsxFile(file) : parseCsv(await file.text());
       if (rows.length === 0) { setImportMsg('❌ Archivo vacío o sin filas válidas'); setImporting(false); return; }
 
       const toInsert = rows.map(r => ({

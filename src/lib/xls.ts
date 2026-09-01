@@ -1,83 +1,92 @@
-// Genera un archivo .xls a partir de filas — usando el formato HTML que Excel
-// abre nativo (con estilos: negrita, fondo, alineación). Sin dependencias.
-// También parsea .xls (HTML) para importar.
+// Genera y parsea archivos Excel reales (.xlsx) con exceljs.
+// Headers en negrita con fondo verde NarvoQ. Sin warnings al abrir.
 
-export function parseXlsHtml(html: string): Record<string, string>[] {
-  // Extrae las filas del primer <table> del HTML de Excel
-  const clean = html.replace(/\r?\n/g, ' ');
-  const tableMatch = clean.match(/<table[^>]*>([\s\S]*?)<\/table>/i);
-  if (!tableMatch) return [];
-  const trs = Array.from(tableMatch[1].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi));
-  if (trs.length === 0) return [];
+import ExcelJS from 'exceljs';
 
-  const rows: string[][] = trs.map(tr => {
-    const cells = Array.from(tr[1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi))
-      .map(c => stripHtml(c[1]).trim());
-    return cells;
+const BALL_GREEN = 'FFC6FF00';    // ARGB: verde NarvoQ
+const HEADER_TEXT = 'FF0B0F16';   // grafito
+const GUIDE_BG   = 'FFFFF9C4';    // amarillo suave
+
+export async function downloadXls(filename: string, headers: string[], rows: (string | number)[][]) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Productos');
+
+  // Header
+  ws.addRow(headers);
+  const headerRow = ws.getRow(1);
+  headerRow.font = { bold: true, color: { argb: HEADER_TEXT }, size: 12 };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BALL_GREEN } };
+  headerRow.alignment = { horizontal: 'left', vertical: 'middle' };
+  headerRow.height = 22;
+  headerRow.eachCell(cell => {
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FF666666' } },
+      bottom: { style: 'thin', color: { argb: 'FF666666' } },
+      left: { style: 'thin', color: { argb: 'FF666666' } },
+      right: { style: 'thin', color: { argb: 'FF666666' } }
+    };
   });
 
-  if (rows.length === 0) return [];
-  const headers = rows[0];
-  return rows.slice(1)
-    .filter(r => r.some(v => v))
-    .map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ''])));
-}
-
-function stripHtml(s: string): string {
-  return s
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"');
-}
-
-type Cell = { value: string | number; header?: boolean };
-type Row = Cell[];
-
-const BALL_GREEN = '#C6FF00';       // color ball de NarvoQ
-const HEADER_BG = '#C6FF00';
-const HEADER_FG = '#0B0F16';
-
-export function downloadXls(filename: string, headers: string[], rows: (string | number)[][]) {
-  const style = `
-    <style>
-      table { border-collapse: collapse; font-family: Arial, sans-serif; }
-      th { background: ${HEADER_BG}; color: ${HEADER_FG}; font-weight: bold; padding: 10px 12px; text-align: left; border: 1px solid #666; font-size: 12pt; }
-      td { padding: 8px 12px; border: 1px solid #ccc; font-size: 11pt; }
-      td.num { text-align: right; }
-      tr.guide td { background: #FFF9C4; font-style: italic; color: #666; }
-    </style>
-  `;
-  const th = headers.map(h => `<th>${escape(h)}</th>`).join('');
-  const trs = rows.map((r, idx) => {
+  // Filas de datos
+  rows.forEach((r, idx) => {
+    const row = ws.addRow(r);
     const isGuide = String(r[0] ?? '').startsWith('👉');
-    const cls = isGuide ? 'guide' : '';
-    const cells = r.map((v, i) => {
-      const isNum = typeof v === 'number';
-      return `<td class="${isNum ? 'num' : ''}">${escape(String(v ?? ''))}</td>`;
-    }).join('');
-    return `<tr class="${cls}">${cells}</tr>`;
-  }).join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">${style}</head><body>
-    <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>
-  </body></html>`;
+    if (isGuide) {
+      row.font = { italic: true, color: { argb: 'FF666666' } };
+      row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GUIDE_BG } };
+    }
+    row.eachCell(cell => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+        bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+        left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+        right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+      };
+    });
+  });
 
-  // BOM + type application/vnd.ms-excel para que Excel lo reconozca
-  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
+  // Auto-width por columna
+  headers.forEach((h, i) => {
+    const col = ws.getColumn(i + 1);
+    const maxLen = Math.max(h.length, ...rows.map(r => String(r[i] ?? '').length));
+    col.width = Math.min(60, Math.max(12, maxLen + 2));
+  });
+
+  // Congelar la primera fila
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+
+  // Descargar
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename;
+  a.href = url;
+  a.download = filename.endsWith('.xlsx') ? filename : filename.replace(/\.xls$/, '.xlsx').replace(/(\.xlsx)?$/, '.xlsx');
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-function escape(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+// Parsea un .xlsx a array de objetos { Header: value, ... }
+export async function parseXlsxFile(file: File): Promise<Record<string, string>[]> {
+  const buffer = await file.arrayBuffer();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  const ws = wb.worksheets[0];
+  if (!ws) return [];
+
+  const rows: string[][] = [];
+  ws.eachRow({ includeEmpty: false }, row => {
+    const cells: string[] = [];
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cells[colNumber - 1] = cell.value == null ? '' : String((cell.value as any).text ?? cell.value);
+    });
+    rows.push(cells);
+  });
+
+  if (rows.length === 0) return [];
+  const headers = rows[0].map(h => (h ?? '').trim());
+  return rows.slice(1)
+    .filter(r => r.some(v => (v ?? '').trim() !== ''))
+    .map(r => Object.fromEntries(headers.map((h, i) => [h, (r[i] ?? '').trim()])));
 }
