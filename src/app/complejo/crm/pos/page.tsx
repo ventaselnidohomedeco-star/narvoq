@@ -115,7 +115,20 @@ export default function POS() {
   }, [clients, clientSearch]);
 
   const subtotal = cart.reduce((sum, i) => sum + i.qty * i.product.price, 0);
-  const total = subtotal;  // Sin descuentos en Fase 1
+  // Descuento según forma de pago (config en Perfil del complejo)
+  const discountPct = useMemo(() => {
+    if (!cx) return 0;
+    const map: Record<string, number> = {
+      efectivo: Number(cx.pos_discount_efectivo) || 0,
+      transferencia: Number(cx.pos_discount_transferencia) || 0,
+      debito: Number(cx.pos_discount_debito) || 0,
+      credito: Number(cx.pos_discount_credito) || 0,
+      mp: Number(cx.pos_discount_mp) || 0
+    };
+    return map[payment] ?? 0;
+  }, [cx, payment]);
+  const discount = Math.round(subtotal * discountPct / 100);
+  const total = Math.max(0, subtotal - discount);
   const pending = payment === 'seña' ? Math.max(0, total - (Number(paidAmount) || 0)) : 0;
 
   function addToCart(p: Product) {
@@ -152,7 +165,7 @@ export default function POS() {
       client_id: selectedClient?.id ?? null,
       cashier_id: user.user?.id ?? null,
       subtotal,
-      discount: 0,
+      discount,
       total,
       payment_method: payment,
       paid_amount: paid,
@@ -311,7 +324,19 @@ export default function POS() {
             {/* Totales */}
             {cart.length > 0 && (
               <>
-                <div className="mt-4 pt-3 border-t border-white/10">
+                <div className="mt-4 pt-3 border-t border-white/10 space-y-1">
+                  {discountPct > 0 && (
+                    <>
+                      <div className="flex justify-between text-sm text-white/60">
+                        <span>Subtotal</span>
+                        <span>${subtotal.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-ball">
+                        <span>Descuento {discountPct}%</span>
+                        <span>−${discount.toLocaleString('es-AR')}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between items-baseline">
                     <span className="text-white/60 text-sm">Total</span>
                     <span className="font-display font-black text-3xl text-ball">${total.toLocaleString('es-AR')}</span>
@@ -322,12 +347,21 @@ export default function POS() {
                 <div className="mt-4">
                   <p className="text-white/60 text-xs font-black uppercase mb-2">Forma de pago</p>
                   <div className="grid grid-cols-2 gap-1">
-                    {PAYMENT_METHODS.map(m => (
-                      <button key={m.key} onClick={() => setPayment(m.key)}
-                        className={`text-xs font-bold py-2 rounded ${payment === m.key ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/70'}`}>
-                        {m.emoji} {m.label}
-                      </button>
-                    ))}
+                    {PAYMENT_METHODS.map(m => {
+                      const off = cx ? ({
+                        efectivo: Number(cx.pos_discount_efectivo) || 0,
+                        transferencia: Number(cx.pos_discount_transferencia) || 0,
+                        debito: Number(cx.pos_discount_debito) || 0,
+                        credito: Number(cx.pos_discount_credito) || 0,
+                        mp: Number(cx.pos_discount_mp) || 0
+                      } as Record<string, number>)[m.key] ?? 0 : 0;
+                      return (
+                        <button key={m.key} onClick={() => setPayment(m.key)}
+                          className={`text-xs font-bold py-2 rounded ${payment === m.key ? 'bg-ball text-courtdark' : 'bg-white/5 text-white/70'}`}>
+                          {m.emoji} {m.label}{off > 0 && <span className="ml-1 text-[10px]">−{off}%</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

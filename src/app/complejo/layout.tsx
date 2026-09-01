@@ -11,45 +11,42 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 // Ícono simple para el sidebar (emoji o texto).
 type Item = { href: string; label: string; icon: string };
 
-// Bottom nav mobile: 5 accesos core
+// Bottom nav mobile: 5 accesos core — priorizados para uso diario
 const MOBILE_ITEMS: Item[] = [
   { href: '/complejo/dashboard', label: 'Hoy', icon: '🏠' },
   { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
+  { href: '/complejo/crm/pos', label: 'Venta', icon: '🧾' },
   { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
-  { href: '/complejo/jugadores', label: 'Jugadores', icon: '👥' },
   { href: '/complejo/mas', label: 'Más', icon: '⋯' }
 ];
 
-// Sidebar desktop: agrupado por secciones
+// Sidebar desktop: ordenado por prioridad de uso en un complejo de pádel
 type Section = { label: string; items: Item[] };
 const DESKTOP_SECTIONS: Section[] = [
   {
-    label: 'Operación',
+    label: 'Día a día',
     items: [
       { href: '/complejo/dashboard', label: 'Dashboard hoy', icon: '🏠' },
       { href: '/complejo/calendario', label: 'Calendario', icon: '📅' },
-      { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' },
-      { href: '/complejo/cobros', label: 'Cobros de torneos', icon: '💵' },
-      { href: '/complejo/socios', label: 'Socios · Membresías', icon: '💳' }
+      { href: '/complejo/crm/pos', label: 'Punto de venta', icon: '🧾' },
+      { href: '/complejo/torneos', label: 'Torneos', icon: '🏆' }
     ]
   },
   {
-    label: 'Gestión',
+    label: 'Cobros y stock',
     items: [
-      { href: '/complejo/canchas', label: 'Canchas', icon: '🎾' },
-      { href: '/complejo/empleados', label: 'Empleados', icon: '👥' },
+      { href: '/complejo/cobros', label: 'Cobros de torneos', icon: '💵' },
+      { href: '/complejo/crm/productos', label: 'Productos y stock', icon: '📦' },
+      { href: '/complejo/crm/ventas', label: 'Historial de ventas', icon: '📊' }
+    ]
+  },
+  {
+    label: 'Clientes',
+    items: [
       { href: '/complejo/jugadores', label: 'Jugadores del club', icon: '⭐' },
       { href: '/complejo/clientes', label: 'Base de clientes', icon: '👤' },
-      { href: '/complejo/entrenamientos', label: 'Entrenamientos', icon: '🏋️' }
-    ]
-  },
-  {
-    label: 'Buffet · Ventas',
-    items: [
-      { href: '/complejo/crm/pos', label: 'Punto de venta', icon: '🧾' },
-      { href: '/complejo/crm/productos', label: 'Productos y stock', icon: '📦' },
-      { href: '/complejo/crm/ventas', label: 'Historial de ventas', icon: '📊' },
-      { href: '/complejo/crm/clientes', label: 'Clientes / cuentas', icon: '👤' }
+      { href: '/complejo/crm/clientes', label: 'Cuentas del buffet', icon: '💳' },
+      { href: '/complejo/socios', label: 'Socios · Membresías', icon: '🎫' }
     ]
   },
   {
@@ -57,6 +54,14 @@ const DESKTOP_SECTIONS: Section[] = [
     items: [
       { href: '/complejo/estadisticas', label: 'Estadísticas Premium', icon: '📊' },
       { href: '/complejo/rentabilidad', label: 'Rentabilidad', icon: '💰' }
+    ]
+  },
+  {
+    label: 'Estructura',
+    items: [
+      { href: '/complejo/canchas', label: 'Canchas', icon: '🎾' },
+      { href: '/complejo/empleados', label: 'Empleados', icon: '👥' },
+      { href: '/complejo/entrenamientos', label: 'Entrenamientos', icon: '🏋️' }
     ]
   },
   {

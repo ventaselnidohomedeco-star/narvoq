@@ -254,6 +254,37 @@ export default function PerfilComplejo() {
           )}
         </div>
 
+        {/* 🧾 Descuentos por forma de pago (POS) */}
+        <div className="mt-3 rounded-2xl p-4 border-2 bg-white/5 border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🧾</span>
+            <div>
+              <p className="font-display font-black">Descuentos por forma de pago (POS)</p>
+              <p className="text-white/50 text-[11px]">Se aplican automáticamente al cobrar en Punto de venta. Poné 0 si no querés descuento.</p>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {([
+              ['pos_discount_efectivo', '💵 Efectivo'],
+              ['pos_discount_transferencia', '🏦 Transferencia'],
+              ['pos_discount_debito', '💳 Débito'],
+              ['pos_discount_credito', '💳 Crédito'],
+              ['pos_discount_mp', '📱 MP']
+            ] as const).map(([field, label]) => (
+              <div key={field}>
+                <label className="block text-white/60 text-[11px] font-bold uppercase mb-1">{label}</label>
+                <div className="relative">
+                  <input type="number" min={0} max={50} step={0.5}
+                    defaultValue={Number(cx[field] ?? 0)}
+                    onBlur={e => save({ [field]: Number(e.target.value) || 0 })}
+                    className="input pr-8" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* 💳 Mercado Pago automático */}
         <div className={`mt-3 rounded-2xl p-4 border-2 ${cx.payment_mp_enabled ? 'bg-[#009EE3]/10 border-[#009EE3]/50' : 'bg-white/5 border-white/10'}`}>
           <div className="flex items-center justify-between">

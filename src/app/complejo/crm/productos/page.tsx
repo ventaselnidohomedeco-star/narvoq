@@ -36,23 +36,54 @@ export default function ProductosPage() {
   const [importMsg, setImportMsg] = useState('');
   const [importing, setImporting] = useState(false);
 
-  const CSV_COLS = ['name', 'category', 'price', 'cost', 'stock', 'min_stock', 'sku', 'ean', 'is_service'];
+  // Columnas en castellano, fáciles de entender
+  const CSV_COLS = ['Nombre', 'Categoria', 'Precio venta', 'Precio costo', 'Stock', 'Alerta stock bajo', 'Codigo interno (SKU)', 'Codigo de barras (EAN)', 'Es servicio (SI/NO)'];
 
   function exportCsv() {
     const rows = products.map(p => ({
-      name: p.name, category: p.category ?? '', price: p.price, cost: p.cost,
-      stock: p.stock, min_stock: p.min_stock, sku: p.sku ?? '', ean: p.ean ?? '',
-      is_service: p.is_service ? 'SI' : 'NO'
+      'Nombre': p.name,
+      'Categoria': p.category ?? '',
+      'Precio venta': p.price,
+      'Precio costo': p.cost,
+      'Stock': p.stock,
+      'Alerta stock bajo': p.min_stock,
+      'Codigo interno (SKU)': p.sku ?? '',
+      'Codigo de barras (EAN)': p.ean ?? '',
+      'Es servicio (SI/NO)': p.is_service ? 'SI' : 'NO'
     }));
     downloadCsv(`productos-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, CSV_COLS));
   }
 
   function downloadTemplate() {
+    // Ejemplos claros. Instrucciones arriba como una fila "guía".
     const example = [
-      { name: 'Coca-Cola 500ml', category: 'Bebida', price: 1200, cost: 700, stock: 24, min_stock: 6, sku: 'COCA500', ean: '7790895000133', is_service: 'NO' },
-      { name: 'Alquiler paleta', category: 'Servicio', price: 2000, cost: 0, stock: 0, min_stock: 0, sku: '', ean: '', is_service: 'SI' }
+      {
+        'Nombre': '👉 EJEMPLOS (borrá esta fila antes de importar)',
+        'Categoria': 'Bebida / Snack / Paleta / Pelota / Servicio / Otro',
+        'Precio venta': 'Cuánto lo vendés (número, sin $)',
+        'Precio costo': 'Cuánto te sale a vos (opcional)',
+        'Stock': 'Cuántos tenés hoy',
+        'Alerta stock bajo': 'Avisa cuando quedan menos de este numero',
+        'Codigo interno (SKU)': 'Opcional — tu código',
+        'Codigo de barras (EAN)': 'Opcional — el número del código de barras',
+        'Es servicio (SI/NO)': 'SI si no descuenta stock (ej: alquiler de paleta)'
+      },
+      { 'Nombre': 'Coca-Cola 500ml', 'Categoria': 'Bebida', 'Precio venta': 1200, 'Precio costo': 700, 'Stock': 24, 'Alerta stock bajo': 6, 'Codigo interno (SKU)': 'COCA500', 'Codigo de barras (EAN)': '7790895000133', 'Es servicio (SI/NO)': 'NO' },
+      { 'Nombre': 'Cerveza Quilmes 473ml', 'Categoria': 'Bebida', 'Precio venta': 1800, 'Precio costo': 1100, 'Stock': 36, 'Alerta stock bajo': 12, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'NO' },
+      { 'Nombre': 'Sándwich de miga (x3)', 'Categoria': 'Snack', 'Precio venta': 2500, 'Precio costo': 1200, 'Stock': 10, 'Alerta stock bajo': 3, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'NO' },
+      { 'Nombre': 'Tubo de pelotas Head', 'Categoria': 'Pelota', 'Precio venta': 8500, 'Precio costo': 5500, 'Stock': 8, 'Alerta stock bajo': 2, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'NO' },
+      { 'Nombre': 'Alquiler de paleta', 'Categoria': 'Servicio', 'Precio venta': 2000, 'Precio costo': 0, 'Stock': 0, 'Alerta stock bajo': 0, 'Codigo interno (SKU)': '', 'Codigo de barras (EAN)': '', 'Es servicio (SI/NO)': 'SI' }
     ];
     downloadCsv('plantilla-productos.csv', toCsv(example, CSV_COLS));
+  }
+
+  // Devuelve el valor de la fila probando varios nombres de columna posibles
+  function pick(row: Record<string, string>, ...keys: string[]): string {
+    for (const k of keys) {
+      const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase().trim());
+      if (found && row[found]) return row[found];
+    }
+    return '';
   }
 
   async function importCsv(file: File) {
@@ -64,19 +95,19 @@ export default function ProductosPage() {
 
       const toInsert = rows.map(r => ({
         complex_id: cx.id,
-        name: (r.name ?? '').trim(),
-        category: (r.category ?? '').trim() || null,
-        price: Number(r.price) || 0,
-        cost: Number(r.cost) || 0,
-        stock: Number(r.stock) || 0,
-        min_stock: Number(r.min_stock) || 0,
-        sku: (r.sku ?? '').trim() || null,
-        ean: (r.ean ?? '').trim() || null,
-        is_service: ['si', 'sí', 'true', '1', 'yes'].includes((r.is_service ?? '').toLowerCase()),
+        name: pick(r, 'Nombre', 'name', 'Producto').trim(),
+        category: pick(r, 'Categoria', 'Categoría', 'category').trim() || null,
+        price: Number(pick(r, 'Precio venta', 'Precio', 'price')) || 0,
+        cost: Number(pick(r, 'Precio costo', 'Costo', 'cost')) || 0,
+        stock: Number(pick(r, 'Stock', 'stock')) || 0,
+        min_stock: Number(pick(r, 'Alerta stock bajo', 'Min stock', 'min_stock')) || 0,
+        sku: pick(r, 'Codigo interno (SKU)', 'SKU', 'Codigo interno', 'sku').trim() || null,
+        ean: pick(r, 'Codigo de barras (EAN)', 'EAN', 'Codigo de barras', 'ean').trim() || null,
+        is_service: ['si', 'sí', 'true', '1', 'yes', 'servicio'].includes(pick(r, 'Es servicio (SI/NO)', 'Es servicio', 'Servicio', 'is_service').toLowerCase()),
         active: true
-      })).filter(r => r.name);
+      })).filter(r => r.name && !r.name.startsWith('👉'));  // saltea la fila-guía
 
-      if (toInsert.length === 0) { setImportMsg('❌ Ninguna fila tiene "name" válido'); setImporting(false); return; }
+      if (toInsert.length === 0) { setImportMsg('❌ No hay filas con Nombre. Revisá la plantilla.'); setImporting(false); return; }
       const { error } = await supabase.from('pos_products').insert(toInsert);
       if (error) { setImportMsg('❌ ' + error.message); setImporting(false); return; }
       setImportMsg(`✓ Importados ${toInsert.length} productos`);
