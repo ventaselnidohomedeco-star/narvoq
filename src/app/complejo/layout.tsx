@@ -44,6 +44,15 @@ const DESKTOP_SECTIONS: Section[] = [
     ]
   },
   {
+    label: 'Buffet · Ventas',
+    items: [
+      { href: '/complejo/crm/pos', label: 'Punto de venta', icon: '🧾' },
+      { href: '/complejo/crm/productos', label: 'Productos y stock', icon: '📦' },
+      { href: '/complejo/crm/ventas', label: 'Historial de ventas', icon: '📊' },
+      { href: '/complejo/crm/clientes', label: 'Clientes / cuentas', icon: '👤' }
+    ]
+  },
+  {
     label: 'Reportes',
     items: [
       { href: '/complejo/estadisticas', label: 'Estadísticas Premium', icon: '📊' },
