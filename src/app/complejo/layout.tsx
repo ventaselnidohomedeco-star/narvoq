@@ -53,7 +53,8 @@ const DESKTOP_SECTIONS: Section[] = [
     label: 'Reportes',
     items: [
       { href: '/complejo/estadisticas', label: 'Estadísticas Premium', icon: '📊' },
-      { href: '/complejo/rentabilidad', label: 'Rentabilidad', icon: '💰' }
+      { href: '/complejo/gastos', label: 'Gastos', icon: '💸' },
+      { href: '/complejo/rentabilidad', label: 'Rentabilidad 🔒', icon: '💰' }
     ]
   },
   {
