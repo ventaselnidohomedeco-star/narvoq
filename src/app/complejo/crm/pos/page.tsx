@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import BackButton from '@/components/BackButton';
 import PremiumGate from '@/components/PremiumGate';
+import BarcodeScanner from '@/components/BarcodeScanner';
 
 type Product = {
   id: string; name: string; price: number; stock: number;
   category: string | null; photo_url: string | null;
   is_service: boolean; active: boolean;
+  sku: string | null; ean: string | null;
 };
 
 type Client = { id: string; name: string; phone: string | null; total_spent: number };
@@ -42,6 +44,8 @@ export default function POS() {
   const [processing, setProcessing] = useState(false);
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [scanOpen, setScanOpen] = useState(false);
+  const [flash, setFlash] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -63,8 +67,46 @@ export default function POS() {
   const filteredProducts = useMemo(() => {
     if (!search.trim()) return products;
     const q = search.toLowerCase();
-    return products.filter(p => p.name.toLowerCase().includes(q));
+    return products.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      (p.sku && p.sku.toLowerCase().includes(q)) ||
+      (p.ean && p.ean.includes(q))
+    );
   }, [products, search]);
+
+  // Busca un producto por EAN o SKU exacto y lo suma al carrito. Devuelve true si lo encontró.
+  function tryScanCode(code: string): boolean {
+    const trimmed = code.trim();
+    if (!trimmed) return false;
+    const found = products.find(p => p.ean === trimmed || p.sku === trimmed);
+    if (found) {
+      addToCart(found);
+      setFlash(`✓ ${found.name} agregado`);
+      setTimeout(() => setFlash(''), 1500);
+      setSearch('');
+      return true;
+    }
+    setFlash(`⚠️ No hay producto con código ${trimmed}`);
+    setTimeout(() => setFlash(''), 2500);
+    return false;
+  }
+
+  // Manejo del input: si detecta un código numérico y el usuario da Enter, matchea por EAN
+  function handleSearchKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const val = search.trim();
+    // Si es todo dígitos (8+), asumimos EAN escaneado por lector USB
+    if (/^\d{8,14}$/.test(val)) {
+      tryScanCode(val);
+      return;
+    }
+    // Sino: si hay UN solo producto filtrado, lo agrega
+    if (filteredProducts.length === 1) {
+      addToCart(filteredProducts[0]);
+      setSearch('');
+    }
+  }
 
   const filteredClients = useMemo(() => {
     if (!clientSearch.trim()) return clients.slice(0, 20);
@@ -176,9 +218,18 @@ export default function POS() {
       <div className="mt-4 grid md:grid-cols-[1fr_400px] gap-4">
         {/* ==================== IZQUIERDA: PRODUCTOS ==================== */}
         <section>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Buscar producto…"
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-lg" />
+          <div className="flex gap-2">
+            <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={handleSearchKey}
+              autoFocus
+              placeholder="🔍 Nombre, SKU o EAN (Enter para escaneo USB)"
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-lg" />
+            <button type="button" onClick={() => setScanOpen(true)}
+              title="Escanear con cámara"
+              className="bg-ball text-courtdark font-black px-4 rounded-lg text-2xl">📷</button>
+          </div>
+          {flash && (
+            <p className={`mt-2 text-sm font-black ${flash.startsWith('✓') ? 'text-ball' : 'text-orange-300'}`}>{flash}</p>
+          )}
 
           {products.length === 0 ? (
             <div className="mt-6 card !p-8 text-center text-white/50">
@@ -309,6 +360,10 @@ export default function POS() {
           </div>
         </aside>
       </div>
+
+      {/* Escáner de cámara */}
+      <BarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)}
+        onDetected={code => { setScanOpen(false); tryScanCode(code); }} />
 
       {/* Client picker modal */}
       {showClientPicker && (

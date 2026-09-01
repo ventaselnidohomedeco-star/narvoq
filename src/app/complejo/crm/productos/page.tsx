@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import BackButton from '@/components/BackButton';
 import PremiumGate from '@/components/PremiumGate';
 import { uploadImage } from '@/lib/upload';
+import { toCsv, downloadCsv, parseCsv } from '@/lib/csv';
 
 type Product = {
   id: string;
@@ -32,6 +33,59 @@ export default function ProductosPage() {
   const [filterCat, setFilterCat] = useState('');
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
+  const [importing, setImporting] = useState(false);
+
+  const CSV_COLS = ['name', 'category', 'price', 'cost', 'stock', 'min_stock', 'sku', 'ean', 'is_service'];
+
+  function exportCsv() {
+    const rows = products.map(p => ({
+      name: p.name, category: p.category ?? '', price: p.price, cost: p.cost,
+      stock: p.stock, min_stock: p.min_stock, sku: p.sku ?? '', ean: p.ean ?? '',
+      is_service: p.is_service ? 'SI' : 'NO'
+    }));
+    downloadCsv(`productos-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, CSV_COLS));
+  }
+
+  function downloadTemplate() {
+    const example = [
+      { name: 'Coca-Cola 500ml', category: 'Bebida', price: 1200, cost: 700, stock: 24, min_stock: 6, sku: 'COCA500', ean: '7790895000133', is_service: 'NO' },
+      { name: 'Alquiler paleta', category: 'Servicio', price: 2000, cost: 0, stock: 0, min_stock: 0, sku: '', ean: '', is_service: 'SI' }
+    ];
+    downloadCsv('plantilla-productos.csv', toCsv(example, CSV_COLS));
+  }
+
+  async function importCsv(file: File) {
+    setImporting(true); setImportMsg('Leyendo archivo…');
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      if (rows.length === 0) { setImportMsg('❌ Archivo vacío o sin filas válidas'); setImporting(false); return; }
+
+      const toInsert = rows.map(r => ({
+        complex_id: cx.id,
+        name: (r.name ?? '').trim(),
+        category: (r.category ?? '').trim() || null,
+        price: Number(r.price) || 0,
+        cost: Number(r.cost) || 0,
+        stock: Number(r.stock) || 0,
+        min_stock: Number(r.min_stock) || 0,
+        sku: (r.sku ?? '').trim() || null,
+        ean: (r.ean ?? '').trim() || null,
+        is_service: ['si', 'sí', 'true', '1', 'yes'].includes((r.is_service ?? '').toLowerCase()),
+        active: true
+      })).filter(r => r.name);
+
+      if (toInsert.length === 0) { setImportMsg('❌ Ninguna fila tiene "name" válido'); setImporting(false); return; }
+      const { error } = await supabase.from('pos_products').insert(toInsert);
+      if (error) { setImportMsg('❌ ' + error.message); setImporting(false); return; }
+      setImportMsg(`✓ Importados ${toInsert.length} productos`);
+      await load(cx.id);
+    } catch (e: any) {
+      setImportMsg('❌ ' + (e?.message ?? 'error desconocido'));
+    }
+    setImporting(false);
+  }
 
   async function load(complexId?: string) {
     setLoading(true);
@@ -85,11 +139,29 @@ export default function ProductosPage() {
           <h1 className="font-display font-black text-3xl">Productos ({products.length})</h1>
           <p className="text-white/50 text-sm mt-1">ABM de productos, stock y precios</p>
         </div>
-        <button onClick={() => { setCreating(true); setEditing(null); }}
-          className="bg-ball text-courtdark font-black px-4 py-2 rounded-lg text-sm">
-          + Nuevo producto
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={downloadTemplate}
+            className="bg-white/10 text-white/80 border border-white/20 font-black px-3 py-2 rounded-lg text-xs">
+            📄 Plantilla Excel
+          </button>
+          <button onClick={exportCsv}
+            className="bg-white/10 text-white/80 border border-white/20 font-black px-3 py-2 rounded-lg text-xs">
+            ⬇ Exportar CSV
+          </button>
+          <label className="bg-white/10 text-white/80 border border-white/20 font-black px-3 py-2 rounded-lg text-xs cursor-pointer">
+            {importing ? '⏳ Importando…' : '⬆ Importar CSV'}
+            <input type="file" accept=".csv,text/csv" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) importCsv(f); e.target.value = ''; }} />
+          </label>
+          <button onClick={() => { setCreating(true); setEditing(null); }}
+            className="bg-ball text-courtdark font-black px-4 py-2 rounded-lg text-sm">
+            + Nuevo producto
+          </button>
+        </div>
       </div>
+      {importMsg && (
+        <p className={`mt-2 text-sm font-black ${importMsg.startsWith('✓') ? 'text-ball' : 'text-orange-300'}`}>{importMsg}</p>
+      )}
 
       {/* Filtros */}
       <section className="mt-4 flex flex-wrap gap-2">
