@@ -69,6 +69,22 @@ export default function DashboardComplejo() {
   const [restantePendiente, setRestantePendiente] = useState<{ monto: number; cantidad: number }>({ monto: 0, cantidad: 0 });
   const [torneoCobros, setTorneoCobros] = useState<{ pendCount: number; sumPend: number; sumApr: number }>({ pendCount: 0, sumPend: 0, sumApr: 0 });
 
+  // 📊 Resumen ejecutivo del período: ingresos por sector + comparativas + proyección
+  const [ejecutivo, setEjecutivo] = useState<{
+    canchas: number; buffet: number; torneos: number; socios: number;
+    canchasPrev: number; buffetPrev: number; torneosPrev: number; sociosPrev: number;
+    clientesNuevos: number; clientesNuevosPrev: number;
+    proyeccionTotal: number; diasTrans: number; diasTotal: number;
+    seis: { label: string; total: number }[];
+    topProducts: { name: string; qty: number; total: number }[];
+  }>({
+    canchas: 0, buffet: 0, torneos: 0, socios: 0,
+    canchasPrev: 0, buffetPrev: 0, torneosPrev: 0, sociosPrev: 0,
+    clientesNuevos: 0, clientesNuevosPrev: 0,
+    proyeccionTotal: 0, diasTrans: 0, diasTotal: 30,
+    seis: [], topProducts: []
+  });
+
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     const { data: complex } = await supabase.from('complexes').select('*, courts(*)').eq('owner_id', user!.id).single();
@@ -260,6 +276,113 @@ export default function DashboardComplejo() {
       .eq('membership.complex_id', complex.id)
       .neq('status', 'activa');
     setSociosPendientes(memPend ?? []);
+
+    // ============================================================
+    // 📊 RESUMEN EJECUTIVO — ingresos unificados + comparativa + proyección
+    // ============================================================
+    const monthStart = new Date(desde);
+    const prevStart = new Date(desde); prevStart.setMonth(prevStart.getMonth() - 1);
+    const prevEnd = new Date(hasta); prevEnd.setMonth(prevEnd.getMonth() - 1);
+
+    // Canchas: usar `ingresado` del período actual + calcular período anterior
+    const { data: ledgerPrev } = await supabase.from('player_ledger')
+      .select('amount').eq('complex_id', complex.id)
+      .in('kind', ['seña_paid', 'restante_paid'])
+      .gte('created_at', prevStart.toISOString()).lte('created_at', prevEnd.toISOString());
+    const canchasPrev = (ledgerPrev ?? []).reduce((a: number, r: any) => a + Math.abs(Number(r.amount ?? 0)), 0);
+
+    // Buffet: sumar pos_sales.total del período
+    const { data: salesNow } = await supabase.from('pos_sales')
+      .select('total, client_id, created_at').eq('complex_id', complex.id)
+      .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString());
+    const buffet = (salesNow ?? []).reduce((a: number, r: any) => a + Number(r.total ?? 0), 0);
+    const { data: salesPrev } = await supabase.from('pos_sales')
+      .select('total').eq('complex_id', complex.id)
+      .gte('created_at', prevStart.toISOString()).lte('created_at', prevEnd.toISOString());
+    const buffetPrev = (salesPrev ?? []).reduce((a: number, r: any) => a + Number(r.total ?? 0), 0);
+
+    // Torneos: pairs aprobadas del período * price
+    const tIds2 = (torneos ?? []).map(t => t.id);
+    let torneosNow = 0, torneosPrev = 0;
+    if (tIds2.length > 0) {
+      const priceMap = new Map((torneos ?? []).map(t => [t.id, Number(t.price) || 0]));
+      const { data: pairsNow } = await supabase.from('tournament_pairs')
+        .select('tournament_id, created_at').in('tournament_id', tIds2).eq('status', 'aprobada')
+        .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString());
+      (pairsNow ?? []).forEach((p: any) => { torneosNow += priceMap.get(p.tournament_id) ?? 0; });
+      const { data: pairsPrev } = await supabase.from('tournament_pairs')
+        .select('tournament_id, created_at').in('tournament_id', tIds2).eq('status', 'aprobada')
+        .gte('created_at', prevStart.toISOString()).lte('created_at', prevEnd.toISOString());
+      (pairsPrev ?? []).forEach((p: any) => { torneosPrev += priceMap.get(p.tournament_id) ?? 0; });
+    }
+
+    // Socios / membresías activas del período * price
+    const { data: memsNow } = await supabase.from('membership_members')
+      .select('created_at, membership:memberships!inner(complex_id, price)')
+      .eq('membership.complex_id', complex.id).eq('status', 'activa')
+      .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString());
+    const socios = (memsNow ?? []).reduce((a: number, r: any) => a + Number(r.membership?.price ?? 0), 0);
+    const { data: memsPrev } = await supabase.from('membership_members')
+      .select('created_at, membership:memberships!inner(complex_id, price)')
+      .eq('membership.complex_id', complex.id).eq('status', 'activa')
+      .gte('created_at', prevStart.toISOString()).lte('created_at', prevEnd.toISOString());
+    const sociosPrev = (memsPrev ?? []).reduce((a: number, r: any) => a + Number(r.membership?.price ?? 0), 0);
+
+    // Clientes nuevos (primera reserva del período)
+    const clientesNuevos = new Set((reservas as any[]).filter(b => b.player).map(b => b.player.id)).size;
+    // (comparativa aproximada: total reservas del mes anterior con jugador)
+    const { data: prevBks } = await supabase.from('bookings')
+      .select('player_id').in('court_id', courtIds).neq('status', 'cancelada')
+      .gte('starts_at', prevStart.toISOString()).lte('starts_at', prevEnd.toISOString());
+    const clientesNuevosPrev = new Set((prevBks ?? []).filter((b: any) => b.player_id).map((b: any) => b.player_id)).size;
+
+    // Proyección: (ingresos hasta ahora / días transcurridos) * días del período
+    const now = new Date();
+    const diasTrans = Math.max(1, Math.ceil((Math.min(now.getTime(), hasta.getTime()) - desde.getTime()) / (24 * 3600 * 1000)));
+    const diasTotal = Math.max(1, Math.ceil((hasta.getTime() - desde.getTime()) / (24 * 3600 * 1000)));
+    const totalHoy = ingresado + buffet + torneosNow + socios;
+    const proyeccionTotal = Math.round(totalHoy / diasTrans * diasTotal);
+
+    // Últimos 6 meses de ingresos totales (canchas + buffet)
+    const seis: { label: string; total: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const [{ data: lg }, { data: ps }] = await Promise.all([
+        supabase.from('player_ledger').select('amount').eq('complex_id', complex.id)
+          .in('kind', ['seña_paid', 'restante_paid'])
+          .gte('created_at', mStart.toISOString()).lte('created_at', mEnd.toISOString()),
+        supabase.from('pos_sales').select('total').eq('complex_id', complex.id)
+          .gte('created_at', mStart.toISOString()).lte('created_at', mEnd.toISOString())
+      ]);
+      const canchasM = (lg ?? []).reduce((a: number, r: any) => a + Math.abs(Number(r.amount ?? 0)), 0);
+      const buffetM = (ps ?? []).reduce((a: number, r: any) => a + Number(r.total ?? 0), 0);
+      seis.push({ label: mStart.toLocaleDateString('es-AR', { month: 'short' }), total: canchasM + buffetM });
+    }
+
+    // Top productos del período
+    const saleIds = (salesNow ?? []).map((s: any) => s.id).filter(Boolean);
+    let topProducts: { name: string; qty: number; total: number }[] = [];
+    if (saleIds.length > 0) {
+      const { data: items } = await supabase.from('pos_sale_items')
+        .select('product_name, qty, subtotal').in('sale_id', saleIds);
+      const map = new Map<string, { qty: number; total: number }>();
+      (items ?? []).forEach((it: any) => {
+        const prev = map.get(it.product_name) ?? { qty: 0, total: 0 };
+        map.set(it.product_name, { qty: prev.qty + Number(it.qty), total: prev.total + Number(it.subtotal) });
+      });
+      topProducts = Array.from(map.entries())
+        .map(([name, v]) => ({ name, qty: v.qty, total: v.total }))
+        .sort((a, b) => b.total - a.total).slice(0, 5);
+    }
+
+    setEjecutivo({
+      canchas: ingresado, buffet, torneos: torneosNow, socios,
+      canchasPrev, buffetPrev, torneosPrev, sociosPrev,
+      clientesNuevos, clientesNuevosPrev,
+      proyeccionTotal, diasTrans, diasTotal,
+      seis, topProducts
+    });
   }
   useEffect(() => { load(); }, [periodo]);
 
@@ -315,6 +438,9 @@ export default function DashboardComplejo() {
           <p className="text-white/50 text-sm">{new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
       </div>
+
+      {/* 📊 Resumen ejecutivo */}
+      <ResumenEjecutivo e={ejecutivo} />
 
       {/* Aprobaciones pendientes: lo más urgente arriba */}
       {(reservasPendientes.length > 0 || sociosPendientes.length > 0) && (
@@ -697,5 +823,163 @@ export default function DashboardComplejo() {
         </div>
       </section>
     </main>
+  );
+}
+
+// ---------- Resumen ejecutivo del complejo ----------
+function ResumenEjecutivo({ e }: { e: any }) {
+  const totalHoy = e.canchas + e.buffet + e.torneos + e.socios;
+  const totalPrev = e.canchasPrev + e.buffetPrev + e.torneosPrev + e.sociosPrev;
+  const variacion = totalPrev > 0 ? Math.round(((totalHoy - totalPrev) / totalPrev) * 100) : (totalHoy > 0 ? 100 : 0);
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+  const seisMax = Math.max(1, ...e.seis.map((s: any) => s.total));
+
+  const donut = [
+    { label: 'Canchas', value: e.canchas, color: '#D8F646' },
+    { label: 'Buffet', value: e.buffet, color: '#A8C22E' },
+    { label: 'Torneos', value: e.torneos, color: '#5F7414' },
+    { label: 'Socios', value: e.socios, color: '#F4FF9E' }
+  ].filter(d => d.value > 0);
+
+  const Card = ({ label, value, prev, emoji, accent = 'text-white' }: any) => {
+    const diff = prev > 0 ? Math.round(((value - prev) / prev) * 100) : (value > 0 ? 100 : 0);
+    const up = diff >= 0;
+    return (
+      <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+        <p className="text-white/60 text-[11px] font-black uppercase">{emoji} {label}</p>
+        <p className={`font-display font-black text-2xl mt-1 ${accent}`}>{fmt(value)}</p>
+        {prev > 0 && (
+          <p className={`text-[11px] font-bold mt-1 ${up ? 'text-ball' : 'text-red-400'}`}>
+            {up ? '▲' : '▼'} {Math.abs(diff)}% vs mes anterior
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <section className="mt-5 rounded-3xl bg-gradient-to-br from-ball/5 to-transparent border border-ball/20 p-4">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div>
+          <p className="font-display font-black text-ball text-sm tracking-widest">📊 RESUMEN EJECUTIVO</p>
+          <p className="font-display font-black text-3xl mt-1">{fmt(totalHoy)}</p>
+          {totalPrev > 0 && (
+            <p className={`text-sm font-bold ${variacion >= 0 ? 'text-ball' : 'text-red-400'}`}>
+              {variacion >= 0 ? '▲' : '▼'} {Math.abs(variacion)}% vs mes anterior ({fmt(totalPrev)})
+            </p>
+          )}
+        </div>
+        {e.diasTrans < e.diasTotal && (
+          <div className="text-right">
+            <p className="text-white/50 text-[11px] font-black uppercase">Proyección fin de período</p>
+            <p className="font-display font-black text-xl text-yellow-300">{fmt(e.proyeccionTotal)}</p>
+            <p className="text-white/40 text-[11px]">día {e.diasTrans} de {e.diasTotal}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Cards por sector */}
+      <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card label="Canchas" emoji="🎾" value={e.canchas} prev={e.canchasPrev} accent="text-ball" />
+        <Card label="Buffet" emoji="🧾" value={e.buffet} prev={e.buffetPrev} accent="text-white" />
+        <Card label="Torneos" emoji="🏆" value={e.torneos} prev={e.torneosPrev} accent="text-white" />
+        <Card label="Socios" emoji="🎫" value={e.socios} prev={e.sociosPrev} accent="text-white" />
+      </div>
+
+      {/* Gráficos: 6 meses + dona */}
+      <div className="mt-5 grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 rounded-2xl bg-black/30 border border-white/10 p-4">
+          <p className="text-white/60 text-xs font-black uppercase mb-3">Ingresos últimos 6 meses</p>
+          <div className="flex items-end gap-2 h-40">
+            {e.seis.map((m: any, i: number) => {
+              const h = Math.round((m.total / seisMax) * 130);
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1">
+                  <span className="text-white/60 text-[10px] font-black">{fmt(m.total)}</span>
+                  <div className="w-full rounded-t-md bg-ball" style={{ height: `${Math.max(4, h)}px`, opacity: i === e.seis.length - 1 ? 1 : 0.7 }} />
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-2 mt-2">
+            {e.seis.map((m: any, i: number) => (
+              <span key={i} className="flex-1 text-center text-white/50 text-[10px] font-bold uppercase truncate">{m.label}</span>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
+          <p className="text-white/60 text-xs font-black uppercase mb-3">Ingresos por sector</p>
+          {donut.length > 0 ? (
+            <>
+              <div className="flex justify-center">
+                <MiniDonut segments={donut} />
+              </div>
+              <div className="mt-3 space-y-1">
+                {donut.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2"><span className="w-2 h-2 rounded" style={{ background: d.color }} /> {d.label}</span>
+                    <span className="font-bold">{fmt(d.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-white/40 text-sm text-center py-8">Sin ingresos aún</p>
+          )}
+        </div>
+      </div>
+
+      {/* Top productos */}
+      {e.topProducts.length > 0 && (
+        <div className="mt-4 rounded-2xl bg-black/30 border border-white/10 p-4">
+          <p className="text-white/60 text-xs font-black uppercase mb-3">🏆 Top productos del período</p>
+          <div className="space-y-2">
+            {e.topProducts.map((p: any, i: number) => (
+              <div key={i} className="flex items-center gap-3 text-sm">
+                <span className="w-6 text-white/50 font-black text-center">{i + 1}</span>
+                <span className="flex-1 truncate">{p.name}</span>
+                <span className="text-white/60 text-xs">{p.qty} u</span>
+                <span className="text-ball font-black w-24 text-right">{fmt(p.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Clientes activos */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <Card label="Clientes del período" emoji="👥" value={e.clientesNuevos} prev={e.clientesNuevosPrev} accent="text-white" />
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+          <p className="text-white/60 text-[11px] font-black uppercase">💡 Tip</p>
+          <p className="text-white/70 text-xs mt-2 leading-snug">
+            Los datos comparan el mismo rango de días con el mes anterior. La proyección estima el total a fin de período según el ritmo actual.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MiniDonut({ segments }: { segments: { value: number; color: string }[] }) {
+  const total = segments.reduce((a, s) => a + s.value, 0);
+  const size = 140, thickness = 22, r = (size - thickness) / 2, cx = size / 2, cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {segments.map((s, i) => {
+        const frac = total > 0 ? s.value / total : 0;
+        const dash = frac * circ;
+        const el = <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={thickness}
+          strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={-offset} transform={`rotate(-90 ${cx} ${cy})`} />;
+        offset += dash;
+        return el;
+      })}
+      <text x={cx} y={cy - 4} textAnchor="middle" className="fill-white font-black" style={{ fontSize: 11 }}>Total</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" className="fill-ball font-black" style={{ fontSize: 13 }}>
+        ${Math.round(total / 1000)}k
+      </text>
+    </svg>
   );
 }
