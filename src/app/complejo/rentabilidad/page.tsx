@@ -2,13 +2,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import PremiumGate from '@/components/PremiumGate';
+import AdminPinGate from '@/components/AdminPinGate';
 
 const DAYS = [
   { k: 1, l: 'Lun' }, { k: 2, l: 'Mar' }, { k: 3, l: 'Mié' },
   { k: 4, l: 'Jue' }, { k: 5, l: 'Vie' }, { k: 6, l: 'Sáb' }, { k: 0, l: 'Dom' }
 ];
 
-export default function Rentabilidad() {
+export default function RentabilidadPage() {
+  return (
+    <AdminPinGate label="la rentabilidad">
+      <Rentabilidad />
+    </AdminPinGate>
+  );
+}
+
+function Rentabilidad() {
   const [cx, setCx] = useState<any>(null);
   const [rules, setRules] = useState<any[]>([]);
   const [periodo, setPeriodo] = useState<'semana' | 'mes'>('semana');

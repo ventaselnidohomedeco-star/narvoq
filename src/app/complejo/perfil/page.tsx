@@ -254,6 +254,32 @@ export default function PerfilComplejo() {
           )}
         </div>
 
+        {/* 🔒 PIN de administrador (protege Rentabilidad y Gastos) */}
+        <div className="mt-3 rounded-2xl p-4 border-2 bg-white/5 border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🔒</span>
+            <div>
+              <p className="font-display font-black">PIN de administrador (4 dígitos)</p>
+              <p className="text-white/50 text-[11px]">Protege Rentabilidad y Gastos. Los empleados que usen el portal no podrán abrirlos sin este PIN.</p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <input type="password" inputMode="numeric" maxLength={4}
+              defaultValue={cx.admin_pin ?? ''}
+              onBlur={e => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                if (v === '' || v.length === 4) save({ admin_pin: v || null });
+              }}
+              placeholder="••••"
+              className="input text-center text-2xl font-black tracking-widest w-32" />
+            {cx.admin_pin && (
+              <button type="button" onClick={() => save({ admin_pin: null })}
+                className="text-xs text-red-400 font-bold">Quitar PIN</button>
+            )}
+            <p className="text-white/40 text-[11px]">Dejalo vacío para deshabilitar la protección.</p>
+          </div>
+        </div>
+
         {/* 🧾 Descuentos por forma de pago (POS) */}
         <div className="mt-3 rounded-2xl p-4 border-2 bg-white/5 border-white/10">
           <div className="flex items-center gap-2">

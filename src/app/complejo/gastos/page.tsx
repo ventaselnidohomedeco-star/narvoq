@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { uploadImage } from '@/lib/upload';
+import AdminPinGate from '@/components/AdminPinGate';
 
 type Expense = {
   id: string;
@@ -28,7 +29,15 @@ const CATEGORIAS = [
   { key: 'Otros', emoji: '📦' }
 ];
 
-export default function GastosPage() {
+export default function GastosPageWrapper() {
+  return (
+    <AdminPinGate label="los gastos">
+      <GastosPage />
+    </AdminPinGate>
+  );
+}
+
+function GastosPage() {
   const [cx, setCx] = useState<any>(null);
   const [rows, setRows] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
