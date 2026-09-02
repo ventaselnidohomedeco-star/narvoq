@@ -33,9 +33,11 @@ export default function Calendario() {
     return d;
   }, [dayOffset]);
 
-  // Ventana de 30 días — scrolleables horizontalmente
-  const days = useMemo(() => Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+  // Ventana: 30 días atrás + hoy + 30 días adelante — scrolleables horizontalmente
+  const DAYS_BACK = 30;
+  const DAYS_FWD = 30;
+  const days = useMemo(() => Array.from({ length: DAYS_BACK + 1 + DAYS_FWD }, (_, i) => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + (i - DAYS_BACK));
     return d;
   }), []);
 
@@ -96,7 +98,7 @@ export default function Calendario() {
     });
     setWaitlistCounts(counts);
   }
-  useEffect(() => { if (cx || dayOffset >= 0) load(); }, [dayOffset]); // eslint-disable-line
+  useEffect(() => { load(); }, [dayOffset]); // eslint-disable-line
 
   // Auto-sync silencioso de pagos MP pendientes al abrir el calendario.
   // Reconcilía pagos que el webhook no llegó a procesar (evita quedar en "pendiente").
@@ -398,18 +400,31 @@ export default function Calendario() {
 
       {/* Selector de día — 30 días scrolleables */}
       <div className="mt-3 relative">
-        <div className="flex gap-2 overflow-x-auto px-2 pb-2 scroll-smooth snap-x">
+        <div className="flex gap-2 overflow-x-auto px-2 pb-2 scroll-smooth snap-x"
+          ref={el => {
+            if (el && el.dataset.centered !== '1') {
+              const target = el.querySelector('[data-day-offset="0"]') as HTMLElement | null;
+              if (target) { target.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' }); el.dataset.centered = '1'; }
+            }
+          }}>
           {days.map((d, i) => {
-            const isToday = i === 0;
-            const isMonday = d.getDay() === 1 && i > 0;
-            const monthChange = i > 0 && d.getDate() === 1;
+            const offset = i - DAYS_BACK;    // negativo = pasado, 0 = hoy
+            const isToday = offset === 0;
+            const isPast = offset < 0;
+            const isMonday = d.getDay() === 1 && !isToday;
+            const monthChange = !isToday && d.getDate() === 1;
             return (
-              <div key={i} className="flex items-stretch snap-start">
+              <div key={i} data-day-offset={offset} className="flex items-stretch snap-start">
                 {(isMonday || monthChange) && (
                   <div className="border-l-2 border-white/10 mx-1" />
                 )}
-                <button onClick={() => setDayOffset(i)}
-                  className={`shrink-0 rounded-xl px-3 py-2 text-center min-w-[54px] ${i === dayOffset ? 'bg-ball text-courtdark' : isToday ? 'bg-white/10 text-white border border-ball/30' : 'bg-white/5 text-white/70'}`}>
+                <button onClick={() => setDayOffset(offset)}
+                  className={`shrink-0 rounded-xl px-3 py-2 text-center min-w-[54px] ${
+                    offset === dayOffset ? 'bg-ball text-courtdark'
+                    : isToday ? 'bg-white/10 text-white border border-ball/30'
+                    : isPast ? 'bg-white/5 text-white/40'
+                    : 'bg-white/5 text-white/70'
+                  }`}>
                   <p className="text-[9px] font-bold uppercase">
                     {isToday ? 'HOY' : d.toLocaleDateString('es-AR', { weekday: 'short' })}
                   </p>
