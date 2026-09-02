@@ -42,6 +42,16 @@ export default function InstallButton({
   useEffect(() => {
     if (isStandalone()) { setHidden(true); return; }
     setHelpKind(isIos() ? 'ios' : isAndroid() ? 'android' : 'desktop');
+
+    // Si el browser sabe que ya la tenemos instalada, ocultar
+    // (esto evita el fallback "3 puntitos" para gente que ya la instaló)
+    const nav = navigator as any;
+    if (typeof nav.getInstalledRelatedApps === 'function') {
+      nav.getInstalledRelatedApps().then((apps: any[]) => {
+        if (apps && apps.length > 0) setHidden(true);
+      }).catch(() => {});
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
       setPrompt(e as BeforeInstallPromptEvent);

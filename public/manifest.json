@@ -12,5 +12,8 @@
   "icons": [
     { "src": "/brand/icono-app.png", "sizes": "any", "type": "image/png", "purpose": "any" },
     { "src": "/brand/icono-app.png", "sizes": "any", "type": "image/png", "purpose": "maskable" }
+  ],
+  "related_applications": [
+    { "platform": "webapp", "url": "https://narvoq.com.ar/manifest.json", "id": "/" }
   ]
 }
