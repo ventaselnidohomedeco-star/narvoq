@@ -280,6 +280,40 @@ export default function PerfilComplejo() {
           </div>
         </div>
 
+        {/* 🎾 Recargos / descuentos en reservas por forma de pago */}
+        <div className="mt-3 rounded-2xl p-4 border-2 bg-white/5 border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎾</span>
+            <div>
+              <p className="font-display font-black">Precio de canchas según forma de pago</p>
+              <p className="text-white/50 text-[11px]">
+                Positivo = <b>recargo</b> · Negativo = <b>descuento</b> · 0 = sin cambio.
+                Ejemplo: cancha base $7.000 con Transferencia +1.5% → $7.105.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {([
+              ['booking_pct_efectivo', '💵 Efectivo'],
+              ['booking_pct_transferencia', '🏦 Transferencia'],
+              ['booking_pct_debito', '💳 Débito'],
+              ['booking_pct_credito', '💳 Crédito'],
+              ['booking_pct_mp', '📱 MP']
+            ] as const).map(([field, label]) => (
+              <div key={field}>
+                <label className="block text-white/60 text-[11px] font-bold uppercase mb-1">{label}</label>
+                <div className="relative">
+                  <input type="number" min={-50} max={50} step={0.1}
+                    defaultValue={Number(cx[field] ?? 0)}
+                    onBlur={e => save({ [field]: Number(e.target.value) || 0 })}
+                    className="input pr-8" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* 🧾 Descuentos por forma de pago (POS) */}
         <div className="mt-3 rounded-2xl p-4 border-2 bg-white/5 border-white/10">
           <div className="flex items-center gap-2">

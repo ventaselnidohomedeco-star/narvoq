@@ -199,7 +199,20 @@ function Reservar() {
       .then(({ data }) => setSlots(buildSlots(day, complex.open_time, complex.close_time, complex.slot_minutes, data ?? [])));
   }, [court, date, complex]);
 
-  async function reservar(slot: Slot) {
+  // Helper: pct de recargo/descuento del complejo según método
+  function bookingPct(method?: 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'mp'): number {
+    if (!complex || !method) return 0;
+    const map: Record<string, number> = {
+      efectivo: Number((complex as any).booking_pct_efectivo) || 0,
+      transferencia: Number((complex as any).booking_pct_transferencia) || 0,
+      debito: Number((complex as any).booking_pct_debito) || 0,
+      credito: Number((complex as any).booking_pct_credito) || 0,
+      mp: Number((complex as any).booking_pct_mp) || 0
+    };
+    return map[method] ?? 0;
+  }
+
+  async function reservar(slot: Slot, method?: 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'mp') {
     if (!court || saving) return;
     // Validar límite de días de anticipación (protección extra por si el
     // browser permite tipear fecha fuera del max)
@@ -217,7 +230,10 @@ function Reservar() {
     setSaving(true); setError('');
     const { data: { user } } = await supabase.auth.getUser();
     const rule = ruleFor(slot.start, offpeakRules);
-    const finalPrice = priceWithRule(Number(court.price_per_slot), rule);
+    let finalPrice = priceWithRule(Number(court.price_per_slot), rule);
+    // Recargo/descuento por forma de pago (config del complejo)
+    const pct = bookingPct(method);
+    if (pct !== 0) finalPrice = Math.round(finalPrice * (1 + pct / 100));
     // Seña: si el complejo definió deposit_amount en la cancha, se cobra eso; sino el total.
     const senaAmount = (court as any).deposit_amount != null
       ? Number((court as any).deposit_amount)
@@ -686,47 +702,52 @@ function Reservar() {
             </div>
 
             <div className="mt-4 space-y-2">
-              {/* MP */}
-              {(complex as any).mp_access_token && (complex as any).payment_mp_enabled && (
-                <button onClick={async () => {
-                  const s = methodChooser; setMethodChooser(null);
-                  await reservar(s);   // crea la reserva y setea pending
-                  // Después el user usa los botones de MP del card pending
-                }}
-                  className="w-full py-4 rounded-xl bg-[#009EE3] hover:bg-[#0088c9] text-white font-black text-left px-4 active:scale-95 transition">
-                  <p className="text-lg">💳 Mercado Pago</p>
-                  <p className="text-xs opacity-90 font-normal mt-0.5">Pagás ahora, la reserva se confirma automáticamente</p>
-                </button>
-              )}
-
-              {/* Transferencia */}
-              {(complex as any).payment_transfer_enabled !== false && (
-                <button onClick={async () => {
-                  const s = methodChooser; setMethodChooser(null);
-                  await reservar(s);
-                }}
-                  className="w-full py-4 rounded-xl bg-blue-500/15 border-2 border-blue-500/40 text-blue-200 font-black text-left px-4 active:scale-95 transition">
-                  <p className="text-lg">🏦 Transferencia</p>
-                  <p className="text-xs opacity-80 font-normal mt-0.5">Transferís y subís el comprobante. El club aprueba.</p>
-                </button>
-              )}
-
-              {/* Efectivo */}
-              {(complex as any).payment_cash_enabled !== false && (
-                <button onClick={async () => {
-                  const s = methodChooser; setMethodChooser(null);
-                  await reservar(s);
-                }}
-                  className="w-full py-4 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-200 font-black text-left px-4 active:scale-95 transition">
-                  <p className="text-lg">💵 Efectivo en cancha</p>
-                  <p className="text-xs opacity-80 font-normal mt-0.5">
-                    Reservás y pagás cuando llegás.
-                    {(complex as any).payment_cash_discount_pct > 0 && (
-                      <> <b>{(complex as any).payment_cash_discount_pct}% descuento</b> en efectivo</>
-                    )}
-                  </p>
-                </button>
-              )}
+              {/* Precio base para mostrar diferencial por método */}
+              {(() => {
+                const basePrice = priceWithRule(Number(court.price_per_slot), ruleFor(methodChooser.start, offpeakRules));
+                const priceFor = (m: 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'mp') => {
+                  const pct = bookingPct(m);
+                  return pct === 0 ? basePrice : Math.round(basePrice * (1 + pct / 100));
+                };
+                const pctLabel = (m: any) => {
+                  const p = bookingPct(m);
+                  if (p > 0) return <span className="text-yellow-200 font-black text-xs">+{p}%</span>;
+                  if (p < 0) return <span className="text-ball font-black text-xs">{p}%</span>;
+                  return null;
+                };
+                return <>
+                  {(complex as any).mp_access_token && (complex as any).payment_mp_enabled && (
+                    <button onClick={async () => { const s = methodChooser; setMethodChooser(null); await reservar(s, 'mp'); }}
+                      className="w-full py-4 rounded-xl bg-[#009EE3] hover:bg-[#0088c9] text-white font-black text-left px-4 active:scale-95 transition">
+                      <div className="flex items-baseline justify-between">
+                        <p className="text-lg">💳 Mercado Pago</p>
+                        <p className="text-lg">${priceFor('mp').toLocaleString('es-AR')} {pctLabel('mp')}</p>
+                      </div>
+                      <p className="text-xs opacity-90 font-normal mt-0.5">Pagás ahora, la reserva se confirma automáticamente</p>
+                    </button>
+                  )}
+                  {(complex as any).payment_transfer_enabled !== false && (
+                    <button onClick={async () => { const s = methodChooser; setMethodChooser(null); await reservar(s, 'transferencia'); }}
+                      className="w-full py-4 rounded-xl bg-blue-500/15 border-2 border-blue-500/40 text-blue-200 font-black text-left px-4 active:scale-95 transition">
+                      <div className="flex items-baseline justify-between">
+                        <p className="text-lg">🏦 Transferencia</p>
+                        <p className="text-lg">${priceFor('transferencia').toLocaleString('es-AR')} {pctLabel('transferencia')}</p>
+                      </div>
+                      <p className="text-xs opacity-80 font-normal mt-0.5">Transferís y subís el comprobante. El club aprueba.</p>
+                    </button>
+                  )}
+                  {(complex as any).payment_cash_enabled !== false && (
+                    <button onClick={async () => { const s = methodChooser; setMethodChooser(null); await reservar(s, 'efectivo'); }}
+                      className="w-full py-4 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-200 font-black text-left px-4 active:scale-95 transition">
+                      <div className="flex items-baseline justify-between">
+                        <p className="text-lg">💵 Efectivo en cancha</p>
+                        <p className="text-lg">${priceFor('efectivo').toLocaleString('es-AR')} {pctLabel('efectivo')}</p>
+                      </div>
+                      <p className="text-xs opacity-80 font-normal mt-0.5">Reservás y pagás cuando llegás.</p>
+                    </button>
+                  )}
+                </>;
+              })()}
 
               {/* Si no hay métodos habilitados */}
               {!((complex as any).mp_access_token && (complex as any).payment_mp_enabled) &&

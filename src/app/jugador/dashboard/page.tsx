@@ -6,6 +6,7 @@ import PlacaButton from '@/components/PlacaButton';
 import { DonutChart, ChartLegend, BarChart } from '@/components/Charts';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import TrialCountdown from '@/components/TrialCountdown';
+import InstallButton from '@/components/InstallButton';
 import type { Profile } from '@/lib/types';
 
 export default function Dashboard() {
@@ -78,8 +79,9 @@ export default function Dashboard() {
           {profile && (
             <p className="text-ball text-base font-bold mt-1">Categoría {profile.category ?? '—'}</p>
           )}
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <TrialCountdown premiumExpiresAt={(profile as any)?.premium_expires_at} />
+            <InstallButton variant="subtle" />
           </div>
         </div>
       </header>
