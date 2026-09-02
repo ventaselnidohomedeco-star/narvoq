@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import InstallButton from '@/components/InstallButton';
 
 // Landing minimalista. Arriba del pliegue: SOLO logo + frase + 3 CTAs por rol.
 // Al clickear un rol se abre un drawer con las funciones + Google + email.
@@ -155,6 +156,11 @@ export default function Landing() {
           ¿Ya tenés cuenta?{' '}
           <Link href="/login" className="text-ball font-bold underline">Entrar</Link>
         </p>
+
+        {/* Instalar app — solo si NO está instalada ya */}
+        <div className="relative z-10 mt-4">
+          <InstallButton variant="subtle" />
+        </div>
       </div>
 
       {/* Drawer al elegir rol */}
