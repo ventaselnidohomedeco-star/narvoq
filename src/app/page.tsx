@@ -54,16 +54,25 @@ const ROLE_INFO: Record<Role, {
     loginHref: '/complejo/login',
     registerHref: '/complejo/registro',
     features: [
-      { emoji: '📅', title: 'Calendario semanal', text: 'Todos los turnos por cancha en una grilla, cargás bloqueos.' },
-      { emoji: '✅', title: 'Aprobás transferencias', text: 'El jugador sube el comprobante, vos lo aprobás en 1 tap.' },
-      { emoji: '🏆', title: 'Torneos con plantillas', text: 'Suma 13, Cat. 4ta, mixto… elegís y se abre inscripción.' },
-      { emoji: '👥', title: 'Membresías y socios', text: 'Planes de socio, cobros mensuales, controlás vencimientos.' },
-      { emoji: '📢', title: 'Promos al feed público', text: 'Happy hour, evento o torneo: tus clientes lo ven en el feed.' },
-      { emoji: '📊', title: 'Estadísticas del negocio', text: 'Ocupación, ingresos, top clientes. Rentabilidad por cancha.' },
-      { emoji: '👤', title: 'Base de clientes', text: 'Historial de cada jugador, sus reservas y su valor.' },
-      { emoji: '🔔', title: 'Notificaciones automáticas', text: 'Nueva reserva, comprobante subido, cancelación — todo al toque.' },
+      { emoji: '🎾', title: 'Más canchas ocupadas', text: 'Los jugadores encuentran tus horarios y reservan online, incluso cuando no estás atendiendo.' },
+      { emoji: '📅', title: 'Turnos sin perder el control', text: 'Calendario por cancha, reservas online o cargadas desde WhatsApp, bloqueos y turnos fijos.' },
+      { emoji: '💰', title: 'Señas, cobros y saldos', text: 'Efectivo, transferencia o Mercado Pago. Pagos parciales, saldos y montos por cobrar.' },
+      { emoji: '🔄', title: 'Recuperá cancelaciones', text: 'Liberá el horario, revisá la lista de espera y ofrecelo rápidamente a otro jugador.' },
+      { emoji: '👥', title: 'Tu propia base de clientes', text: 'Historial de reservas, pagos, frecuencia, cancelaciones y situación de cada jugador.' },
+      { emoji: '🧾', title: 'Cantina, POS y stock', text: 'Registrá ventas, controlá productos, costos, existencias y medios de pago.' },
+      { emoji: '📊', title: 'Rentabilidad real', text: 'Conocé la ocupación, ingresos, gastos y rentabilidad de cada cancha.' },
+      { emoji: '🏆', title: 'Torneos y comunidad', text: 'Inscripciones, cobros, zonas, resultados y cuadros. Promos para fidelizar jugadores.' },
     ],
   },
+};
+
+const COMPLEX_HERO = {
+  headline: 'GESTIONÁ Y HACÉ CRECER TU COMPLEJO',
+  sub: 'Más turnos ocupados. Menos trabajo por WhatsApp. Todo el negocio bajo control.',
+  badge: '60 DÍAS PREMIUM SIN COSTO',
+  badgeSub: 'Configuración inicial acompañada · Sin tarjeta',
+  softLanding: 'Podés seguir tomando turnos por WhatsApp y centralizarlos en NarvoQ mientras hacés la transición.',
+  demoWhatsapp: '5491128565353'   // tu número — el botón "Quiero una demo" abre WhatsApp
 };
 
 export default function Landing() {
@@ -198,17 +207,37 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
 
         {/* Header compacto */}
         <div className="px-6 pt-4 pb-3 shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl leading-none">{info.emoji}</span>
-              <div>
-                <h2 className="font-display font-black text-2xl md:text-3xl leading-tight">{info.title}</h2>
-                <p className="text-white/60 text-xs md:text-sm">Con NarvoQ vas a poder:</p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-4xl leading-none shrink-0">{info.emoji}</span>
+              <div className="min-w-0">
+                {role === 'complex' ? (
+                  <>
+                    <h2 className="font-display font-black text-xl md:text-2xl leading-tight">{COMPLEX_HERO.headline}</h2>
+                    <p className="text-white/70 text-xs md:text-sm mt-1">{COMPLEX_HERO.sub}</p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="font-display font-black text-2xl md:text-3xl leading-tight">{info.title}</h2>
+                    <p className="text-white/60 text-xs md:text-sm">Con NarvoQ vas a poder:</p>
+                  </>
+                )}
               </div>
             </div>
             <button onClick={onClose}
-              className="text-white/60 text-xl font-bold w-10 h-10 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10">✕</button>
+              className="text-white/60 text-xl font-bold w-10 h-10 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10 shrink-0">✕</button>
           </div>
+
+          {/* Badge trial 60 días — solo complex */}
+          {role === 'complex' && (
+            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-ball/15 border border-ball/40 px-4 py-3">
+              <span className="text-2xl leading-none">🎁</span>
+              <div className="min-w-0">
+                <p className="font-display font-black text-ball text-sm leading-tight">{COMPLEX_HERO.badge}</p>
+                <p className="text-white/60 text-[11px]">{COMPLEX_HERO.badgeSub}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Features — grilla compacta 2 columnas siempre, sin scroll interno */}
@@ -220,29 +249,60 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
               <p className="text-white/60 text-[11px] md:text-xs mt-1 leading-snug">{f.text}</p>
             </div>
           ))}
+          {/* Soft-landing para complex */}
+          {role === 'complex' && (
+            <div className="col-span-2 rounded-xl bg-white/[0.04] border border-white/10 p-3 flex items-start gap-2">
+              <span className="text-xl leading-none">💬</span>
+              <p className="text-white/70 text-xs md:text-sm">
+                <span className="font-display font-black text-ball">Empezá sin cambiar todo de golpe. </span>
+                {COMPLEX_HERO.softLanding}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* CTAs — pegados abajo, siempre visibles */}
         <div className="px-6 md:px-8 py-4 space-y-2 border-t border-white/10 shrink-0 bg-[#0F141D]">
-          <button
-            onClick={loginWithGoogle}
-            disabled={googleBusy}
-            className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-3.5 text-base flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
-            <GoogleIcon />
-            {googleBusy ? 'Redirigiendo…' : 'Continuar con Google'}
-          </button>
-
-          <Link
-            href={info.registerHref}
-            className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-3.5 text-base active:scale-[0.98] transition">
-            Crear cuenta con email
-          </Link>
-
-          <Link
-            href={info.loginHref}
-            className="w-full block text-center text-white/70 font-bold py-1 underline text-sm">
-            Ya tengo cuenta · Entrar
-          </Link>
+          {role === 'complex' ? (
+            <>
+              <a
+                href={`https://wa.me/${COMPLEX_HERO.demoWhatsapp}?text=${encodeURIComponent('Hola! Quiero ver una demo de NarvoQ para mi complejo.')}`}
+                target="_blank" rel="noopener"
+                className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-4 text-base active:scale-[0.98] transition">
+                💬 Quiero una demo
+              </a>
+              <Link
+                href={info.registerHref}
+                className="w-full block text-center bg-white/10 border border-white/20 text-white font-display font-black rounded-2xl py-3.5 text-base active:scale-[0.98] transition">
+                Crear mi complejo gratis
+              </Link>
+              <Link
+                href={info.loginHref}
+                className="w-full block text-center text-white/70 font-bold py-1 underline text-sm">
+                Ya tengo cuenta
+              </Link>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={loginWithGoogle}
+                disabled={googleBusy}
+                className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-3.5 text-base flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
+                <GoogleIcon />
+                {googleBusy ? 'Redirigiendo…' : 'Continuar con Google'}
+              </button>
+              <Link
+                href={info.registerHref}
+                className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-3.5 text-base active:scale-[0.98] transition">
+                Crear cuenta con email
+              </Link>
+              <Link
+                href={info.loginHref}
+                className="w-full block text-center text-white/70 font-bold py-1 underline text-sm">
+                Ya tengo cuenta · Entrar
+              </Link>
+            </>
+          )}
 
           {error && (
             <p className="text-red-400 text-xs text-center pt-2">{error}</p>
