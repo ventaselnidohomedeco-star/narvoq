@@ -20,6 +20,32 @@ export default function CompletarPerfil() {
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [userStatus, setUserStatus] = useState<'idle' | 'checking' | 'ok' | 'taken' | 'invalid'>('idle');
+
+  // Validador: 3-20 chars, minúsculas, dígitos, . _ (nada más)
+  const USERNAME_RE = /^[a-z0-9._]{3,20}$/;
+
+  function cleanUsername(v: string) {
+    return v.toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')      // saca acentos
+      .replace(/\s+/g, '.')                          // espacios → punto
+      .replace(/[^a-z0-9._]/g, '');                  // saca símbolos no válidos
+  }
+
+  // Check de disponibilidad con debounce
+  useEffect(() => {
+    const u = f.username.trim();
+    if (!u) { setUserStatus('idle'); return; }
+    if (!USERNAME_RE.test(u)) { setUserStatus('invalid'); return; }
+    setUserStatus('checking');
+    const t = setTimeout(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data } = await supabase.from('profiles').select('id').eq('username', u).maybeSingle();
+      if (data && data.id !== user?.id) setUserStatus('taken');
+      else setUserStatus('ok');
+    }, 350);
+    return () => clearTimeout(t);
+  }, [f.username]);
 
   useEffect(() => {
     (async () => {
@@ -58,6 +84,8 @@ export default function CompletarPerfil() {
     if (!f.province) { setError('Elegí tu provincia.'); setSaving(false); return; }
     if (!f.locality) { setError('Elegí tu localidad.'); setSaving(false); return; }
     if (!f.username.trim()) { setError('Elegí un nombre de usuario.'); setSaving(false); return; }
+    if (!USERNAME_RE.test(f.username.trim())) { setError('El nombre de usuario debe tener 3-20 caracteres: solo minúsculas, números, punto o guión bajo.'); setSaving(false); return; }
+    if (userStatus === 'taken') { setError('Ese nombre de usuario ya está en uso, probá otro.'); setSaving(false); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -125,7 +153,7 @@ export default function CompletarPerfil() {
   if (loading) return <main className="min-h-dvh flex items-center justify-center text-white/60">Cargando…</main>;
 
   return (
-    <main className="min-h-dvh px-6 py-8 max-w-md mx-auto">
+    <main className="min-h-dvh px-6 py-8 pb-40 max-w-md mx-auto">
       <Brand variant="full" size={40} className="mb-4" />
       <h1 className="font-display font-black text-3xl">Completá tu perfil</h1>
       <p className="text-white/60 mt-1">
@@ -137,9 +165,18 @@ export default function CompletarPerfil() {
         <div>
           <label className="label">Nombre de usuario</label>
           <input className="input" value={f.username}
-            onChange={e => setF({ ...f, username: e.target.value })}
-            placeholder="ej: juanperez" required />
-          <p className="text-white/40 text-xs mt-1">Con este nombre te van a encontrar en la app.</p>
+            onChange={e => setF({ ...f, username: cleanUsername(e.target.value) })}
+            placeholder="ej: juanperez o juan.perez" required maxLength={20}
+            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
+          <div className="mt-1 min-h-[18px] text-xs">
+            {userStatus === 'checking' && <span className="text-white/50">Verificando…</span>}
+            {userStatus === 'invalid' && <span className="text-red-400">Solo minúsculas, números, punto o guión bajo. Entre 3 y 20 caracteres.</span>}
+            {userStatus === 'taken' && <span className="text-red-400">Ese nombre de usuario ya está registrado. Intentá con otro.</span>}
+            {userStatus === 'ok' && <span className="text-ball">✓ Disponible</span>}
+            {userStatus === 'idle' && (
+              <span className="text-white/40">Solo minúsculas, números, punto (.) o guión bajo (_). Sin espacios ni acentos. Ej: <b>juan.perez</b></span>
+            )}
+          </div>
         </div>
 
         <div>

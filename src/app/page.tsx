@@ -284,8 +284,8 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
               </Link>
               <Link
                 href={info.loginHref}
-                className="w-full block text-center text-white/70 font-bold py-1 underline text-sm">
-                Ya tengo cuenta
+                className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-3.5 text-base active:scale-[0.98] transition">
+                🔓 Ya tengo cuenta · Entrar
               </Link>
             </>
           ) : (
@@ -304,8 +304,8 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
               </Link>
               <Link
                 href={info.loginHref}
-                className="w-full block text-center text-white/70 font-bold py-1 underline text-sm">
-                Ya tengo cuenta · Entrar
+                className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-3.5 text-base active:scale-[0.98] transition">
+                🔓 Ya tengo cuenta · Entrar · Entrar
               </Link>
             </>
           )}
