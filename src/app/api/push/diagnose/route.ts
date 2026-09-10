@@ -75,11 +75,7 @@ export async function GET(req: NextRequest) {
     detail: 'Deben ser IDÉNTICOS. Si no coincide, el /api/push/send devuelve 401 al trigger.'
   });
 
-  // 4. Extensión pg_net habilitada
-  const { data: exts } = await admin.rpc('sql_get_extensions').catch(() => ({ data: null }));
-  // fallback: intentar detectar de otra forma
-  const { data: hasPgNet } = await admin.from('pg_extension' as any)
-    .select('extname').eq('extname', 'pg_net').maybeSingle().catch(() => ({ data: null }));
+  // 4. (skip check de pg_net — dificil detectar desde el cliente, si el trigger no dispara ya se ve)
 
   // 5. Suscripciones del usuario actual
   const { data: subs } = await admin.from('push_subscriptions').select('id, endpoint, user_agent, created_at').eq('user_id', user.id);
