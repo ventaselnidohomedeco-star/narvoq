@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import PhotoPicker from '@/components/PhotoPicker';
 import PushEnableButton from '@/components/PushEnableButton';
+import { playNarvoqChime } from '@/lib/sound';
 import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 
 export default function Perfil() {
@@ -74,12 +75,13 @@ export default function Perfil() {
         <PushEnableButton />
         <button type="button"
           onClick={async () => {
+            playNarvoqChime();   // 🎵 sonido in-app inmediato
             const r = await fetch('/api/push/test', { method: 'POST' });
             const j = await r.json();
-            alert(j.hint || (j.ok ? '✓ Enviada. Debería llegar en segundos.' : '❌ ' + (j.error ?? 'Error')));
+            alert(j.hint || (j.ok ? '✓ Enviada. Debería llegar en segundos con sonido en tu cel.' : '❌ ' + (j.error ?? 'Error')));
           }}
           className="mt-2 text-xs font-bold text-ball underline">
-          🧪 Probar notificación de prueba
+          🧪 Probar sonido de notificación
         </button>
       </div>
 
