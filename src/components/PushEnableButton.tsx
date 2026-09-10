@@ -1,6 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { playFile } from '@/lib/sound';
+import { useEffect, useRef, useState } from 'react';
 
 // Helper: convierte la VAPID public key (base64url) a Uint8Array que necesita PushManager.
 function urlBase64ToUint8Array(base64: string): Uint8Array {
@@ -17,6 +16,16 @@ type Status = 'unknown' | 'unsupported' | 'denied' | 'granted' | 'subscribed';
 export default function PushEnableButton({ compact = false }: { compact?: boolean }) {
   const [status, setStatus] = useState<Status>('unknown');
   const [busy, setBusy] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Preload del chime — clave para que Android suene al primer click (no espera descarga)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const a = new Audio('/sounds/notificacionnarvoq.mp3');
+    a.preload = 'auto';
+    a.volume = 0.7;
+    audioRef.current = a;
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -35,10 +44,14 @@ export default function PushEnableButton({ compact = false }: { compact?: boolea
   }, []);
 
   async function activar() {
-    // 🎵 Reproducir el sonido AHORA — inmediatamente después del click.
-    // Si esperamos a que terminen todos los awaits, Chrome pierde el "user gesture context"
-    // y bloquea el audio con NotAllowedError.
-    playFile('/sounds/notificacionnarvoq.mp3');
+    // 🎵 Reproducir el chime pre-cargado. Al ser el PRIMER acto del handler
+    // (antes de cualquier await), Chrome mobile todavía tiene el user gesture.
+    try {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        void audioRef.current.play().catch(() => {});
+      }
+    } catch {}
 
     setBusy(true);
     try {
