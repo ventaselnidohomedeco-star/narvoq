@@ -42,6 +42,15 @@ export default function Notificaciones() {
     // marcar como leídas al abrir
     await supabase.from('notifications').update({ read: true })
       .eq('user_id', user.id).eq('read', false);
+    // 🔴 Limpiar el globito del ícono de la PWA
+    try {
+      if ('clearAppBadge' in navigator) await (navigator as any).clearAppBadge();
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        const cache = await caches.open('narvoq-meta');
+        await cache.put('narvoq-badge-count', new Response('0'));
+      }
+    } catch {}
   }
   useEffect(() => { load(); }, []);
 

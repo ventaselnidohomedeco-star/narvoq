@@ -43,7 +43,22 @@ self.addEventListener('push', (event) => {
     data: { link: data.link || '/', kind: data.kind || 'generic' }
   };
 
-  event.waitUntil(self.registration.showNotification(data.title || 'NarvoQ', options));
+  event.waitUntil((async () => {
+    await self.registration.showNotification(data.title || 'NarvoQ', options);
+    // 🔴 Globito rojo en el ícono de la PWA (Badging API)
+    // Chrome/Edge en Android/Windows lo muestran como número sobre el ícono
+    try {
+      if (self.navigator && 'setAppBadge' in self.navigator) {
+        // Sumar 1 al badge existente (no tenemos el total real acá)
+        const key = 'narvoq-badge-count';
+        const stored = Number((await self.caches?.open('narvoq-meta').then(c => c.match(key)).then(r => r?.text()).catch(() => '0')) || '0');
+        const next = stored + 1;
+        await self.navigator.setAppBadge(next);
+        const cache = await self.caches.open('narvoq-meta');
+        await cache.put(key, new Response(String(next)));
+      }
+    } catch { /* Badging API no soportada — ok */ }
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
