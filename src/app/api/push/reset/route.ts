@@ -5,7 +5,10 @@ type CookieToSet = { name: string; value: string; options?: any };
 
 // POST /api/push/reset — borra TODAS las suscripciones push del usuario logueado.
 // Sirve cuando cambiaron las VAPID keys y la suscripción vieja está muerta (410).
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) { return handler(req); }
+export async function POST(req: NextRequest) { return handler(req); }
+
+async function handler(req: NextRequest) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
