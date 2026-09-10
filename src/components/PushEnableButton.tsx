@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { playNarvoqChime } from '@/lib/sound';
+import { playFile } from '@/lib/sound';
 
 // Helper: convierte la VAPID public key (base64url) a Uint8Array que necesita PushManager.
 function urlBase64ToUint8Array(base64: string): Uint8Array {
@@ -65,7 +65,7 @@ export default function PushEnableButton({ compact = false }: { compact?: boolea
       if (!res.ok) throw new Error('No se pudo registrar la suscripción');
       setStatus('subscribed');
       // 🎵 Chime NarvoQ: le confirma al user que el sonido funciona
-      playNarvoqChime();
+      playFile('/sounds/notificacionnarvoq.mp3');
     } catch (e: any) {
       alert('Error activando notificaciones: ' + e.message);
     } finally {
