@@ -1,7 +1,10 @@
-// Service Worker de NarvoQ.
+// Service Worker de NarvoQ — v2 (con sonido controlado por payload).
 // - Instalable como PWA (Chrome/Android/Edge)
 // - Recibe Web Push y muestra notificaciones nativas (con sonido/vibración)
 // - Click en notificación → abre el link asociado
+// NOTA: cambiar este comentario o cualquier byte del archivo fuerza a Chrome
+// a re-instalar el SW en el cliente (hash cambió).
+const SW_VERSION = 'narvoq-v2-2026-09-10';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
