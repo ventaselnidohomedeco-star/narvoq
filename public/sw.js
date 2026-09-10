@@ -26,13 +26,17 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    vibrate: [300, 150, 300, 150, 300],
-    tag: data.ref_id || 'narvoq',
+    icon: '/brand/icono-app.png',
+    badge: '/brand/icono-app.png',
+    // Vibración intensa (Android)
+    vibrate: [200, 100, 200, 100, 400],
+    // Distinto tag por notif → no re-agrupa. Con renotify=true, cada push
+    // vibra y suena aunque tenga el mismo tag.
+    tag: data.ref_id || `narvoq-${Date.now()}`,
     renotify: true,
-    silent: false,             // explícito: no silenciada
-    requireInteraction: true,  // no auto-oculta hasta que el usuario la vea
+    silent: false,             // explícito: NO silenciada (Chrome respeta el sonido default del OS)
+    requireInteraction: false, // se auto-oculta a los ~20s (mejor UX que "requireInteraction")
+    timestamp: Date.now(),
     data: { link: data.link || '/', kind: data.kind || 'generic' }
   };
 

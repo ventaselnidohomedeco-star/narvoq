@@ -72,6 +72,15 @@ export default function Perfil() {
           Recibí un aviso en tu celular cuando te sumen a un partido, te reserven una cancha o te lleguen mensajes — aunque tengas NarvoQ cerrado.
         </p>
         <PushEnableButton />
+        <button type="button"
+          onClick={async () => {
+            const r = await fetch('/api/push/test', { method: 'POST' });
+            const j = await r.json();
+            alert(j.hint || (j.ok ? '✓ Enviada. Debería llegar en segundos.' : '❌ ' + (j.error ?? 'Error')));
+          }}
+          className="mt-2 text-xs font-bold text-ball underline">
+          🧪 Probar notificación de prueba
+        </button>
       </div>
 
       {/* Datos personales */}
