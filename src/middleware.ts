@@ -81,13 +81,15 @@ export async function middleware(req: NextRequest) {
   // página /completar-perfil.
   if (user && !path.startsWith('/admin') && path !== '/completar-perfil') {
     const { data: profile } = await supabase
-      .from('profiles').select('phone, city_id, category, age, role')
+      .from('profiles').select('phone, city_id, locality, category, age, role')
       .eq('id', user.id).maybeSingle();
     if (profile) {
       // Complex_admin no necesita categoría ni edad personal — solo teléfono
       const isComplex = profile.role === 'complex_admin';
+      // Ubicación válida: locality (nuevo sistema GeoRef) O city_id (legacy)
+      const hasLocation = !!(profile.locality || profile.city_id);
       const incomplete = !profile.phone || profile.phone === '-' ||
-        (!isComplex && (!profile.city_id || !profile.category || !profile.age));
+        (!isComplex && (!hasLocation || !profile.category || !profile.age));
       if (incomplete) return redirect(res, req, '/completar-perfil');
     }
   }
