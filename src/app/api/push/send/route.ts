@@ -35,6 +35,11 @@ export async function POST(req: NextRequest) {
       .eq('id', notification_id).maybeSingle();
     if (!notif) return NextResponse.json({ error: 'notif no encontrada' }, { status: 404 });
 
+    // Preferencia del usuario: sonido on/off
+    const { data: prof } = await admin.from('profiles')
+      .select('push_sound_enabled').eq('id', notif.user_id).maybeSingle();
+    const soundOn = prof?.push_sound_enabled !== false;
+
     // Traer suscripciones del usuario
     const { data: subs } = await admin.from('push_subscriptions')
       .select('id, endpoint, p256dh, auth')
@@ -46,7 +51,8 @@ export async function POST(req: NextRequest) {
       body: notif.body ?? '',
       link: notif.link ?? '/',
       kind: notif.kind,
-      ref_id: notif.id
+      ref_id: notif.id,
+      silent: !soundOn
     });
 
     let sent = 0, failed = 0;

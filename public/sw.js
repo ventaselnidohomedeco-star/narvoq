@@ -34,7 +34,7 @@ self.addEventListener('push', (event) => {
     // vibra y suena aunque tenga el mismo tag.
     tag: data.ref_id || `narvoq-${Date.now()}`,
     renotify: true,
-    silent: false,             // explícito: NO silenciada (Chrome respeta el sonido default del OS)
+    silent: data.silent === true, // el server manda silent=true si el user desactivó el sonido
     requireInteraction: false, // se auto-oculta a los ~20s (mejor UX que "requireInteraction")
     timestamp: Date.now(),
     data: { link: data.link || '/', kind: data.kind || 'generic' }

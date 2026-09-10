@@ -27,20 +27,30 @@ export default function Notificaciones() {
   const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [soundOn, setSoundOn] = useState<boolean>(true);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return router.push('/login');
-    const { data } = await supabase.from('notifications')
-      .select('*').eq('user_id', user.id)
-      .order('created_at', { ascending: false }).limit(80);
+    const [{ data }, { data: prof }] = await Promise.all([
+      supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(80),
+      supabase.from('profiles').select('push_sound_enabled').eq('id', user.id).maybeSingle()
+    ]);
     setItems(data ?? []);
+    setSoundOn(prof?.push_sound_enabled !== false);
     setLoading(false);
     // marcar como leídas al abrir
     await supabase.from('notifications').update({ read: true })
       .eq('user_id', user.id).eq('read', false);
   }
   useEffect(() => { load(); }, []);
+
+  async function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await supabase.from('profiles').update({ push_sound_enabled: next }).eq('id', user.id);
+  }
 
   async function borrarTodas() {
     if (!confirm('¿Borrar todas las notificaciones?')) return;
@@ -57,6 +67,22 @@ export default function Notificaciones() {
           <button onClick={borrarTodas} className="text-white/50 text-xs underline">Borrar todas</button>
         )}
       </div>
+
+      {/* Toggle sonido */}
+      <button onClick={toggleSound}
+        className={`mt-3 w-full flex items-center justify-between rounded-2xl border p-3 active:scale-[0.98] transition
+          ${soundOn ? 'bg-ball/10 border-ball/40' : 'bg-white/5 border-white/10'}`}>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{soundOn ? '🔔' : '🔕'}</span>
+          <div className="text-left">
+            <p className="font-display font-black text-sm">{soundOn ? 'Sonido activado' : 'Sonido en silencio'}</p>
+            <p className="text-white/50 text-[11px]">Tocá para {soundOn ? 'silenciar' : 'activar'} el sonido de las notificaciones.</p>
+          </div>
+        </div>
+        <span className={`inline-block w-11 h-6 rounded-full relative transition ${soundOn ? 'bg-ball' : 'bg-white/20'}`}>
+          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition ${soundOn ? 'left-5' : 'left-0.5'}`} />
+        </span>
+      </button>
 
       {loading && <p className="text-white/50 mt-4">Cargando…</p>}
 
