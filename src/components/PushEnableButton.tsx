@@ -44,14 +44,26 @@ export default function PushEnableButton({ compact = false }: { compact?: boolea
   }, []);
 
   async function activar() {
-    // 🎵 Reproducir el chime pre-cargado. Al ser el PRIMER acto del handler
-    // (antes de cualquier await), Chrome mobile todavía tiene el user gesture.
+    // 🎵 Reproducir el chime — probamos con audio preloaded y, si falla,
+    // creamos uno nuevo dentro del gesto para máxima compatibilidad Android.
     try {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        void audioRef.current.play().catch(() => {});
+      let a = audioRef.current;
+      if (!a) {
+        a = new Audio('/sounds/notificacionnarvoq.mp3');
+        a.volume = 0.7;
       }
-    } catch {}
+      a.currentTime = 0;
+      const p = a.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch((err: any) => {
+          console.warn('[NarvoQ audio]', err?.name, err?.message);
+          alert('El navegador bloqueó el sonido: ' + (err?.name ?? err?.message ?? 'desconocido') +
+            '. Subí el volumen de multimedia y reintentá.');
+        });
+      }
+    } catch (e: any) {
+      console.warn('[NarvoQ audio catch]', e);
+    }
 
     setBusy(true);
     try {
