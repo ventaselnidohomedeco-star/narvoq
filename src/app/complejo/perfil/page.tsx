@@ -6,6 +6,7 @@ import PhotoPicker from '@/components/PhotoPicker';
 import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 import { uploadImage } from '@/lib/upload';
 import { geocodeAddress } from '@/lib/geo';
+import PushEnableButton from '@/components/PushEnableButton';
 
 export default function PerfilComplejo() {
   const router = useRouter();
@@ -74,6 +75,15 @@ export default function PerfilComplejo() {
     <main className="px-5 py-6">
       <h1 className="font-display font-black text-xl">Perfil del complejo</h1>
       {saved && <p className="text-green-400 text-sm font-semibold mt-1">✓ Guardado</p>}
+
+      {/* 🔔 Notificaciones push */}
+      <div className="mt-4 bg-white/5 rounded-2xl p-4">
+        <p className="font-display font-bold text-sm text-ball">🔔 Notificaciones al celular / navegador</p>
+        <p className="text-white/60 text-xs mt-1 mb-3">
+          Recibí un aviso cuando entre una reserva, un cliente cancele, o se sume alguien a un torneo — aunque tengas NarvoQ cerrado.
+        </p>
+        <PushEnableButton />
+      </div>
 
       {/* Logo */}
       <div className="mt-5 bg-white/5 rounded-2xl p-4 flex items-center gap-4">

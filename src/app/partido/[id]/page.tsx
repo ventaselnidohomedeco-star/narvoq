@@ -32,7 +32,10 @@ export default function Partido() {
     const { data: { user } } = await supabase.auth.getUser();
     setMe(user?.id ?? null);
     const { data: m } = await supabase.from('matches')
-      .select('*, booking:bookings(id, starts_at, ends_at, price, court:courts(name, complex:complexes(name, address)))')
+      .select(`*, booking:bookings(
+        id, starts_at, ends_at, price, status, payment_status, payment_method, payment_proof_url,
+        court:courts(name, price_per_slot, complex:complexes(id, name, address, whatsapp, phone, cancel_hours))
+      )`)
       .eq('id', id).single();
     setMatch(m);
     const { data: mp } = await supabase.from('match_players')
@@ -212,6 +215,70 @@ export default function Partido() {
         {when?.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} hs
         {match.booking?.price ? ` · $${Number(match.booking.price).toLocaleString('es-AR')} la cancha` : ''}
       </p>
+
+      {/* 💳 Info de reserva: método de pago + estado + cancelar */}
+      {match.booking && !ended && !result && (
+        <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <p className="text-white/60 text-[11px] font-black uppercase">Estado de la reserva</p>
+              <p className="font-display font-black text-lg mt-0.5">
+                {match.booking.status === 'confirmada' ? '✅ Confirmada'
+                  : match.booking.status === 'pendiente' ? '⏳ Pendiente de aprobación'
+                  : match.booking.status === 'cancelada' ? '✕ Cancelada' : match.booking.status}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-white/60 text-[11px] font-black uppercase">Pago</p>
+              <p className={`font-display font-black text-lg mt-0.5 ${
+                match.booking.payment_status === 'pagado' ? 'text-ball'
+                : match.booking.payment_proof_url ? 'text-yellow-300' : 'text-red-300'
+              }`}>
+                {match.booking.payment_status === 'pagado' ? '✓ Pagado'
+                  : match.booking.payment_proof_url ? '📎 En revisión'
+                  : 'Pendiente'}
+              </p>
+            </div>
+          </div>
+          {match.booking.payment_method && (
+            <p className="text-white/60 text-xs mt-2">
+              Forma de pago: <b className="text-white">
+                {match.booking.payment_method === 'efectivo' ? '💵 Efectivo'
+                  : match.booking.payment_method === 'transferencia' ? '🏦 Transferencia'
+                  : match.booking.payment_method === 'mp' ? '💳 Mercado Pago'
+                  : match.booking.payment_method}
+              </b>
+            </p>
+          )}
+          {match.booking.status !== 'cancelada' && me && players.some((p: any) => p.player_id === me) && (
+            <div className="mt-3 pt-3 border-t border-white/10 flex gap-2 flex-wrap">
+              <button onClick={async () => {
+                const horas = (new Date(match.booking.starts_at).getTime() - Date.now()) / 3600000;
+                const limite = match.booking.court.complex.cancel_hours ?? 0;
+                if (horas < limite) { alert(`Este complejo solo permite cancelar hasta ${limite} hs antes del turno.`); return; }
+                if (!confirm('¿Cancelar esta reserva?')) return;
+                await supabase.from('bookings').update({ status: 'cancelada' }).eq('id', match.booking.id);
+                await supabase.from('matches').update({ status: 'cancelada' }).eq('id', match.id);
+                alert('Reserva cancelada.');
+                window.location.href = '/jugador/reservas';
+              }}
+                className="flex-1 min-w-[140px] py-3 rounded-xl bg-red-500/10 border border-red-500/40 text-red-300 font-black text-sm">
+                ✕ Cancelar reserva
+              </button>
+              {(match.booking.court.complex.whatsapp || match.booking.court.complex.phone) && (
+                <a
+                  href={`https://wa.me/${(match.booking.court.complex.whatsapp || match.booking.court.complex.phone).replace(/\D/g, '')}?text=${encodeURIComponent(
+                    `Hola! Voy a cancelar la reserva de ${when?.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} hs en ${match.booking.court.name}.`
+                  )}`}
+                  target="_blank" rel="noopener"
+                  className="flex-1 min-w-[140px] py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-black text-sm text-center">
+                  💬 Avisar por WhatsApp
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Cancha visual con equipos */}
       <div className="mt-5">
