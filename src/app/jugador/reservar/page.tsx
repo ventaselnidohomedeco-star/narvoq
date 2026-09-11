@@ -267,22 +267,8 @@ function Reservar() {
     }).select().single();
     await supabase.from('match_players').insert({ match_id: match.id, player_id: user!.id, team: 1 });
 
-    // Notificar al dueño del complejo (owner) que hay una nueva reserva pendiente.
-    if (complex?.owner_id) {
-      const { data: prof } = await supabase.from('profiles')
-        .select('first_name, last_name').eq('id', user!.id).maybeSingle();
-      const nombre = prof ? `${prof.first_name} ${prof.last_name ?? ''}`.trim() : 'Un jugador';
-      const hora = slot.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-      const fecha = slot.start.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
-      await notify({
-        user_id: complex.owner_id,
-        kind: 'reserva_ok',
-        title: '🎾 Nueva reserva',
-        body: `${nombre} reservó ${court.name} para el ${fecha} ${hora} hs. Pago pendiente.`,
-        link: '/complejo/calendario',
-        ref_id: booking.id
-      });
-    }
+    // NOTA: la notif al dueño del complejo la crea automáticamente el trigger
+    // `trg_new_booking_notif` (update-60). Antes lo hacíamos también acá y quedaban duplicadas.
 
     setPending({ booking, match, slot, court, complex });
     setSaving(false);
