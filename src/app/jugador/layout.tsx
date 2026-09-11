@@ -20,11 +20,11 @@ export default function JugadorLayout({ children }: { children: React.ReactNode 
           <header className="px-3 pt-3 pb-3 flex items-center justify-between gap-2 lg:hidden border-b border-white/5 bg-black relative z-30">
             <Link href="/jugador/dashboard" className="shrink min-w-0 active:scale-95 transition">
               <img src="/brand/logo.png?v=9" alt="NarvoQ"
-                className="h-12 w-auto object-contain max-w-[55vw]"
+                className="h-12 w-auto object-contain max-w-[45vw]"
                 style={{ mixBlendMode: 'screen' }} />
             </Link>
             <div className="flex items-center gap-1 shrink-0">
-              <InstallButton variant="ghost" />
+              <InstallButton variant="subtle" />
               <Bell />
               <UserMenu />
             </div>

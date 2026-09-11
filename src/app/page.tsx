@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import InstallButton from '@/components/InstallButton';
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 
 // Landing minimalista. Arriba del pliegue: SOLO logo + frase + 3 CTAs por rol.
 // Al clickear un rol se abre un drawer con las funciones + Google + email.
@@ -290,13 +291,7 @@ function RoleDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
             </>
           ) : (
             <>
-              <button
-                onClick={loginWithGoogle}
-                disabled={googleBusy}
-                className="w-full bg-white text-[#0F141D] font-black rounded-2xl py-3.5 text-base flex items-center justify-center gap-3 disabled:opacity-60 active:scale-[0.98] transition">
-                <GoogleIcon />
-                {googleBusy ? 'Redirigiendo…' : 'Continuar con Google'}
-              </button>
+              <GoogleAuthButton role={role} />
               <Link
                 href={info.registerHref}
                 className="w-full block text-center bg-ball text-courtdark font-display font-black rounded-2xl py-3.5 text-base active:scale-[0.98] transition">

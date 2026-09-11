@@ -1,34 +1,112 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
-// Botón "Continuar con Google". Redirige a /auth/callback?role=... después
-// del login para llevar al usuario al dashboard correcto según el rol.
-// Usar en todas las páginas de login/registro.
+// Botón "Continuar con Google" usando Google Identity Services (cliente-side).
+// El popup muestra "narvoq.com.ar" en vez de "xxx.supabase.co" — más limpio.
+// Requiere NEXT_PUBLIC_GOOGLE_CLIENT_ID en Vercel + JS Origins autorizados.
+
+declare global {
+  interface Window { google?: any; }
+}
+
+let scriptLoaded = false;
+function loadGoogleScript(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (scriptLoaded && window.google?.accounts?.id) return Promise.resolve();
+  return new Promise((resolve) => {
+    const existing = document.getElementById('gsi-script');
+    if (existing) { existing.addEventListener('load', () => resolve()); return; }
+    const s = document.createElement('script');
+    s.id = 'gsi-script';
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true; s.defer = true;
+    s.onload = () => { scriptLoaded = true; resolve(); };
+    document.head.appendChild(s);
+  });
+}
+
 export default function GoogleAuthButton({ role, label }: {
   role: 'player' | 'coach' | 'complex';
   label?: string;
 }) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  async function loginWithGoogle() {
-    setBusy(true); setError('');
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?role=${role}`
-      }
+  useEffect(() => {
+    if (!clientId) return;
+    loadGoogleScript().then(() => {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: onCredential,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        ux_mode: 'popup'
+      });
+      setReady(true);
     });
-    if (error) {
-      setError(`No se pudo iniciar con Google: ${error.message}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  async function onCredential(response: any) {
+    if (!response?.credential) return;
+    setBusy(true); setError('');
+    try {
+      const { data, error: err } = await supabase.auth.signInWithIdToken({
+        provider: 'google', token: response.credential
+      });
+      if (err) throw err;
+      if (!data.user) throw new Error('sin user');
+
+      // Guardar el rol elegido para que /completar-perfil sepa a dónde mandar
+      try { sessionStorage.setItem('narvoq-signup-role', role); } catch {}
+
+      // Rebote via /auth/callback para completar-perfil o dashboard
+      window.location.href = `/auth/callback?role=${role}&via=gis`;
+    } catch (e: any) {
+      setError('No se pudo iniciar con Google: ' + (e?.message ?? 'error'));
       setBusy(false);
     }
+  }
+
+  async function loginWithGoogle() {
+    setError('');
+    if (!clientId) {
+      // Fallback al flujo viejo si no hay client_id configurado
+      setBusy(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback?role=${role}` }
+      });
+      if (error) { setError(error.message); setBusy(false); }
+      return;
+    }
+    if (!ready || !window.google?.accounts?.id) {
+      setError('Google Identity todavía no cargó, esperá 2 seg y probá de nuevo.');
+      return;
+    }
+    // Dispara el popup nativo de Google
+    window.google.accounts.id.prompt((notification: any) => {
+      if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+        // Si no se muestra (bloqueado, cerrado antes), fallback a signInWithOAuth
+        supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: `${window.location.origin}/auth/callback?role=${role}` }
+        });
+      }
+    });
   }
 
   return (
     <div className="space-y-2">
       <button
+        ref={btnRef}
         onClick={loginWithGoogle}
         disabled={busy}
         type="button"
@@ -46,7 +124,6 @@ export default function GoogleAuthButton({ role, label }: {
   );
 }
 
-// Separador visual "o" entre Google y el form email.
 export function AuthDivider() {
   return (
     <div className="flex items-center gap-3 py-1">
