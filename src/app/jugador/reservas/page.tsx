@@ -19,7 +19,7 @@ function ReservasInner() {
     const { data: mp } = await supabase.from('match_players')
       .select(`match:matches(id, status, tournament_match_id,
         booking:bookings(id, court_id, starts_at, ends_at, price, status, payment_status, payment_proof_url,
-          court:courts(name, photo_url, price_per_slot, complex:complexes(id, name, address, cancel_hours, payment_alias, payment_cbu, payment_holder, payment_bank, payment_transfer_enabled, payment_cash_enabled))),
+          court:courts(name, photo_url, price_per_slot, complex:complexes(id, name, address, whatsapp, phone, cancel_hours, payment_alias, payment_cbu, payment_holder, payment_bank, payment_transfer_enabled, payment_cash_enabled))),
         result:results(id, status, sets, winner_team),
         players:match_players(player_id, team, profile:profiles!player_id(username, first_name, last_name, avatar_url)))`)
       .eq('player_id', user.id).limit(100);
@@ -73,25 +73,38 @@ function ReservasInner() {
     if (!confirm('Cancelar esta reserva? El turno queda libre para otros jugadores.')) return;
     await supabase.from('bookings').update({ status: 'cancelada' }).eq('id', m.booking.id);
     await supabase.from('matches').update({ status: 'cancelada' }).eq('id', m.id);
-    // Aviso al primero en lista de espera
+
+    // Ver si hay alguien en lista de espera para este turno
     const { data: wl } = await supabase.from('booking_waitlist')
       .select('id, player_id')
       .eq('court_id', m.booking.court_id)
       .eq('starts_at', m.booking.starts_at)
-      .is('fulfilled_at', null).is('notified_at', null)
+      .is('fulfilled_at', null)
       .order('created_at').limit(1);
     const next = wl?.[0];
-    if (next) {
-      await supabase.from('booking_waitlist').update({ notified_at: new Date().toISOString() })
-        .eq('id', next.id);
-      const when = new Date(m.booking.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-      await notify({
-        user_id: next.player_id, kind: 'reserva_ok',
-        title: `Se liberó un turno en ${m.booking.court.complex.name}`,
-        body: `${m.booking.court.name} · ${when}. ¡Reservalo antes que otro!`,
-        link: '/jugador/reservar'
-      });
+    const when = new Date(m.booking.starts_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+    // Notificar al COMPLEJO — que decida si acepta al de la lista o no
+    const { data: cx } = await supabase.from('complexes')
+      .select('owner_id').eq('id', m.booking.court.complex.id).maybeSingle();
+    if (cx?.owner_id) {
+      if (next) {
+        await notify({
+          user_id: cx.owner_id, kind: 'waitlist_available',
+          title: '⚠️ Se canceló una reserva — hay lista de espera',
+          body: `${m.booking.court.name} · ${when}. Tocá para asignar al primero de la lista.`,
+          link: `/complejo/waitlist/${m.booking.id}?wl=${next.id}`
+        });
+      } else {
+        await notify({
+          user_id: cx.owner_id, kind: 'booking_cancel',
+          title: '✕ Cancelaron una reserva',
+          body: `${m.booking.court.name} · ${when}. Turno liberado.`,
+          link: '/complejo/dashboard'
+        });
+      }
     }
+
     setUpcoming(upcoming.filter((x: any) => x.id !== m.id));
   }
 
@@ -227,10 +240,23 @@ function ReservasInner() {
         )}
 
         {cancelable && (
-          <button onClick={e => cancelar(m, e)}
-            className="border-t border-white/10 w-full py-2 text-xs font-bold text-red-500 hover:bg-red-500/5">
-            Cancelar reserva
-          </button>
+          <div className="border-t border-white/10 flex">
+            <button onClick={e => cancelar(m, e)}
+              className="flex-1 py-3 text-xs font-black text-red-500 hover:bg-red-500/10">
+              ✕ Cancelar reserva
+            </button>
+            {(cx.whatsapp || cx.phone) && (
+              <a
+                onClick={e => e.stopPropagation()}
+                href={`https://wa.me/${(cx.whatsapp || cx.phone).replace(/\D/g, '')}?text=${encodeURIComponent(
+                  `Hola! Voy a cancelar la reserva de ${new Date(m.booking.starts_at).toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} hs en ${m.booking.court.name}.`
+                )}`}
+                target="_blank" rel="noopener"
+                className="flex-1 py-3 text-xs font-black text-emerald-400 hover:bg-emerald-500/10 border-l border-white/10 flex items-center justify-center gap-1">
+                💬 Avisar por WhatsApp
+              </a>
+            )}
+          </div>
         )}
       </div>
     );
