@@ -236,7 +236,7 @@ export default function ComplejoLayout({ children }: { children: React.ReactNode
             </Link>
           </div>
           <div className="flex items-center gap-2">
-            <InstallButton variant="ghost" />
+            <InstallButton variant="subtle" />
             <Bell />
           </div>
         </header>
