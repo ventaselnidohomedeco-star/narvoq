@@ -85,6 +85,28 @@ export default function PerfilComplejo() {
         <PushEnableButton />
       </div>
 
+      {/* ⚡ Auto-aprobación de reservas */}
+      <div className="mt-4 bg-white/5 rounded-2xl p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <p className="font-display font-bold text-sm text-ball">⚡ Aprobación de reservas</p>
+            <p className="text-white/60 text-xs mt-1">
+              {cx.auto_confirm_bookings
+                ? '✅ Las reservas se aprueban solas (el jugador ve confirmado al toque)'
+                : '⏳ Vos tenés que aprobar cada reserva manualmente (recomendado si querés controlar cada turno)'}
+            </p>
+          </div>
+          <button type="button"
+            onClick={() => save({ auto_confirm_bookings: !cx.auto_confirm_bookings })}
+            className={`shrink-0 inline-block w-14 h-7 rounded-full relative transition ${cx.auto_confirm_bookings ? 'bg-ball' : 'bg-white/20'}`}>
+            <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white transition ${cx.auto_confirm_bookings ? 'left-7' : 'left-0.5'}`} />
+          </button>
+        </div>
+        <p className="text-white/40 text-[11px] mt-3">
+          💡 Activá esto si no querés perder tiempo aprobando cada turno. El complejo puede seguir cancelando reservas después si es necesario.
+        </p>
+      </div>
+
       {/* Logo */}
       <div className="mt-5 bg-white/5 rounded-2xl p-4 flex items-center gap-4">
         <div className="[&_.label]:text-white/60 [&_button]:!bg-white/10 [&_button]:!border-white/20">

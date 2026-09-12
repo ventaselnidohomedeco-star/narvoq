@@ -241,8 +241,10 @@ function Reservar() {
     // Fase 1: deadline para subir comprobante. Usa la config del complejo.
     const timeoutHours = (complex as any)?.booking_payment_timeout_hours ?? 2;
     const deadline = new Date(Date.now() + timeoutHours * 60 * 60 * 1000);
+    // Auto-confirmar si el complejo lo tiene activado en su perfil
+    const initialStatus = (complex as any)?.auto_confirm_bookings ? 'confirmada' : 'pendiente';
     const { data: booking, error: bErr } = await supabase.from('bookings').insert({
-      court_id: court.id, player_id: user!.id, status: 'pendiente', payment_status: 'pendiente',
+      court_id: court.id, player_id: user!.id, status: initialStatus, payment_status: 'pendiente',
       starts_at: slot.start.toISOString(), ends_at: slot.end.toISOString(),
       price: senaAmount,   // el "price" del booking es la seña que el jugador paga ahora
       payment_deadline_at: deadline.toISOString()

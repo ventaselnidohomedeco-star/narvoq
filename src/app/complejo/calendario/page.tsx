@@ -200,6 +200,42 @@ export default function Calendario() {
       new Date(b.starts_at) < end && new Date(b.ends_at) > t);
   }
 
+  // Asignar el turno actual al jugador que está en lista de espera (click desde el modal)
+  async function asignarWaitlist(w: any) {
+    if (!sel || !cx) return;
+    const name = `${w.profile?.first_name ?? ''} ${w.profile?.last_name ?? ''}`.trim() || 'Jugador';
+    if (!confirm(`¿Asignar el turno a ${name}? Se crea la reserva confirmada y le llega notificación.`)) return;
+    const starts = sel.t;
+    const ends = new Date(starts.getTime() + cx.slot_minutes * 60000);
+    const { data: newBk, error } = await supabase.from('bookings').insert({
+      court_id: sel.court.id,
+      player_id: w.player_id,
+      type: 'reserva',
+      status: 'confirmada',
+      payment_status: 'pendiente',
+      starts_at: starts.toISOString(),
+      ends_at: ends.toISOString(),
+      price: sel.court.price_per_slot
+    }).select().single();
+    if (error) { alert('No se pudo asignar: ' + error.message); return; }
+    // Marcar la fila del waitlist como fulfilled
+    await supabase.from('booking_waitlist').update({
+      fulfilled_at: new Date().toISOString(),
+      booking_id: newBk.id
+    }).eq('id', w.id);
+    // Abrir WhatsApp si tiene celular
+    const phone = (w.profile?.phone ?? '').replace(/\D/g, '');
+    if (phone) {
+      const when = starts.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+      const msg = encodeURIComponent(
+        `Hola ${w.profile?.first_name ?? ''}! Estabas en lista de espera para ${sel.court.name} el ${when} hs. Aceptamos tu reserva porque se cayó la anterior. ¿Confirmás que vas a jugar?`
+      );
+      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    }
+    setSel(null);
+    load();
+  }
+
   async function accion(tipo: 'manual' | 'block') {
     const startsBase = sel.t;
     const durationMs = cx.slot_minutes * 60000;
@@ -703,27 +739,31 @@ export default function Calendario() {
                     <p className="text-yellow-300 font-black text-sm">
                       ⏳ {selWaitlist.length} jugador{selWaitlist.length > 1 ? 'es' : ''} en lista de espera
                     </p>
-                    <div className="mt-2 space-y-1">
+                    <div className="mt-2 space-y-2">
                       {selWaitlist.map((w: any, i: number) => (
-                        <div key={i} className="flex items-center gap-2 text-sm">
+                        <div key={i} className="flex items-center gap-2 text-sm bg-black/30 rounded-lg p-2">
                           {w.profile?.avatar_url
-                            ? <img src={w.profile.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
-                            : <span className="w-6 h-6 rounded-full bg-grafito flex items-center justify-center text-xs font-black">
+                            ? <img src={w.profile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            : <span className="w-8 h-8 rounded-full bg-grafito flex items-center justify-center text-xs font-black">
                                 {w.profile?.first_name?.[0] ?? '?'}
                               </span>}
-                          <span className="flex-1 truncate">
-                            {w.profile?.first_name} {w.profile?.last_name}
-                          </span>
-                          {w.profile?.phone && (
-                            <a href={`https://wa.me/${w.profile.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hola, nos contactamos de ' + (cx?.name ?? '') + ' porque hay un lugar disponible!')}`}
-                              target="_blank" rel="noopener"
-                              className="text-[#25D366] text-xs font-black">
-                              💬
-                            </a>
-                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold truncate">
+                              {i === 0 && <span className="text-ball">#1 </span>}
+                              {w.profile?.first_name} {w.profile?.last_name}
+                            </p>
+                            {w.profile?.phone && (
+                              <p className="text-white/40 text-[10px] truncate">{w.profile.phone}</p>
+                            )}
+                          </div>
+                          <button onClick={() => asignarWaitlist(w)}
+                            className="shrink-0 bg-ball text-courtdark font-black text-xs px-3 py-1.5 rounded-lg active:scale-95">
+                            ✓ Asignar
+                          </button>
                         </div>
                       ))}
                     </div>
+                    <p className="text-white/40 text-[10px] mt-2">Tocá "✓ Asignar" para dar el turno a ese jugador y abrir WhatsApp.</p>
                   </div>
                 )}
 
