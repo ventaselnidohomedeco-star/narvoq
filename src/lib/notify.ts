@@ -5,7 +5,11 @@ import { supabase } from './supabase/client';
 export type NotifyKind =
   | 'like' | 'comment' | 'reserva_ok' | 'membresia_ok'
   | 'coach_add' | 'training_new' | 'torneo_nuevo' | 'mencion'
-  | 'match_add' | 'match_kick' | 'roster_add';
+  | 'match_add' | 'match_kick' | 'roster_add'
+  | 'waitlist_available' | 'booking_cancel' | 'booking_new' | 'booking_confirmed'
+  | 'chat' | 'post_like' | 'post_comment' | 'post_comment_thread'
+  | 'follow' | 'complex_post' | 'tournament_new' | 'tournament_inscription'
+  | 'match_invite' | 'test' | 'diagnose' | 'generic';
 
 export async function notify(input: {
   user_id: string;
