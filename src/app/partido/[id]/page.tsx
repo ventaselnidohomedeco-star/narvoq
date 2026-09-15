@@ -19,6 +19,7 @@ export default function Partido() {
   const [result, setResult] = useState<any>(null);
   const [me, setMe] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   // formulario de resultado
   const [sets, setSets] = useState([{ t1: '', t2: '' }, { t1: '', t2: '' }, { t1: '', t2: '' }]);
   const [error, setError] = useState('');
@@ -31,13 +32,28 @@ export default function Partido() {
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     setMe(user?.id ?? null);
-    const { data: m } = await supabase.from('matches')
+    const { data: m, error: mErr } = await supabase.from('matches')
       .select(`*, booking:bookings(
         id, starts_at, ends_at, price, status, payment_status, payment_method, payment_proof_url,
         court:courts(name, price_per_slot, complex:complexes(id, name, address, whatsapp, phone, cancel_hours))
       )`)
       .eq('id', id).single();
-    setMatch(m);
+    if (mErr || !m) {
+      // Fallback sin las columnas nuevas por si la DB no está actualizada
+      const { data: m2, error: m2Err } = await supabase.from('matches')
+        .select(`*, booking:bookings(
+          id, starts_at, ends_at, price, status,
+          court:courts(name, price_per_slot, complex:complexes(id, name, address, whatsapp))
+        )`)
+        .eq('id', id).single();
+      if (m2Err || !m2) {
+        setLoadError(mErr?.message || m2Err?.message || 'No se pudo cargar el partido');
+        return;
+      }
+      setMatch(m2);
+    } else {
+      setMatch(m);
+    }
     const { data: mp } = await supabase.from('match_players')
       .select('player_id, team, profile:profiles!player_id(username, first_name, last_name, category, avatar_url)')
       .eq('match_id', id);
@@ -198,6 +214,14 @@ export default function Partido() {
     load();
   }
 
+  if (loadError) return (
+    <main className="p-8 text-white/70 max-w-md mx-auto">
+      <p className="font-black text-red-300 mb-2">No se pudo cargar el partido</p>
+      <p className="text-sm text-white/50 mb-4">{loadError}</p>
+      <p className="text-xs text-white/40">Si sos admin, ejecutá <code>supabase/update-62-booking-payment-method.sql</code> en Supabase.</p>
+      <button onClick={() => window.location.reload()} className="btn-ball mt-4 !py-2 !px-4 text-sm">Reintentar</button>
+    </main>
+  );
   if (!match) return <main className="p-8 text-white/50">Cargando partido…</main>;
 
   return (
