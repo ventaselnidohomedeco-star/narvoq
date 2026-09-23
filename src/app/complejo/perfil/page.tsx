@@ -87,12 +87,12 @@ export default function PerfilComplejo() {
         {cx.slug ? (
           <>
             <div className="bg-black/40 rounded-xl px-3 py-2.5 font-mono text-sm text-white/90 select-all break-all border border-white/10">
-              narvoq.com.ar/r/{cx.slug}
+              narvoq.com.ar/{cx.slug}/turnosdisponibles
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button type="button"
                 onClick={() => {
-                  const url = `https://narvoq.com.ar/r/${cx.slug}`;
+                  const url = `https://narvoq.com.ar/${cx.slug}/turnosdisponibles`;
                   navigator.clipboard.writeText(url);
                   alert('✓ Link copiado. Pegalo donde quieras.');
                 }}
@@ -101,7 +101,7 @@ export default function PerfilComplejo() {
               </button>
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `🎾 ¡Reservá tu turno en ${cx.name}!\n\n👉 https://narvoq.com.ar/r/${cx.slug}\n\nSin descargar nada, en 30 segundos.`
+                  `🎾 ¡Reservá tu turno en ${cx.name}!\n\n👉 https://narvoq.com.ar/${cx.slug}/turnosdisponibles\n\nSin descargar nada, en 30 segundos.`
                 )}`}
                 target="_blank" rel="noopener"
                 className="py-3 rounded-xl bg-[#25D366] text-white font-black text-sm text-center active:scale-95 transition">
@@ -109,7 +109,7 @@ export default function PerfilComplejo() {
               </a>
             </div>
             <a
-              href={`https://narvoq.com.ar/r/${cx.slug}`}
+              href={`https://narvoq.com.ar/${cx.slug}/turnosdisponibles`}
               target="_blank" rel="noopener"
               className="mt-2 block text-center text-ball text-xs font-black underline">
               👁 Ver cómo lo ven tus clientes
@@ -121,7 +121,7 @@ export default function PerfilComplejo() {
               <p className="text-white/60 text-xs mt-1 mb-3">
                 Descargá el poster A4 con tu QR y pegalo en la puerta del complejo, en la barra, o donde quieras. Los jugadores escanean con la cámara del celu y reservan al toque.
               </p>
-              <PosterQR url={`https://narvoq.com.ar/r/${cx.slug}`} complexName={cx.name} />
+              <PosterQR url={`https://narvoq.com.ar/${cx.slug}/turnosdisponibles`} complexName={cx.name} />
             </div>
           </>
         ) : (
