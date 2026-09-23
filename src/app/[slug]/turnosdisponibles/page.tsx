@@ -24,9 +24,12 @@ export default function ReservarPublico() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [slots, setSlots] = useState<Slot[]>([]);
   const [picked, setPicked] = useState<Slot | null>(null);
+  const [pickedMode, setPickedMode] = useState<'reservar' | 'waitlist'>('reservar');
+  const [waitlistCount, setWaitlistCount] = useState<Record<string, number>>({});
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -94,16 +97,36 @@ export default function ReservarPublico() {
     (async () => {
       const day = new Date(date + 'T00:00:00');
       const nextDay = new Date(day); nextDay.setDate(nextDay.getDate() + 1);
-      const { data: bk } = await supabase.from('bookings')
-        .select('id, starts_at, ends_at, status, court_id')
-        .eq('court_id', court.id)
-        .gte('starts_at', day.toISOString())
-        .lt('starts_at', nextDay.toISOString());
+      const [{ data: bk }, { data: wl }] = await Promise.all([
+        supabase.from('bookings')
+          .select('id, starts_at, ends_at, status, court_id')
+          .eq('court_id', court.id)
+          .gte('starts_at', day.toISOString())
+          .lt('starts_at', nextDay.toISOString()),
+        supabase.from('slot_waitlist')
+          .select('starts_at')
+          .eq('court_id', court.id)
+          .is('converted_booking_id', null)
+          .gte('starts_at', day.toISOString())
+          .lt('starts_at', nextDay.toISOString())
+      ]);
       setSlots(buildSlots(day, cx.open_time, cx.close_time, cx.slot_minutes, (bk as any) ?? []));
+      const wlCount: Record<string, number> = {};
+      (wl ?? []).forEach((w: any) => {
+        const key = new Date(w.starts_at).toISOString();
+        wlCount[key] = (wlCount[key] ?? 0) + 1;
+      });
+      setWaitlistCount(wlCount);
     })();
   }, [cx, court, date]);
 
-  async function reservar() {
+  function pickSlot(s: Slot) {
+    setError(''); setWaitlistSuccess(false);
+    setPicked(s);
+    setPickedMode(s.free ? 'reservar' : 'waitlist');
+  }
+
+  async function submit() {
     if (!cx || !court || !picked) return;
     setError('');
     const cleanName = name.trim();
@@ -114,22 +137,38 @@ export default function ReservarPublico() {
     setSaving(true);
     try { localStorage.setItem('narvoq_guest', JSON.stringify({ name: cleanName, phone: cleanPhone })); } catch {}
 
-    const initialStatus = cx.auto_confirm_bookings ? 'confirmada' : 'pendiente';
-    const { data: bk, error: err } = await supabase.from('bookings').insert({
-      court_id: court.id,
-      player_id: null,
-      type: 'reserva',
-      status: initialStatus,
-      starts_at: picked.start.toISOString(),
-      ends_at: picked.end.toISOString(),
-      price: court.price_per_slot,
-      guest_name: cleanName,
-      guest_phone: cleanPhone
-    }).select().single();
+    if (pickedMode === 'reservar') {
+      const initialStatus = cx.auto_confirm_bookings ? 'confirmada' : 'pendiente';
+      const { data: bk, error: err } = await supabase.from('bookings').insert({
+        court_id: court.id,
+        player_id: null,
+        type: 'reserva',
+        status: initialStatus,
+        starts_at: picked.start.toISOString(),
+        ends_at: picked.end.toISOString(),
+        price: court.price_per_slot,
+        guest_name: cleanName,
+        guest_phone: cleanPhone
+      }).select().single();
 
-    setSaving(false);
-    if (err) { setError(`No se pudo reservar: ${err.message}`); return; }
-    router.push(`/${slug}/turnosdisponibles/exito/${bk.id}`);
+      setSaving(false);
+      if (err) { setError(`No se pudo reservar: ${err.message}`); return; }
+      router.push(`/${slug}/turnosdisponibles/exito/${bk.id}`);
+    } else {
+      // Lista de espera
+      const { error: err } = await supabase.from('slot_waitlist').insert({
+        court_id: court.id,
+        player_id: null,
+        starts_at: picked.start.toISOString(),
+        ends_at: picked.end.toISOString(),
+        guest_name: cleanName,
+        guest_phone: cleanPhone
+      });
+      setSaving(false);
+      if (err) { setError(`No se pudo anotar: ${err.message}`); return; }
+      setWaitlistSuccess(true);
+      setPicked(null); setName(''); setPhone('');
+    }
   }
 
   if (loading) return <main className="min-h-dvh flex items-center justify-center text-white/60">Cargando complejo…</main>;
@@ -199,38 +238,78 @@ export default function ReservarPublico() {
         </div>
 
         <div>
-          <p className="text-white/60 text-xs font-black uppercase mb-2">Horarios disponibles</p>
+          <p className="text-white/60 text-xs font-black uppercase mb-2">Horarios</p>
           {slots.length === 0 ? (
             <p className="text-white/40 text-sm py-6 text-center">Sin horarios para este día.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {slots.map((s, i) => {
-                const hhmm = s.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-                return (
-                  <button key={i} disabled={!s.free}
-                    onClick={() => setPicked(s)}
-                    className={`py-3 rounded-xl font-black text-sm transition ${
-                      !s.free ? 'bg-white/5 text-white/25 line-through cursor-not-allowed' :
-                      picked?.start.getTime() === s.start.getTime() ? 'bg-ball text-black ring-2 ring-ball' :
-                      'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                    }`}>
-                    {hhmm}
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {slots.map((s, i) => {
+                  const hhmm = s.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  const isPicked = picked?.start.getTime() === s.start.getTime();
+                  const wlN = waitlistCount[s.start.toISOString()] ?? 0;
+                  const isPast = s.start.getTime() < Date.now();
+                  return (
+                    <button key={i} disabled={isPast}
+                      onClick={() => pickSlot(s)}
+                      className={`relative py-3 rounded-xl font-black text-sm transition ${
+                        isPast ? 'bg-white/5 text-white/20 line-through cursor-not-allowed' :
+                        isPicked && s.free ? 'bg-ball text-black ring-2 ring-ball' :
+                        isPicked && !s.free ? 'bg-orange-500 text-white ring-2 ring-orange-300' :
+                        s.free ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20' :
+                        'bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20'
+                      }`}>
+                      {hhmm}
+                      {!s.free && !isPast && (
+                        <span className="block text-[9px] font-black mt-0.5 opacity-80">
+                          🕐 espera{wlN > 0 ? ` (${wlN})` : ''}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex items-center justify-center gap-4 text-[11px] text-white/60">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-emerald-500/30 border border-emerald-500/60"></span>
+                  Libre
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-orange-500/30 border border-orange-500/60"></span>
+                  Ocupado (lista de espera)
+                </span>
+              </div>
+            </>
           )}
         </div>
 
+        {waitlistSuccess && (
+          <div className="rounded-2xl bg-emerald-500/15 border border-emerald-500/40 p-4 text-emerald-200">
+            <p className="font-black">🕐 Te anotaste en la lista de espera</p>
+            <p className="text-sm mt-1 text-emerald-100/80">
+              Si se libera el turno, el complejo te va a avisar por WhatsApp al {phone || 'tu celular'}.
+            </p>
+          </div>
+        )}
+
         {picked && (
-          <div className="mt-6 rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+          <div className={`mt-6 rounded-2xl border p-5 space-y-3 ${
+            pickedMode === 'waitlist' ? 'bg-orange-500/10 border-orange-500/30' : 'bg-white/5 border-white/10'
+          }`}>
             <div>
-              <p className="font-display font-black text-lg">Tu turno</p>
+              <p className="font-display font-black text-lg">
+                {pickedMode === 'waitlist' ? '🕐 Anotarme en lista de espera' : 'Tu turno'}
+              </p>
               <p className="text-white/70 text-sm">
                 {court?.name} · {picked.start.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {picked.start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })} hs
               </p>
-              {court && court.price_per_slot > 0 && (
+              {pickedMode === 'reservar' && court && court.price_per_slot > 0 && (
                 <p className="text-ball font-black text-xl mt-1">${Number(court.price_per_slot).toLocaleString('es-AR')} la cancha</p>
+              )}
+              {pickedMode === 'waitlist' && (
+                <p className="text-orange-200/90 text-xs mt-2">
+                  Este turno ya está reservado. Si se cancela, el complejo te va a avisar por WhatsApp para que lo tomes vos.
+                </p>
               )}
             </div>
             <input type="text" placeholder="Tu nombre y apellido"
@@ -241,12 +320,16 @@ export default function ReservarPublico() {
               value={phone} onChange={e => setPhone(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40" />
             {error && <p className="text-red-300 text-sm">{error}</p>}
-            <button onClick={reservar} disabled={saving}
-              className="w-full py-4 rounded-xl bg-ball text-black font-black text-lg active:scale-95 transition disabled:opacity-50">
-              {saving ? 'Reservando…' : `✓ Reservar${cx.auto_confirm_bookings ? '' : ' (queda pendiente de aprobación)'}`}
+            <button onClick={submit} disabled={saving}
+              className={`w-full py-4 rounded-xl font-black text-lg active:scale-95 transition disabled:opacity-50 ${
+                pickedMode === 'waitlist' ? 'bg-orange-500 text-white' : 'bg-ball text-black'
+              }`}>
+              {saving ? 'Enviando…' :
+                pickedMode === 'waitlist' ? '🕐 Anotarme en lista de espera' :
+                `✓ Reservar${cx.auto_confirm_bookings ? '' : ' (queda pendiente de aprobación)'}`}
             </button>
             <p className="text-white/40 text-[11px] text-center">
-              Al reservar aceptás recibir un WhatsApp del complejo para confirmar. Sin cuenta, sin descargas.
+              Al {pickedMode === 'waitlist' ? 'anotarte' : 'reservar'} aceptás recibir un WhatsApp del complejo. Sin cuenta, sin descargas.
             </p>
           </div>
         )}
