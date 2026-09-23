@@ -76,6 +76,51 @@ export default function PerfilComplejo() {
       <h1 className="font-display font-black text-xl">Perfil del complejo</h1>
       {saved && <p className="text-green-400 text-sm font-semibold mt-1">✓ Guardado</p>}
 
+      {/* 📤 LINK PÚBLICO DE RESERVAS — la joya de la Fase 1 */}
+      <div className="mt-4 rounded-2xl border-2 border-ball/40 bg-gradient-to-br from-ball/10 to-transparent p-5">
+        <p className="text-ball text-[11px] font-black tracking-widest">🚀 TU LINK MÁGICO</p>
+        <p className="font-display font-black text-lg mt-1">Reservas sin app, en 30 segundos</p>
+        <p className="text-white/70 text-xs mt-1 mb-3">
+          Compartilo por WhatsApp, Instagram o pegalo en un cartel con QR. Tus clientes reservan sin descargar nada ni crear cuenta. Vos recibís cada reserva en tu calendario.
+        </p>
+        {cx.slug ? (
+          <>
+            <div className="bg-black/40 rounded-xl px-3 py-2.5 font-mono text-sm text-white/90 select-all break-all border border-white/10">
+              narvoq.com.ar/r/{cx.slug}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button type="button"
+                onClick={() => {
+                  const url = `https://narvoq.com.ar/r/${cx.slug}`;
+                  navigator.clipboard.writeText(url);
+                  alert('✓ Link copiado. Pegalo donde quieras.');
+                }}
+                className="py-3 rounded-xl bg-white/10 border border-white/20 text-white font-black text-sm active:scale-95 transition">
+                📋 Copiar link
+              </button>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `🎾 ¡Reservá tu turno en ${cx.name}!\n\n👉 https://narvoq.com.ar/r/${cx.slug}\n\nSin descargar nada, en 30 segundos.`
+                )}`}
+                target="_blank" rel="noopener"
+                className="py-3 rounded-xl bg-[#25D366] text-white font-black text-sm text-center active:scale-95 transition">
+                💬 Compartir por WhatsApp
+              </a>
+            </div>
+            <a
+              href={`https://narvoq.com.ar/r/${cx.slug}`}
+              target="_blank" rel="noopener"
+              className="mt-2 block text-center text-ball text-xs font-black underline">
+              👁 Ver cómo lo ven tus clientes
+            </a>
+          </>
+        ) : (
+          <p className="text-white/50 text-xs">
+            Corré <code className="bg-black/40 px-1 rounded">supabase/update-63-public-booking.sql</code> para activar los links públicos.
+          </p>
+        )}
+      </div>
+
       {/* 🔔 Notificaciones push */}
       <div className="mt-4 bg-white/5 rounded-2xl p-4">
         <p className="font-display font-bold text-sm text-ball">🔔 Notificaciones al celular / navegador</p>
