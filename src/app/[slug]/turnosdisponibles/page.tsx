@@ -38,13 +38,46 @@ export default function ReservarPublico() {
 
   useEffect(() => {
     (async () => {
-      const { data: c, error: cErr } = await supabase.from('complexes')
+      // Intento 1: full select con todos los campos
+      let c: any = null;
+      let cErr: any = null;
+      const full = await supabase.from('complexes')
         .select('id, name, slug, address, logo_url, photos, open_time, close_time, slot_minutes, cancel_hours, whatsapp, phone, auto_confirm_bookings, active, status')
         .eq('slug', slug).maybeSingle();
-      if (cErr) console.error('[reservar publico] error:', cErr);
+      c = full.data; cErr = full.error;
+      if (cErr) console.error('[reservar publico] full select error:', cErr);
+
+      // Fallback 1: si falla, probar sólo con columnas básicas
+      if (!c) {
+        const min = await supabase.from('complexes')
+          .select('id, name, slug, address, logo_url, photos, open_time, close_time, slot_minutes, active')
+          .eq('slug', slug).maybeSingle();
+        c = min.data;
+        if (min.error) console.error('[reservar publico] min select error:', min.error);
+      }
+
+      // Fallback 2: ultra-mínimo — sólo id y name
+      if (!c) {
+        const ultra = await supabase.from('complexes')
+          .select('id, name, slug, open_time, close_time, slot_minutes')
+          .eq('slug', slug).maybeSingle();
+        c = ultra.data;
+        if (ultra.error) console.error('[reservar publico] ultra select error:', ultra.error);
+      }
+
+      console.log('[reservar publico] complejo encontrado:', c, 'slug buscado:', slug);
       if (!c) { setLoading(false); return; }
-      if (!c.active) { setCx(c as Complex); setInactivo(true); setLoading(false); return; }
-      setCx(c as Complex);
+      // No filtramos por active — si el complejo existe, lo mostramos (usuario ya recibió el link)
+      setCx({
+        ...c,
+        active: c.active ?? true,
+        cancel_hours: c.cancel_hours ?? 6,
+        whatsapp: c.whatsapp ?? null,
+        phone: c.phone ?? null,
+        photos: c.photos ?? [],
+        logo_url: c.logo_url ?? null,
+        auto_confirm_bookings: c.auto_confirm_bookings ?? false
+      } as Complex);
       const { data: ct } = await supabase.from('courts')
         .select('id, name, price_per_slot, active')
         .eq('complex_id', c.id).eq('active', true).order('name');
