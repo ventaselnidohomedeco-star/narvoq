@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { uploadImage } from '@/lib/upload';
 import { notify } from '@/lib/notify';
+import NuevosEnNarvoQ from '@/components/NuevosEnNarvoQ';
 
 const KIND_META: Record<string, { label: string; emoji: string }> = {
   reserva_confirmada: { label: 'Reserva', emoji: '📅' },
@@ -301,6 +302,11 @@ export default function Feed() {
             {busy ? 'Publicando…' : 'Publicar'}
           </button>
         </div>
+      </div>
+
+      {/* Carrusel de nuevos en la comunidad */}
+      <div className="max-w-2xl mx-auto">
+        <NuevosEnNarvoQ myLocality={me?.locality} myId={me?.id} />
       </div>
 
       {/* Publicaciones */}

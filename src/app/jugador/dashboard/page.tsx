@@ -7,6 +7,7 @@ import { DonutChart, ChartLegend, BarChart } from '@/components/Charts';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import TrialCountdown from '@/components/TrialCountdown';
 import InstallButton from '@/components/InstallButton';
+import BienvenidaBanner from '@/components/BienvenidaBanner';
 import type { Profile } from '@/lib/types';
 
 export default function Dashboard() {
@@ -98,6 +99,9 @@ export default function Dashboard() {
           </Link>
         ))}
       </section>
+
+      {/* Banner de bienvenida — solo para recién registrados */}
+      {profile && <BienvenidaBanner profile={profile} />}
 
       {/* Chart: winrate y balance — SOLO Premium */}
       {stats.played > 0 && (profile as any)?.is_premium && (
