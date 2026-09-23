@@ -7,6 +7,7 @@ import ProvinciaLocalidadSelect from '@/components/ProvinciaLocalidadSelect';
 import { uploadImage } from '@/lib/upload';
 import { geocodeAddress } from '@/lib/geo';
 import PushEnableButton from '@/components/PushEnableButton';
+import PosterQR from '@/components/PosterQR';
 
 export default function PerfilComplejo() {
   const router = useRouter();
@@ -113,11 +114,20 @@ export default function PerfilComplejo() {
               className="mt-2 block text-center text-ball text-xs font-black underline">
               👁 Ver cómo lo ven tus clientes
             </a>
+
+            {/* 🖨 Poster QR HD para imprimir y pegar en el complejo */}
+            <div className="mt-5 pt-5 border-t border-white/10">
+              <p className="font-display font-black text-sm text-ball">🖨 Poster para imprimir con QR</p>
+              <p className="text-white/60 text-xs mt-1 mb-3">
+                Descargá el poster A4 con tu QR y pegalo en la puerta del complejo, en la barra, o donde quieras. Los jugadores escanean con la cámara del celu y reservan al toque.
+              </p>
+              <PosterQR url={`https://narvoq.com.ar/r/${cx.slug}`} complexName={cx.name} />
+            </div>
           </>
         ) : (
-          <p className="text-white/50 text-xs">
-            Corré <code className="bg-black/40 px-1 rounded">supabase/update-63-public-booking.sql</code> para activar los links públicos.
-          </p>
+          <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-xl p-3 text-yellow-200 text-xs">
+            ⚠ <b>Falta activar los links públicos.</b> Corré en Supabase SQL Editor el archivo <code className="bg-black/40 px-1 rounded">supabase/update-63-public-booking.sql</code> y refrescá esta página.
+          </div>
         )}
       </div>
 
