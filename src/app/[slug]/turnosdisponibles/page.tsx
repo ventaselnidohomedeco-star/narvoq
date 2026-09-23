@@ -32,6 +32,7 @@ export default function ReservarPublico() {
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [lastBooking, setLastBooking] = useState<any>(null);
 
   const MAX_DAYS = 7;
   const maxDate = useMemo(() => {
@@ -90,6 +91,18 @@ export default function ReservarPublico() {
     })();
     const g = typeof window !== 'undefined' ? localStorage.getItem('narvoq_guest') : null;
     if (g) { try { const p = JSON.parse(g); setName(p.name ?? ''); setPhone(p.phone ?? ''); } catch {} }
+    // ¿Tiene una reserva reciente guardada? Mostrar link para verla
+    const lb = typeof window !== 'undefined' ? localStorage.getItem('narvoq_last_booking') : null;
+    if (lb) {
+      try {
+        const parsed = JSON.parse(lb);
+        // Solo mostrar si es del mismo complejo y no pasó de hace 7 días
+        if (parsed.slug === slug && parsed.starts_at &&
+            new Date(parsed.starts_at).getTime() > Date.now() - 7 * 24 * 3600 * 1000) {
+          setLastBooking(parsed);
+        }
+      } catch {}
+    }
   }, [slug]);
 
   useEffect(() => {
@@ -214,6 +227,18 @@ export default function ReservarPublico() {
       </div>
 
       <div className="p-5 space-y-4">
+        {/* Banner reserva reciente guardada */}
+        {lastBooking && (
+          <Link href={`/${slug}/turnosdisponibles/exito/${lastBooking.bookingId}`}
+            className="block rounded-2xl bg-blue-500/10 border border-blue-500/40 p-4 active:scale-95 transition">
+            <p className="text-blue-200 text-[11px] font-black tracking-widest">📌 TU ÚLTIMA RESERVA</p>
+            <p className="font-black text-blue-100 mt-1">
+              {new Date(lastBooking.starts_at).toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false })} hs
+            </p>
+            <p className="text-blue-100/70 text-xs">Tocá para ver o cancelar →</p>
+          </Link>
+        )}
+
         {courts.length > 1 && (
           <div>
             <p className="text-white/60 text-xs font-black uppercase mb-2">Cancha</p>

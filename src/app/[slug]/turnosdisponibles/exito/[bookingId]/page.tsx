@@ -8,6 +8,44 @@ export default function ReservaExito() {
   const { slug, bookingId } = useParams<{ slug: string; bookingId: string }>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  async function cancelar() {
+    if (!confirm('¿Estás seguro que querés cancelar este turno? El complejo va a ser notificado y no podés deshacerlo.')) return;
+    setCancelling(true);
+    const { error: err } = await supabase.from('bookings')
+      .update({ status: 'cancelada' })
+      .eq('id', bookingId);
+    setCancelling(false);
+    if (err) { alert('No se pudo cancelar: ' + err.message); return; }
+    setData({ ...data, status: 'cancelada' });
+  }
+
+  function copiarLinkGestion() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    });
+  }
+
+  // Guardar en localStorage para que aparezca "Ver mi última reserva" en la ruta pública
+  useEffect(() => {
+    if (data && data.status !== 'cancelada') {
+      try {
+        localStorage.setItem('narvoq_last_booking', JSON.stringify({
+          bookingId,
+          slug,
+          starts_at: data.starts_at,
+          complex_name: data.court?.complex?.name,
+          savedAt: Date.now()
+        }));
+      } catch {}
+    } else if (data?.status === 'cancelada') {
+      try { localStorage.removeItem('narvoq_last_booking'); } catch {}
+    }
+  }, [data, bookingId, slug]);
 
   useEffect(() => {
     (async () => {
@@ -92,19 +130,24 @@ export default function ReservaExito() {
   const shareLink = `https://wa.me/?text=${shareText}`;
 
   const confirmada = data.status === 'confirmada';
+  const cancelada = data.status === 'cancelada';
 
   return (
     <main className="min-h-dvh max-w-md mx-auto px-5 pt-8 pb-16 text-white">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-ball/15 border-2 border-ball">
-          <span className="text-5xl">{confirmada ? '✅' : '⏳'}</span>
+        <div className={`inline-flex items-center justify-center w-24 h-24 rounded-full border-2 ${
+          cancelada ? 'bg-red-500/15 border-red-500' : 'bg-ball/15 border-ball'
+        }`}>
+          <span className="text-5xl">{cancelada ? '✕' : confirmada ? '✅' : '⏳'}</span>
         </div>
         <h1 className="font-display font-black text-3xl mt-4">
-          {confirmada ? '¡Reserva confirmada!' : '¡Reserva enviada!'}
+          {cancelada ? 'Reserva cancelada'
+            : confirmada ? '¡Reserva confirmada!'
+            : '¡Reserva enviada!'}
         </h1>
         <p className="text-white/60 mt-2">
-          {confirmada
-            ? 'El complejo ya tiene tu turno bloqueado.'
+          {cancelada ? 'El complejo fue notificado. El turno se liberó para otros jugadores.'
+            : confirmada ? 'El complejo ya tiene tu turno bloqueado.'
             : 'El complejo va a confirmar en breve. Avisale por WhatsApp para asegurar el turno.'}
         </p>
       </div>
@@ -145,7 +188,22 @@ export default function ReservaExito() {
         </div>
       </div>
 
+      {/* 📌 Card: guardar link para gestionar la reserva más tarde */}
+      {!cancelada && (
+        <div className="mt-5 rounded-2xl bg-blue-500/10 border border-blue-500/40 p-4">
+          <p className="font-black text-blue-200 text-sm">📌 Guardá este link</p>
+          <p className="text-blue-100/80 text-xs mt-1 mb-3">
+            Con esta URL podés volver más tarde a ver o cancelar tu reserva. Tocá el botón para copiarla y guardarla donde quieras.
+          </p>
+          <button onClick={copiarLinkGestion}
+            className="w-full py-2.5 rounded-xl bg-blue-500/20 border border-blue-500/40 text-blue-100 font-black text-sm active:scale-95 transition">
+            {linkCopied ? '✓ Link copiado' : '📋 Copiar link de mi reserva'}
+          </button>
+        </div>
+      )}
+
       {/* Botón principal: invitar amigos al partido (viral) */}
+      {!cancelada && (
       <a href={shareLink} target="_blank" rel="noopener"
         className="mt-6 flex items-center justify-center gap-3 w-full py-5 rounded-2xl bg-[#25D366] text-white font-black text-lg active:scale-95 transition shadow-lg shadow-[#25D366]/20">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -153,16 +211,27 @@ export default function ReservaExito() {
         </svg>
         Invitar amigos al partido
       </a>
+      )}
+      {!cancelada && (
       <p className="text-white/40 text-[11px] text-center mt-2">
         Comparte por WhatsApp con detalles del turno + invitación a NarvoQ
       </p>
+      )}
 
       {/* Botón secundario: confirmar con el complejo */}
-      {waConfirmLink && (
+      {!cancelada && waConfirmLink && (
         <a href={waConfirmLink} target="_blank" rel="noopener"
           className="mt-3 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/10 border border-white/20 text-white font-black text-sm active:scale-95 transition">
           📱 Confirmar con el complejo
         </a>
+      )}
+
+      {/* Botón CANCELAR — sólo si no está ya cancelada */}
+      {!cancelada && (
+        <button onClick={cancelar} disabled={cancelling}
+          className="mt-3 w-full py-3 rounded-xl bg-red-500/10 border border-red-500/40 text-red-300 font-black text-sm active:scale-95 transition disabled:opacity-50">
+          {cancelling ? 'Cancelando…' : '✕ Cancelar mi reserva'}
+        </button>
       )}
 
       {/* CTA de registro súper punchy */}
