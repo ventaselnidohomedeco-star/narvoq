@@ -24,34 +24,42 @@ export default function AdminUsuarios() {
     if (me?.role !== 'super_admin') return setOk(false);
     setOk(true);
 
-    const [profs, cxs] = await Promise.all([
-      supabase.from('profiles')
-        .select('id, first_name, last_name, username, phone, avatar_url, category, locality, province, role, created_at, is_premium')
-        .not('first_name', 'is', null)
-        .order('created_at', { ascending: false }),
+    // Endpoint server con service role: trae profiles + email + last_sign_in
+    const [usersRes, cxs] = await Promise.all([
+      fetch('/api/admin/users-with-email').then(r => r.json()).catch(() => ({ users: [] })),
       supabase.from('complexes')
-        .select('id, name, slug, address, locality, province, status, active, is_premium, created_at, owner:profiles!owner_id(first_name, last_name, phone, username)')
+        .select('id, name, slug, address, locality, province, status, active, is_premium, created_at, owner_id, owner:profiles!owner_id(first_name, last_name, phone, username)')
         .order('created_at', { ascending: false })
     ]);
 
-    const all = (profs.data ?? []) as any[];
-    setJugadores(all.filter(p => p.role === 'player'));
-    setEntrenadores(all.filter(p => p.role === 'coach' || p.role === 'trainer'));
+    const all = (usersRes.users ?? []) as any[];
+    // Los que no tienen first_name los mostramos igual en admins (por si algún registro quedó incompleto)
+    setJugadores(all.filter(p => p.role === 'player' && p.first_name));
+    setEntrenadores(all.filter(p => (p.role === 'coach' || p.role === 'trainer') && p.first_name));
     setAdmins(all.filter(p => p.role === 'super_admin' || p.role === 'complex_admin'));
     setComplejos((cxs.data ?? []) as any[]);
     setLoading(false);
   }
 
+  // Map de emails por user_id (para lookup rápido en complejos)
+  const emailByUserId = useMemo(() => {
+    const m: Record<string, string> = {};
+    [...jugadores, ...entrenadores, ...admins].forEach((u: any) => {
+      if (u.id && u.email) m[u.id] = u.email;
+    });
+    return m;
+  }, [jugadores, entrenadores, admins]);
+
   const list = useMemo(() => {
-    const arr =
+    let arr =
       tab === 'jugadores' ? jugadores :
-      tab === 'complejos' ? complejos :
+      tab === 'complejos' ? complejos.map((c: any) => ({ ...c, owner_email: emailByUserId[c.owner_id] ?? null })) :
       tab === 'entrenadores' ? entrenadores :
       admins;
     if (!q.trim()) return arr;
     const s = q.trim().toLowerCase();
     return arr.filter((x: any) => JSON.stringify(x).toLowerCase().includes(s));
-  }, [tab, q, jugadores, complejos, entrenadores, admins]);
+  }, [tab, q, jugadores, complejos, entrenadores, admins, emailByUserId]);
 
   function exportCSV() {
     if (list.length === 0) return;
@@ -153,6 +161,11 @@ export default function AdminUsuarios() {
                         👤 {c.owner.first_name} {c.owner.last_name} · 📱 {c.owner.phone ?? '—'}
                       </p>
                     )}
+                    {c.owner_email && (
+                      <p className="text-white/70 text-xs mt-0.5">
+                        ✉️ <a href={`mailto:${c.owner_email}`} className="hover:text-ball underline decoration-dotted break-all">{c.owner_email}</a>
+                      </p>
+                    )}
                     <p className="text-white/40 text-[11px] mt-1">
                       Slug: <code className="bg-black/40 px-1 rounded">{c.slug ?? '—'}</code> · Registrado {new Date(c.created_at).toLocaleDateString('es-AR')}
                     </p>
@@ -177,8 +190,18 @@ export default function AdminUsuarios() {
                       {u.category != null && <span className="text-[10px] bg-ball/20 text-ball px-2 py-0.5 rounded font-black">CAT {u.category}</span>}
                     </div>
                     <p className="text-white/60 text-sm">@{u.username ?? '—'} · 📱 {u.phone ?? '—'}</p>
+                    {u.email && (
+                      <p className="text-white/70 text-xs mt-0.5 flex items-center gap-1.5">
+                        <span>✉️</span>
+                        <a href={`mailto:${u.email}`} className="hover:text-ball underline decoration-dotted break-all">{u.email}</a>
+                        {u.email_confirmed
+                          ? <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-black shrink-0">✓ verif</span>
+                          : <span className="text-[9px] bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded font-black shrink-0">sin verif</span>}
+                      </p>
+                    )}
                     <p className="text-white/40 text-[11px] mt-1">
                       {u.locality ? `📍 ${u.locality}${u.province ? ', ' + u.province : ''}` : 'Sin localidad'} · Registrado {new Date(u.created_at).toLocaleDateString('es-AR')}
+                      {u.last_sign_in_at && ` · Último login ${new Date(u.last_sign_in_at).toLocaleDateString('es-AR')}`}
                     </p>
                   </div>
                   {u.username && (
