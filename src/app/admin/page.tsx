@@ -242,6 +242,13 @@ export default function Admin() {
             <p className="text-white/40 text-[10px]">Gráficos + tendencias</p>
           </div>
         </a>
+        <a href="/admin/usuarios" className="card !p-3 flex items-center gap-2 hover:bg-white/5 border border-ball/40">
+          <span className="text-2xl">👥</span>
+          <div className="min-w-0">
+            <p className="font-black text-sm truncate">Usuarios</p>
+            <p className="text-ball text-[10px]">Jugadores · Complejos · Profes</p>
+          </div>
+        </a>
         <a href="#banners" className="card !p-3 flex items-center gap-2 hover:bg-white/5">
           <span className="text-2xl">📢</span>
           <div className="min-w-0">
