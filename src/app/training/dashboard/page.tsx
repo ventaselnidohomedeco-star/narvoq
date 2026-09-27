@@ -77,6 +77,20 @@ export default function TrainingDashboard() {
       <h1 className="font-display font-black text-2xl">Grupo</h1>
       {me && <p className="text-white/50 text-sm">Hola profe {me.first_name}. Últimos 30 días.</p>}
 
+      {/* 🚀 CTA Centro de Entrenamiento (NUEVO módulo B2B) */}
+      <Link href="/training/centro/nuevo"
+        className="mt-4 block rounded-2xl bg-gradient-to-br from-ball/20 via-ball/10 to-transparent border-2 border-ball/40 p-4 active:scale-95 transition">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">🏫</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-ball text-[11px] font-black tracking-widest">NUEVO · B2B</p>
+            <p className="font-display font-black text-lg leading-tight">Creá tu Centro de Entrenamiento</p>
+            <p className="text-white/60 text-xs mt-0.5">Jerarquía coaches · 5 pilares · Coordinación automática de turnos · Dashboard</p>
+          </div>
+          <span className="text-ball text-xl">→</span>
+        </div>
+      </Link>
+
       <section className="grid grid-cols-4 gap-2 mt-4">
         <div className="card !p-3 text-center"><p className="text-ball font-display font-black text-xl">{stats.alumnos}</p><p className="text-white/40 text-[10px] font-bold">alumnos</p></div>
         <div className="card !p-3 text-center"><p className="text-ball font-display font-black text-xl">{stats.sesiones}</p><p className="text-white/40 text-[10px] font-bold">sesiones</p></div>
