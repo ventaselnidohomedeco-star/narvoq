@@ -163,6 +163,29 @@ export default function CentroPanel() {
             <p className="text-white/70 text-sm mt-1">Pedile al Master Coach que te agregue con tu usuario <b className="text-white">@{me.username}</b></p>
           </div>
         )}
+
+        {/* Botón SEED demo (solo super_admin) */}
+        {me?.role === 'super_admin' && (
+          <div className="mt-6 rounded-2xl bg-purple-500/10 border border-purple-500/40 p-4">
+            <p className="text-purple-300 text-[11px] font-black tracking-widest">🧪 SUPER ADMIN</p>
+            <p className="font-black mt-1">Cargar datos DEMO</p>
+            <p className="text-white/60 text-xs mt-1 mb-3">Crea 3 coaches + 15 alumnos + disponibilidades + 30 días de sesiones. Solo para demo — no correr en producción con datos reales.</p>
+            <button onClick={async () => {
+              if (!confirm('¿Cargar coaches y alumnos DEMO en este centro? Se crean ~120 sesiones, 15 alumnos y 3 coaches con emails @odpro.test')) return;
+              const r = await fetch('/api/admin/seed-centro', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ center_slug: slug })
+              });
+              const j = await r.json();
+              if (!r.ok) return alert('Error: ' + (j.error ?? 'desconocido'));
+              alert(`✓ Cargado:\n- ${j.coaches?.length ?? 0} coaches\n- ${j.students?.length ?? 0} alumnos\n- ${j.sessions ?? 0} sesiones\n- ${j.availability ?? 0} disponibilidades`);
+              window.location.reload();
+            }}
+              className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 font-black text-sm active:scale-95 transition">
+              🚀 Cargar demo (coaches + alumnos + sesiones)
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );
