@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       await admin.from('pillar_sessions').insert({
         center_id: centerId,
         student_id: student, coach_id: coach,
-        pillar, date: dateStr,
+        pillar: pilar, date: dateStr,
         hours: 1 + (Math.random() > 0.6 ? 0.5 : 0),
         attended,
         compliance_pct: pilar === 'nutricion' ? 60 + Math.floor(Math.random() * 40) : null
