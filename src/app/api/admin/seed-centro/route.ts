@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     { first: 'Lucía', last: 'Sainz', title: 'PRO COACH', specialty: 'Menores · Técnica · Iniciación', years: 8, rate: 5000, cat: 3 },
     { first: 'Martín', last: 'Di Nenno', title: 'ASISTENTE', specialty: 'Físico · GYM', years: 4, rate: 3500, cat: 4, role: 'assistant' }
   ];
-  const ALUMNOS = [
+  const ALUMNOS: Array<[string, string, string, number]> = [
     ['Federico', 'Pérez', '2271456123', 4],
     ['Sofía', 'Martínez', '2271456124', 5],
     ['Juan', 'García', '2271456125', 3],
@@ -110,8 +110,8 @@ export async function POST(req: NextRequest) {
   // Alumnos
   const studentIds: string[] = [];
   for (const [first, last, phone, cat] of ALUMNOS) {
-    const email = `demo.${(first as string).toLowerCase()}.${(last as string).toLowerCase()}@odpro.test`;
-    const id = await ensureUser(email, first as string, last as string, phone as string, cat as number, 'player');
+    const email = `demo.${first.toLowerCase()}.${last.toLowerCase()}@odpro.test`;
+    const id = await ensureUser(email, first, last, phone, cat, 'player');
     if (!id) continue;
     studentIds.push(id);
     createdIds.push(id);

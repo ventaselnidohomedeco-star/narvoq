@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
@@ -143,8 +143,8 @@ export default function Disponibilidad() {
             <div key={d.i} className="text-center text-[11px] font-black text-white/60 pb-1">{d.l.slice(0,3)}</div>
           ))}
           {HORAS.map(h => (
-            <>
-              <div key={`h${h}`} className="text-right text-[11px] text-white/50 font-bold pr-2 self-center">{h}h</div>
+            <Fragment key={`row-${h}`}>
+              <div className="text-right text-[11px] text-white/50 font-bold pr-2 self-center">{h}h</div>
               {DIAS.map(d => {
                 const on = slotsActivos.has(`${d.i}:${h}`);
                 return (
@@ -154,7 +154,7 @@ export default function Disponibilidad() {
                   </button>
                 );
               })}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>
