@@ -52,10 +52,17 @@ export async function middleware(req: NextRequest) {
 
   if (path.startsWith('/training') && !isTrainingAuth) {
     if (!user) return redirect(res, req, '/training/login');
-    const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'coach' && profile?.role !== 'super_admin')
-      return redirect(res, req, '/jugador/dashboard');
+    // /training/centro/* está abierto a cualquier usuario autenticado
+    // (para que complex_admin, coach y player que participan de un centro puedan entrar).
+    // La RLS de center_members filtra permisos internamente.
+    if (path.startsWith('/training/centro')) {
+      // Sin restricción de rol acá — la RLS decide qué puede hacer cada rol
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles').select('role').eq('id', user.id).single();
+      if (profile?.role !== 'coach' && profile?.role !== 'super_admin')
+        return redirect(res, req, '/jugador/dashboard');
+    }
   }
 
   if (path.startsWith('/complejo') && !isComplexAuth) {
