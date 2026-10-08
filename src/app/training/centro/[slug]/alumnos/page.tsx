@@ -36,7 +36,7 @@ export default function CentroAlumnos() {
     const studentIds = (al ?? []).map((a: any) => a.profile?.id).filter(Boolean);
     if (studentIds.length > 0) {
       const { data: prog } = await supabase.from('v_student_pillar_progress')
-        .select('*').eq('center_id', c.id).in('student_id', studentIds);
+        .select('*').eq('center_id', c.id).in('student_id', studentIds).limit(5000);
       const grouped: Record<string, any[]> = {};
       (prog ?? []).forEach((p: any) => {
         (grouped[p.student_id] = grouped[p.student_id] ?? []).push(p);

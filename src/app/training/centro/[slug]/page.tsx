@@ -167,22 +167,30 @@ export default function CentroPanel() {
         {/* Botón SEED demo (solo super_admin) */}
         {me?.role === 'super_admin' && (
           <div className="mt-6 rounded-2xl bg-purple-500/10 border border-purple-500/40 p-4">
-            <p className="text-purple-300 text-[11px] font-black tracking-widest">🧪 SUPER ADMIN</p>
-            <p className="font-black mt-1">Cargar datos DEMO</p>
-            <p className="text-white/60 text-xs mt-1 mb-3">Crea 3 coaches + 15 alumnos + disponibilidades + 30 días de sesiones. Solo para demo — no correr en producción con datos reales.</p>
+            <p className="text-purple-300 text-[11px] font-black tracking-widest">🧪 SUPER ADMIN · DEMO ODPRO</p>
+            <p className="font-black mt-1">Cargar simulacro completo</p>
+            <p className="text-white/60 text-xs mt-1 mb-3">
+              • 1 Master (Marcelo Terre) + 4 Coaches con dispos variadas<br/>
+              • 70 alumnos categoría 5-8 con horarios de entrenamiento<br/>
+              • ~1200 sesiones de los últimos 60 días en los 5 pilares<br/>
+              • Vinculación automática con las canchas de tu complejo<br/>
+              <b className="text-yellow-300">⚠ Limpia y vuelve a cargar si ya hay demo</b>
+            </p>
             <button onClick={async () => {
-              if (!confirm('¿Cargar coaches y alumnos DEMO en este centro? Se crean ~120 sesiones, 15 alumnos y 3 coaches con emails @odpro.test')) return;
+              if (!confirm('¿Cargar DEMO completo? Esto borra y reemplaza cualquier dato DEMO previo. Puede tardar ~1-2 min.')) return;
+              const btn = document.activeElement as HTMLButtonElement;
+              if (btn) { btn.disabled = true; btn.textContent = '⏳ Cargando (puede tardar 1-2 min)…'; }
               const r = await fetch('/api/admin/seed-centro', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ center_slug: slug })
+                body: JSON.stringify({ center_slug: slug, clean: true })
               });
               const j = await r.json();
-              if (!r.ok) return alert('Error: ' + (j.error ?? 'desconocido'));
-              alert(`✓ Cargado:\n- ${j.coaches?.length ?? 0} coaches\n- ${j.students?.length ?? 0} alumnos\n- ${j.sessions ?? 0} sesiones\n- ${j.availability ?? 0} disponibilidades`);
+              if (!r.ok) { alert('Error: ' + (j.error ?? 'desconocido')); if (btn) btn.disabled = false; return; }
+              alert(`✓ DEMO cargado:\n\n👥 ${j.coaches ?? 0} coaches\n🎓 ${j.students ?? 0} alumnos\n🏋️ ${j.sessions ?? 0} sesiones\n⏰ ${j.availability ?? 0} horarios de dispo\n🏟 Complejo vinculado: ${j.complex_linked ? '✓ sí' : '✕ no'}\n\nAndá a Coordinar turno y probá!`);
               window.location.reload();
             }}
               className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 font-black text-sm active:scale-95 transition">
-              🚀 Cargar demo (coaches + alumnos + sesiones)
+              🚀 Cargar simulacro ODpro (1-2 min)
             </button>
           </div>
         )}

@@ -33,7 +33,7 @@ export default function CentroDashboard() {
       supabase.from('center_members').select('id, profile_id, role, hourly_rate, profile:profiles!profile_id(first_name, last_name, avatar_url)')
         .eq('center_id', c.id).in('role', ['master', 'coach', 'assistant']).eq('active', true),
       supabase.from('pillar_sessions').select('*')
-        .eq('center_id', c.id).gte('date', firstOfMonth)
+        .eq('center_id', c.id).gte('date', firstOfMonth).limit(10000)
     ]);
 
     const alumActivos = (alumnos ?? []).filter((a: any) => a.active);

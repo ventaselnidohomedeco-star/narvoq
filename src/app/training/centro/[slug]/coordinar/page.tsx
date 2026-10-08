@@ -14,6 +14,8 @@ export default function CoordinarTurno() {
   const [alumnos, setAlumnos] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [availability, setAvailability] = useState<any[]>([]);
+  const [courts, setCourts] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
 
   // Selección para coordinar
   const [day, setDay] = useState<number>(new Date().getDay());
@@ -36,6 +38,24 @@ export default function CoordinarTurno() {
       const { data: av } = await supabase.from('weekly_availability')
         .select('*').in('profile_id', ids);
       setAvailability(av ?? []);
+    }
+    // Cruzar con canchas del complejo asociado
+    if (c.complex_id) {
+      const { data: ct } = await supabase.from('courts')
+        .select('id, name, price_per_slot, active')
+        .eq('complex_id', c.complex_id).eq('active', true).order('name');
+      setCourts(ct ?? []);
+      // Reservas de las próximas 2 semanas para esos courts
+      if (ct && ct.length > 0) {
+        const courtIds = ct.map((x: any) => x.id);
+        const since = new Date().toISOString();
+        const until = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+        const { data: bk } = await supabase.from('bookings')
+          .select('id, court_id, starts_at, ends_at, status')
+          .in('court_id', courtIds).gte('starts_at', since).lt('starts_at', until)
+          .neq('status', 'cancelada');
+        setBookings(bk ?? []);
+      }
     }
     setLoading(false);
   }
@@ -63,6 +83,24 @@ export default function CoordinarTurno() {
   const coachesDisponibles = useMemo(() => {
     return staff.filter((s: any) => s.profile?.id && isAvailable(s.profile.id));
   }, [staff, availability, day, hour]);
+
+  // Canchas libres del complejo en el próximo "día+hora" que coincida con el day_of_week
+  const canchasDisponibles = useMemo(() => {
+    if (courts.length === 0) return [];
+    // Buscar el próximo día de semana que coincida con `day`
+    const target = new Date();
+    const diff = (day - target.getDay() + 7) % 7;
+    target.setDate(target.getDate() + diff);
+    target.setHours(hour, 0, 0, 0);
+    const targetEnd = new Date(target.getTime() + 90 * 60 * 1000); // 90 min
+    return courts.map((c: any) => {
+      const ocupada = bookings.some((b: any) =>
+        b.court_id === c.id &&
+        new Date(b.starts_at) < targetEnd && new Date(b.ends_at) > target
+      );
+      return { ...c, ocupada };
+    });
+  }, [courts, bookings, day, hour]);
 
   if (loading) return <main className="p-8 text-white/60">Cargando…</main>;
   if (!centro) return <main className="p-8"><p className="text-white/60">Centro no encontrado</p></main>;
@@ -180,6 +218,32 @@ export default function CoordinarTurno() {
           </div>
         )}
       </section>
+
+      {/* Canchas del complejo asociado */}
+      {canchasDisponibles.length > 0 && (
+        <section className="mt-6">
+          <p className="text-ball text-[11px] font-black tracking-widest mb-2">🏟 CANCHAS DEL COMPLEJO ({canchasDisponibles.filter(c => !c.ocupada).length} libres)</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {canchasDisponibles.map((c: any) => (
+              <div key={c.id} className={`rounded-xl border p-3 text-center ${
+                c.ocupada ? 'bg-red-500/10 border-red-500/30 text-red-200' : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-200'
+              }`}>
+                <p className="font-black text-sm">{c.name}</p>
+                <p className="text-[11px] mt-0.5">{c.ocupada ? '🔒 ocupada' : '✓ libre'}</p>
+                {!c.ocupada && c.price_per_slot > 0 && (
+                  <p className="text-[10px] mt-1 opacity-70">${Number(c.price_per_slot).toLocaleString('es-AR')}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {courts.length === 0 && centro?.complex_id === null && (
+        <div className="mt-6 rounded-xl bg-yellow-500/10 border border-yellow-500/40 p-3 text-yellow-200 text-xs">
+          ℹ El centro no está vinculado a un complejo de pádel. Al correr el seed demo se vinculará automáticamente.
+        </div>
+      )}
 
       <Link href={`/training/centro/${slug}/disponibilidad`}
         className="mt-6 block text-center text-ball text-sm font-black underline">
