@@ -192,6 +192,14 @@ export default function CentroPanel() {
               className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 font-black text-sm active:scale-95 transition">
               🚀 Cargar simulacro ODpro (1-2 min)
             </button>
+
+            <Link href={`/training/centro/${slug}/demo-usuarios`}
+              className="mt-3 block text-center py-3 rounded-xl bg-blue-500/15 border border-blue-500/40 text-blue-200 font-black text-sm active:scale-95 transition">
+              🧪 Ver credenciales de usuarios DEMO →
+            </Link>
+            <p className="text-white/50 text-[11px] text-center mt-2">
+              Loguéate con cada rol para ver todas las vistas
+            </p>
           </div>
         )}
       </div>
