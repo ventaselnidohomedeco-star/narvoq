@@ -21,12 +21,19 @@ export default function TrainingDashboard() {
   const [me, setMe] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [myCenters, setMyCenters] = useState<any[]>([]);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     setMe(profile);
+    // ¿pertenezco a algún centro de entrenamiento?
+    const { data: centers } = await supabase.from('center_members')
+      .select('role, title, center:training_centers!center_id(id, slug, name, logo_url, cover_url, brand)')
+      .eq('profile_id', user.id).eq('active', true)
+      .in('role', ['master', 'coach', 'assistant']);
+    setMyCenters(centers ?? []);
     const { data: cs } = await supabase.from('coach_students')
       .select('nickname, player:profiles!player_id(id, username, first_name, last_name, avatar_url, category)')
       .eq('coach_id', user.id);
@@ -77,19 +84,55 @@ export default function TrainingDashboard() {
       <h1 className="font-display font-black text-2xl">Grupo</h1>
       {me && <p className="text-white/50 text-sm">Hola profe {me.first_name}. Últimos 30 días.</p>}
 
-      {/* 🚀 CTA Centro de Entrenamiento (NUEVO módulo B2B) */}
-      <Link href="/training/centro/nuevo"
-        className="mt-4 block rounded-2xl bg-gradient-to-br from-ball/20 via-ball/10 to-transparent border-2 border-ball/40 p-4 active:scale-95 transition">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">🏫</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-ball text-[11px] font-black tracking-widest">NUEVO · B2B</p>
-            <p className="font-display font-black text-lg leading-tight">Creá tu Centro de Entrenamiento</p>
-            <p className="text-white/60 text-xs mt-0.5">Jerarquía coaches · 5 pilares · Coordinación automática de turnos · Dashboard</p>
-          </div>
-          <span className="text-ball text-xl">→</span>
+      {/* 🏫 Centros a los que pertenezco (si hay) */}
+      {myCenters.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          {myCenters.map((cm: any) => {
+            const c = cm.center;
+            if (!c) return null;
+            const roleLabel = cm.role === 'master' ? '⭐ MASTER COACH' : cm.role === 'coach' ? '🎾 COACH' : '📝 ASISTENTE';
+            const roleColor = cm.role === 'master' ? 'from-purple-500/25 via-purple-500/10 border-purple-500/50 text-purple-200'
+                            : cm.role === 'coach' ? 'from-ball/25 via-ball/10 border-ball/50 text-ball'
+                            : 'from-blue-500/25 via-blue-500/10 border-blue-500/50 text-blue-200';
+            return (
+              <Link key={c.id} href={`/training/centro/${c.slug}`}
+                className={`block rounded-2xl bg-gradient-to-br ${roleColor} border-2 p-4 active:scale-95 transition`}>
+                <div className="flex items-center gap-3">
+                  {c.logo_url
+                    ? <img src={c.logo_url} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0 border border-white/20" />
+                    : <span className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center text-2xl shrink-0">🏫</span>}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black tracking-widest">{roleLabel}</p>
+                    <p className="font-display font-black text-lg leading-tight text-white">{c.name}</p>
+                    {c.brand && <p className="text-white/60 text-xs">{c.brand}</p>}
+                  </div>
+                  <span className="text-xl">→</span>
+                </div>
+                <p className="text-white/70 text-xs mt-2 ml-[68px]">
+                  Entrá al panel para gestionar alumnos, coordinar turnos y ver stats
+                </p>
+              </Link>
+            );
+          })}
+          <Link href="/training/centro/nuevo"
+            className="block text-center text-white/50 text-xs font-black py-2 underline">
+            + Crear otro centro
+          </Link>
         </div>
-      </Link>
+      ) : (
+        <Link href="/training/centro/nuevo"
+          className="mt-4 block rounded-2xl bg-gradient-to-br from-ball/20 via-ball/10 to-transparent border-2 border-ball/40 p-4 active:scale-95 transition">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🏫</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-ball text-[11px] font-black tracking-widest">NUEVO · B2B</p>
+              <p className="font-display font-black text-lg leading-tight">Creá tu Centro de Entrenamiento</p>
+              <p className="text-white/60 text-xs mt-0.5">Jerarquía coaches · 5 pilares · Coordinación automática de turnos · Dashboard</p>
+            </div>
+            <span className="text-ball text-xl">→</span>
+          </div>
+        </Link>
+      )}
 
       <section className="grid grid-cols-4 gap-2 mt-4">
         <div className="card !p-3 text-center"><p className="text-ball font-display font-black text-xl">{stats.alumnos}</p><p className="text-white/40 text-[10px] font-bold">alumnos</p></div>

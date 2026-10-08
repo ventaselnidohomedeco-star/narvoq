@@ -36,6 +36,18 @@ export default function DemoUsuarios() {
     setTimeout(() => setCopied(''), 1500);
   }
 
+  async function loginAs(email: string, role: string) {
+    if (!confirm(`¿Cerrar tu sesión de super_admin y loguearte como ${email}?\n\nPodés volver después logueándote con tu email real.`)) return;
+    // Cerrar sesión actual
+    await supabase.auth.signOut();
+    // Login con el usuario demo
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { alert('Error: ' + error.message); return; }
+    // Redirigir según rol
+    const dest = role === 'student' ? '/jugador/dashboard' : '/training/dashboard';
+    window.location.href = dest;
+  }
+
   const staff = useMemo(() => users.filter(u => u.role !== 'student'), [users]);
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const filtered = useMemo(() => {
@@ -122,6 +134,10 @@ export default function DemoUsuarios() {
                   <button onClick={() => copy(u.email, u.email)}
                     className="shrink-0 px-2 py-1 rounded bg-white/10 text-white font-black text-[11px]">
                     {copied === u.email ? '✓' : '📋'}
+                  </button>
+                  <button onClick={() => loginAs(u.email, u.role)}
+                    className="shrink-0 px-2.5 py-1 rounded bg-ball text-black font-black text-[11px]">
+                    🔑 Entrar
                   </button>
                 </div>
               </div>
