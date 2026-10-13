@@ -67,6 +67,6 @@ alter table pillar_sessions add column if not exists wa_sent_at timestamptz; -- 
 alter table pillar_sessions add column if not exists court_id uuid references courts(id); -- cancha opcional
 alter table pillar_sessions add column if not exists session_time time; -- hora específica (ej 17:30)
 
-create index if not exists idx_pillar_sessions_future on pillar_sessions(center_id, date) where date >= current_date;
+create index if not exists idx_pillar_sessions_center_date on pillar_sessions(center_id, date);
 
 notify pgrst, 'reload schema';
