@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
       await admin.from('pillar_sessions').delete().eq('center_id', centerId);
       // Borrar disponibilidades
       await admin.from('weekly_availability').delete().eq('center_id', centerId);
+      // Borrar evaluaciones
+      await admin.from('coaching_evaluations').delete().eq('center_id', centerId);
       // Borrar members (excepto el master real que creó el centro, para no romper su acceso)
       await admin.from('center_members').delete().eq('center_id', centerId).neq('role', 'master');
       // Borrar profiles demo (que terminan en @odpro.test)
@@ -215,5 +217,63 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, ...results });
+  // SESIONES FUTURAS: próximos 7 días (para probar Confirmaciones WA)
+  const resultsFuture = { future_sessions: 0 };
+  for (let d = 1; d <= 7; d++) {
+    const date = new Date(); date.setDate(date.getDate() + d);
+    const dateStr = date.toISOString().slice(0, 10);
+    // 8-12 sesiones futuras por día
+    const nSesiones = 8 + Math.floor(Math.random() * 5);
+    for (let s = 0; s < nSesiones; s++) {
+      if (allStudentIds.length === 0 || allStaffIds.length === 0) break;
+      const student = pick(allStudentIds);
+      const coach = pick(allStaffIds);
+      const pilar = pick(['cancha','cancha','cancha','gym','psicologia']);
+      const hour = 15 + Math.floor(Math.random() * 7); // 15hs a 22hs
+      const minutes = Math.random() > 0.5 ? '00' : '30';
+      await admin.from('pillar_sessions').insert({
+        center_id: centerId,
+        student_id: student, coach_id: coach,
+        pillar: pilar, date: dateStr,
+        session_time: `${hour.toString().padStart(2,'0')}:${minutes}`,
+        hours: 1 + (Math.random() > 0.5 ? 0.5 : 0),
+        attended: true,
+        // 30% ya confirmado, 20% WA enviado sin respuesta, 50% sin tocar
+        confirmed_at: Math.random() < 0.3 ? new Date().toISOString() : null,
+        wa_sent_at: Math.random() < 0.5 ? new Date().toISOString() : null
+      });
+      resultsFuture.future_sessions++;
+    }
+  }
+
+  // EVALUACIONES: ~30 random en los últimos 60 días
+  const resultsEvals = { evaluations: 0 };
+  const sampleStudents = [...allStudentIds].sort(() => Math.random() - 0.5).slice(0, 30);
+  for (const stuId of sampleStudents) {
+    const coachId = pick(allStaffIds);
+    const daysAgo = Math.floor(Math.random() * 60);
+    const date = new Date(); date.setDate(date.getDate() - daysAgo);
+    const scores = {
+      score_tecnica: 5 + Math.floor(Math.random() * 5),
+      score_tactica: 5 + Math.floor(Math.random() * 5),
+      score_fisico: 5 + Math.floor(Math.random() * 5),
+      score_mental: 5 + Math.floor(Math.random() * 5),
+      score_actitud: 6 + Math.floor(Math.random() * 4),
+      score_compromiso: 5 + Math.floor(Math.random() * 5)
+    };
+    const overall = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 6);
+    await admin.from('coaching_evaluations').insert({
+      center_id: centerId,
+      student_id: stuId, coach_id: coachId,
+      date: date.toISOString().slice(0, 10),
+      ...scores, overall,
+      strengths: pick(['Muy buen revés y buena actitud en entrenamientos.', 'Gran físico y mentalidad competitiva.', 'Técnica sólida y foco en objetivos.']),
+      weaknesses: pick(['Trabajar salida de pared y decisión en volea.', 'Mejorar manejo de la ansiedad en punto corto.', 'Afinar bandeja y globo defensivo.']),
+      goals: pick(['Subir media categoría en 3 meses.', 'Consolidar bandeja y globo liftado.', 'Mejorar % de aciertos en primera volea.']),
+      next_eval_date: new Date(date.getTime() + 30 * 86400000).toISOString().slice(0, 10)
+    });
+    resultsEvals.evaluations++;
+  }
+
+  return NextResponse.json({ ok: true, ...results, ...resultsFuture, ...resultsEvals });
 }

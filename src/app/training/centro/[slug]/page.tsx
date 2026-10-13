@@ -132,6 +132,16 @@ export default function CentroPanel() {
                 <p className="font-black text-sm mt-1">Pilares</p>
                 <p className="text-white/50 text-[11px]">Registrar sesiones</p>
               </Link>
+              <Link href={`/training/centro/${slug}/coaching`} className="rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 p-4">
+                <p className="text-2xl">🎯</p>
+                <p className="font-black text-sm mt-1 text-purple-200">Coaching</p>
+                <p className="text-white/60 text-[11px]">Evaluaciones por alumno</p>
+              </Link>
+              <Link href={`/training/centro/${slug}/confirmaciones`} className="rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 p-4">
+                <p className="text-2xl">📱</p>
+                <p className="font-black text-sm mt-1 text-emerald-200">Confirmar WA</p>
+                <p className="text-white/60 text-[11px]">Avisos de asistencia</p>
+              </Link>
               <div className="rounded-xl bg-white/5 border border-white/10 p-4 opacity-50">
                 <p className="text-2xl">💰</p>
                 <p className="font-black text-sm mt-1">Bonos</p>
