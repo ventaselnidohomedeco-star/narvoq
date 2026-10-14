@@ -148,31 +148,94 @@ export default function CentroPanel() {
                 <p className="text-white/40 text-[11px]">Próximamente</p>
               </div>
             </div>
-          </div>
-        )}
 
-        {!isMaster && isStaff && (
-          <div className="mt-4">
-            <p className="text-ball text-[11px] font-black tracking-widest mb-2">PANEL DE {myRole?.toUpperCase()}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Link href={`/training/centro/${slug}/alumnos`} className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-4">
-                <p className="text-2xl">🎓</p>
-                <p className="font-black text-sm mt-1">Mis alumnos</p>
+            {/* Comunidad: Torneos, Feed, Smashe@ */}
+            <p className="text-ball text-[11px] font-black tracking-widest mt-5 mb-2">🌐 COMUNIDAD</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Link href="/training/torneos" className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-3 text-center">
+                <p className="text-2xl">🏆</p>
+                <p className="font-black text-xs mt-1">Torneos</p>
+                <p className="text-white/50 text-[10px]">Crear y gestionar</p>
               </Link>
-              <Link href={`/training/centro/${slug}/pilares`} className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-4">
-                <p className="text-2xl">🏋️</p>
-                <p className="font-black text-sm mt-1">Registrar sesión</p>
+              <Link href="/jugador/feed" className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-3 text-center">
+                <p className="text-2xl">📰</p>
+                <p className="font-black text-xs mt-1">Feed</p>
+                <p className="text-white/50 text-[10px]">Comunidad NarvoQ</p>
+              </Link>
+              <Link href="/smash" className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-3 text-center">
+                <p className="text-2xl">💬</p>
+                <p className="font-black text-xs mt-1">Smashe@</p>
+                <p className="text-white/50 text-[10px]">Chat 24hs</p>
               </Link>
             </div>
           </div>
         )}
 
-        {!isStaff && me && (
+        {!isMaster && isStaff && (
+          <div className="mt-4">
+            <p className="text-ball text-[11px] font-black tracking-widest mb-2">
+              PANEL DE {myRole === 'coach' ? '🎾 COACH' : '📝 ASISTENTE'}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Link href={`/training/centro/${slug}/alumnos`} className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-4">
+                <p className="text-2xl">🎓</p>
+                <p className="font-black text-sm mt-1">Alumnos</p>
+                <p className="text-white/50 text-[11px]">Ver y gestionar</p>
+              </Link>
+              <Link href={`/training/centro/${slug}/pilares`} className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-4">
+                <p className="text-2xl">🏋️</p>
+                <p className="font-black text-sm mt-1">Pilares</p>
+                <p className="text-white/50 text-[11px]">Registrar sesiones</p>
+              </Link>
+              <Link href={`/training/centro/${slug}/coaching`} className="rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 p-4">
+                <p className="text-2xl">🎯</p>
+                <p className="font-black text-sm mt-1 text-purple-200">Coaching</p>
+                <p className="text-white/60 text-[11px]">Evaluar alumnos</p>
+              </Link>
+              <Link href={`/training/centro/${slug}/confirmaciones`} className="rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 p-4">
+                <p className="text-2xl">📱</p>
+                <p className="font-black text-sm mt-1 text-emerald-200">Confirmar WA</p>
+                <p className="text-white/60 text-[11px]">Avisos de asistencia</p>
+              </Link>
+            </div>
+
+            {/* Comunidad para coaches/asistentes */}
+            <p className="text-ball text-[11px] font-black tracking-widest mt-5 mb-2">🌐 COMUNIDAD</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Link href="/training/torneos" className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-3 text-center">
+                <p className="text-2xl">🏆</p>
+                <p className="font-black text-xs mt-1">Torneos</p>
+              </Link>
+              <Link href="/jugador/feed" className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-3 text-center">
+                <p className="text-2xl">📰</p>
+                <p className="font-black text-xs mt-1">Feed</p>
+              </Link>
+              <Link href="/smash" className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-3 text-center">
+                <p className="text-2xl">💬</p>
+                <p className="font-black text-xs mt-1">Smashe@</p>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {!isStaff && me && (myRole === 'student' ? (
+          <div className="mt-4 space-y-3">
+            <div className="rounded-2xl bg-ball/15 border border-ball/40 p-5">
+              <p className="text-ball text-[11px] font-black tracking-widest">🎓 SOS ALUMNO</p>
+              <p className="font-display font-black text-lg mt-1">Bienvenido a {centro.name}</p>
+              <p className="text-white/70 text-sm mt-1">Tu Master Coach y los profes van a registrar tus sesiones, evaluarte y coordinar tus turnos.</p>
+            </div>
+            <Link href="/jugador/dashboard" className="block rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-4 text-center">
+              <p className="font-black">📊 Ver mi progreso</p>
+              <p className="text-white/50 text-xs mt-0.5">Horas por pilar, confirmaciones y stats personales</p>
+            </Link>
+          </div>
+        ) : (
           <div className="mt-4 rounded-2xl bg-ball/10 border border-ball/30 p-5">
             <p className="font-black text-ball">¿Sos alumno del centro?</p>
             <p className="text-white/70 text-sm mt-1">Pedile al Master Coach que te agregue con tu usuario <b className="text-white">@{me.username}</b></p>
           </div>
-        )}
+        ))}
 
         {/* Botón SEED demo (solo super_admin) */}
         {me?.role === 'super_admin' && (

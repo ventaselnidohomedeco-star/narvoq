@@ -132,9 +132,9 @@ export default function TrainingRegistro() {
   return (
     <main className="min-h-dvh px-6 py-10 max-w-md mx-auto">
       <Brand variant="full" size={36} className="mb-4" />
-      <p className="font-display font-black text-ball text-sm tracking-widest">TRAINING</p>
-      <h1 className="font-display font-black text-3xl mt-1">Crear cuenta de profe</h1>
-      <p className="text-white/50 mt-1">Registrá alumnos, cargá sesiones y compartí sus dashboards.</p>
+      <p className="font-display font-black text-ball text-sm tracking-widest">CENTRO DE ENTRENAMIENTO</p>
+      <h1 className="font-display font-black text-3xl mt-1">Crear cuenta</h1>
+      <p className="text-white/50 mt-1">Armá tu centro con jerarquía de coaches, alumnos, 5 pilares, coordinación automática y dashboard completo.</p>
 
       <div className="mt-6">
         <GoogleAuthButton role="coach" label="Registrarme con Google" />

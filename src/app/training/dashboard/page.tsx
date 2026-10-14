@@ -81,8 +81,8 @@ export default function TrainingDashboard() {
 
   return (
     <main className="px-5 py-6">
-      <h1 className="font-display font-black text-2xl">Grupo</h1>
-      {me && <p className="text-white/50 text-sm">Hola profe {me.first_name}. Últimos 30 días.</p>}
+      <h1 className="font-display font-black text-2xl">Mi Centro</h1>
+      {me && <p className="text-white/50 text-sm">Hola {me.first_name}. Últimos 30 días.</p>}
 
       {/* 🏫 Centros a los que pertenezco (si hay) */}
       {myCenters.length > 0 ? (

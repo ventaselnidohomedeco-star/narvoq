@@ -109,7 +109,7 @@ export default function AdminUsuarios() {
         {[
           { k: 'jugadores' as Tab, l: '🎾 Jugadores', v: stats.jugadores, color: 'bg-ball/15 border-ball/40 text-ball' },
           { k: 'complejos' as Tab, l: '🏟 Complejos', v: stats.complejos, color: 'bg-blue-500/15 border-blue-500/40 text-blue-300' },
-          { k: 'entrenadores' as Tab, l: '👨‍🏫 Entrenadores', v: stats.entrenadores, color: 'bg-orange-500/15 border-orange-500/40 text-orange-300' },
+          { k: 'entrenadores' as Tab, l: '🏫 Centros de Entrenamiento', v: stats.entrenadores, color: 'bg-orange-500/15 border-orange-500/40 text-orange-300' },
           { k: 'admins' as Tab, l: '⚙️ Admins', v: stats.admins, color: 'bg-purple-500/15 border-purple-500/40 text-purple-300' }
         ].map(s => (
           <button key={s.k} onClick={() => setTab(s.k)}

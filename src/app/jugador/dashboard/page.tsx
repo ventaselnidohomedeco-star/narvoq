@@ -8,6 +8,7 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 import TrialCountdown from '@/components/TrialCountdown';
 import InstallButton from '@/components/InstallButton';
 import BienvenidaBanner from '@/components/BienvenidaBanner';
+import MisCentrosComoAlumno from '@/components/MisCentrosComoAlumno';
 import type { Profile } from '@/lib/types';
 
 export default function Dashboard() {
@@ -102,6 +103,9 @@ export default function Dashboard() {
 
       {/* Banner de bienvenida — solo para recién registrados */}
       {profile && <BienvenidaBanner profile={profile} />}
+
+      {/* Centros a los que pertenezco como ALUMNO */}
+      {profile && <MisCentrosComoAlumno profileId={profile.id} />}
 
       {/* Chart: winrate y balance — SOLO Premium */}
       {stats.played > 0 && (profile as any)?.is_premium && (

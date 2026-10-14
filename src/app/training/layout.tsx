@@ -48,11 +48,11 @@ const Icon = {
 };
 
 const items = [
-  { href: '/training/dashboard', label: 'Grupo', icon: Icon.group },
+  { href: '/training/dashboard', label: 'Mi Centro', icon: Icon.group },
   { href: '/training/alumnos', label: 'Alumnos', icon: Icon.student },
   { href: '/training/torneos', label: 'Torneos', icon: Icon.trophy },
-  { href: '/smash', label: 'Smashe@', icon: Icon.chat },
-  { href: '/training/perfil', label: 'Perfil', icon: Icon.profile }
+  { href: '/jugador/feed', label: 'Feed', icon: Icon.network },
+  { href: '/smash', label: 'Smashe@', icon: Icon.chat }
 ];
 
 export default function TrainingLayout({ children }: { children: React.ReactNode }) {
@@ -76,7 +76,7 @@ export default function TrainingLayout({ children }: { children: React.ReactNode
         <div className="px-5 mb-6">
           <Link href="/training/dashboard" className="block">
             <img src="/brand/logo.png?v=9" alt="NarvoQ" style={{ height: 64, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
-            <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">PORTAL TRAINING</p>
+            <p className="text-white/40 text-[10px] font-bold tracking-widest mt-1">CENTRO DE ENTRENAMIENTO</p>
           </Link>
         </div>
         <ul className="flex-1 space-y-1 px-3">

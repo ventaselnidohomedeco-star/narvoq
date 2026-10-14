@@ -37,15 +37,16 @@ const ROLE_INFO: Record<Role, {
     ],
   },
   coach: {
-    title: 'Soy entrenador',
-    emoji: '🎓',
+    title: 'Centro de Entrenamiento',
+    emoji: '🏫',
     loginHref: '/training/login',
     registerHref: '/training/registro',
     features: [
-      { emoji: '👨‍🏫', title: 'Dashboard por alumno', text: 'Registrás cada sesión: foco, tarea y evaluación 0–10.' },
-      { emoji: '📈', title: 'Progreso del grupo', text: 'Métricas de los últimos 30 días: sesiones, minutos, intensidad.' },
-      { emoji: '🎓', title: 'Perfil público', text: 'Los jugadores te encuentran con tu disponibilidad y tarifas.' },
-      { emoji: '📤', title: 'Compartís por WhatsApp', text: 'Un botón y el alumno ve su progreso en su cuenta.' },
+      { emoji: '🏫', title: 'Jerarquía Master · Coach · Asistente', text: 'Armá tu equipo con roles. Cada uno con sus permisos y responsabilidades.' },
+      { emoji: '🎯', title: 'Coaching con evaluaciones', text: 'Scoring periódico por alumno en 6 dimensiones + fortalezas, mejoras y objetivos.' },
+      { emoji: '🏋️', title: '5 pilares de formación', text: 'Cancha, GYM, Filosofía, Psicología y Nutrición — horas y cumplimiento por alumno.' },
+      { emoji: '✨', title: 'Coordinación automática', text: 'Cruce de dispo alumno + coach + cancha + categoría. 1 click y los contactás.' },
+      { emoji: '📱', title: 'WhatsApp confirmaciones', text: 'Avisá a tus alumnos antes de cada clase. Semi-auto hoy, 100% automático con Fase 2.' },
       { emoji: '🏆', title: 'Creás torneos propios', text: 'Fixture, standings y bracket totalmente automático.' },
       { emoji: '💎', title: 'Academia Premium', text: 'Vendé clases individuales y packs a jugadores nuevos.' },
     ],
@@ -141,8 +142,8 @@ export default function Landing() {
           <button
             onClick={() => setRole('coach')}
             className="w-full bg-white/10 border border-white/15 text-white font-display font-black rounded-2xl py-5 text-lg md:text-xl flex items-center justify-center gap-2 active:scale-[0.98] transition">
-            <span className="text-2xl">🎓</span>
-            Soy entrenador
+            <span className="text-2xl">🏫</span>
+            Centro de Entrenamiento
           </button>
           <button
             onClick={() => setRole('complex')}

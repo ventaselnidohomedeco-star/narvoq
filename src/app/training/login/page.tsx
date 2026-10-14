@@ -21,7 +21,7 @@ export default function TrainingLogin() {
     if (error) { setError('Email o contraseña incorrectos.'); setLoading(false); return; }
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
     if (profile?.role !== 'coach' && profile?.role !== 'super_admin') {
-      setError('Esta cuenta no es de profe. Registrate como profe para entrar acá.');
+      setError('Esta cuenta no es de un Centro de Entrenamiento. Registrate como tal para entrar acá.');
       setLoading(false); return;
     }
     router.push('/training/dashboard');
@@ -31,7 +31,7 @@ export default function TrainingLogin() {
     <main className="min-h-dvh flex flex-col justify-center px-6 max-w-md mx-auto">
       <Brand variant="full" size={36} className="mb-4" />
       <p className="font-display font-black text-ball text-sm tracking-widest">TRAINING</p>
-      <h1 className="font-display font-black text-3xl mt-1">Portal profes</h1>
+      <h1 className="font-display font-black text-3xl mt-1">Centro de Entrenamiento</h1>
       <p className="text-white/50 mt-1">Dashboards por alumno y del grupo entero.</p>
 
       <div className="mt-6">
@@ -46,14 +46,14 @@ export default function TrainingLogin() {
           <PasswordInput value={password} onChange={e => setPassword(e.target.value)} required /></div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button className="btn-ball w-full text-lg" disabled={loading}>
-          {loading ? 'Entrando…' : 'Entrar como profe'}
+          {loading ? 'Entrando…' : 'Entrar a mi Centro'}
         </button>
       </form>
       <p className="mt-3 text-center">
         <Link href="/recuperar" className="text-white/60 text-sm underline">Olvidé mi contraseña</Link>
       </p>
       <p className="mt-6 text-white/50">
-        ¿Todavía no tenés cuenta de profe? <Link href="/training/registro" className="text-ball font-semibold">Registrate</Link>
+        ¿Todavía no tenés cuenta? <Link href="/training/registro" className="text-ball font-semibold">Registrate</Link>
       </p>
     </main>
   );

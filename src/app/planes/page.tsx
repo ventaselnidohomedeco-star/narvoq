@@ -23,7 +23,7 @@ type Plan = {
 
 const ROLE_INFO = {
   player: { title: 'Jugador', plural: 'Jugadores', emoji: '🎾' },
-  coach: { title: 'Entrenador', plural: 'Entrenadores', emoji: '🎓' },
+  coach: { title: 'Centro de Entrenamiento', plural: 'Centros de Entrenamiento', emoji: '🏫' },
   complex_admin: { title: 'Complejo', plural: 'Complejos', emoji: '🏟️' }
 };
 
