@@ -90,10 +90,11 @@ export default function MisCentrosComoAlumno({ profileId }: { profileId: string 
 
       {/* Confirmaciones pendientes */}
       {confirmPending.length > 0 && (
-        <div className="rounded-2xl bg-orange-500/10 border border-orange-500/40 p-4">
+        <Link href="/jugador/mis-clases"
+          className="block rounded-2xl bg-orange-500/15 border border-orange-500/40 p-4 active:scale-95 transition">
           <p className="text-orange-200 text-[11px] font-black tracking-widest">📅 CLASES POR CONFIRMAR</p>
-          <p className="text-white/80 text-xs mt-1 mb-3">
-            Tenés {confirmPending.length} {confirmPending.length === 1 ? 'clase' : 'clases'} próximas sin confirmar
+          <p className="text-white font-black text-sm mt-1 mb-2">
+            Tenés {confirmPending.length} {confirmPending.length === 1 ? 'clase próxima' : 'clases próximas'} sin confirmar — tocá para avisar
           </p>
           <div className="space-y-1.5">
             {confirmPending.slice(0, 3).map((s: any) => {
@@ -108,7 +109,16 @@ export default function MisCentrosComoAlumno({ profileId }: { profileId: string 
               );
             })}
           </div>
-        </div>
+          <p className="text-orange-300 text-[11px] font-black mt-2">Ir a Mis clases →</p>
+        </Link>
+      )}
+
+      {/* Link a Mis Clases siempre visible */}
+      {centros.length > 0 && (
+        <Link href="/jugador/mis-clases"
+          className="block rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 p-3 text-center text-white font-black text-sm transition">
+          🏫 Ver todas mis clases y evaluaciones →
+        </Link>
       )}
     </div>
   );

@@ -116,14 +116,38 @@ export default function Confirmaciones() {
       <h1 className="font-display font-black text-2xl mt-1">📱 Confirmaciones WhatsApp</h1>
       <p className="text-white/50 text-sm">Sesiones agendadas · Enviá recordatorios a los alumnos</p>
 
-      {/* Banner Fase 2 */}
-      <div className="mt-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-transparent border border-emerald-500/40 p-4">
-        <p className="text-emerald-300 text-[11px] font-black tracking-widest">💚 FASE 2 · WHATSAPP AUTOMÁTICO</p>
-        <p className="text-white/80 text-sm mt-1">
-          <b>Hoy (manual):</b> tocás "Enviar WA" y se abre WhatsApp con el mensaje listo.
-          <br/>
-          <b>Fase 2 (en setup):</b> integración con WhatsApp Business API — los mensajes se envían SOLOS 24hs antes de cada sesión. Costo ~USD 0.02/msg.
-        </p>
+      {/* Mock Mensajes Programados (Fase 2) */}
+      <div className="mt-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-transparent border-2 border-emerald-500/50 p-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-emerald-300 text-[11px] font-black tracking-widest">💚 WHATSAPP BUSINESS API</p>
+          <span className="text-[9px] bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded font-black">FASE 2 · próximamente</span>
+        </div>
+        <p className="font-display font-black text-lg mt-2">Cola de mensajes programados</p>
+
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-3 bg-black/40 rounded-xl px-3 py-2.5">
+            <span className="text-xl">⏰</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-sm">Mañana 09:00</p>
+              <p className="text-white/50 text-xs">{sessions.filter(s => s.date === new Date(Date.now() + 86400000).toISOString().slice(0,10)).length} mensajes se enviarán automáticamente</p>
+            </div>
+            <span className="text-emerald-300 text-xs font-black">AGENDADO</span>
+          </div>
+          <div className="flex items-center gap-3 bg-black/40 rounded-xl px-3 py-2.5 opacity-60">
+            <span className="text-xl">✅</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-sm">Hoy 09:00</p>
+              <p className="text-white/50 text-xs">18 mensajes enviados · 14 confirmados · 4 sin respuesta</p>
+            </div>
+            <span className="text-white/40 text-xs font-black">HECHO</span>
+          </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-emerald-500/20 text-white/70 text-xs">
+          <p><b className="text-emerald-300">Hoy:</b> enviás manual tocando botón 📱 WA (abre WhatsApp con texto)</p>
+          <p className="mt-1"><b className="text-emerald-300">Fase 2 (+USD 25/mes):</b> integración completa con Meta — los mensajes salen SOLOS 24hs antes</p>
+          <p className="mt-1 text-white/50">Costo real WA Business ~USD 0.02/msg (incluido en el abono)</p>
+        </div>
       </div>
 
       {/* Filtros */}

@@ -77,6 +77,20 @@ export default function PerfilComplejo() {
       <h1 className="font-display font-black text-xl">Perfil del complejo</h1>
       {saved && <p className="text-green-400 text-sm font-semibold mt-1">✓ Guardado</p>}
 
+      {/* 🏫 Crear Centro de Entrenamiento */}
+      <a href="/training/centro/nuevo"
+        className="mt-4 block rounded-2xl bg-gradient-to-br from-purple-500/20 via-purple-500/5 to-transparent border-2 border-purple-500/40 p-4 active:scale-95 transition">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">🏫</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-purple-300 text-[11px] font-black tracking-widest">NUEVO · B2B</p>
+            <p className="font-display font-black text-lg leading-tight">¿Tenés escuela / academia de pádel?</p>
+            <p className="text-white/60 text-xs mt-0.5">Gestioná tu Centro de Entrenamiento acá: coaches, alumnos, pilares, evaluaciones, dashboard</p>
+          </div>
+          <span className="text-purple-300 text-xl">→</span>
+        </div>
+      </a>
+
       {/* 📤 LINK PÚBLICO DE RESERVAS — la joya de la Fase 1 */}
       <div className="mt-4 rounded-2xl border-2 border-ball/40 bg-gradient-to-br from-ball/10 to-transparent p-5">
         <p className="text-ball text-[11px] font-black tracking-widest">🚀 TU LINK MÁGICO</p>

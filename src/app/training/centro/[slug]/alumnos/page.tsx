@@ -7,10 +7,13 @@ import { supabase } from '@/lib/supabase/client';
 export default function CentroAlumnos() {
   const { slug } = useParams<{ slug: string }>();
   const [me, setMe] = useState<any>(null);
+  const [myRole, setMyRole] = useState<string | null>(null);
   const [centro, setCentro] = useState<any>(null);
   const [alumnos, setAlumnos] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
   const [progresos, setProgresos] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
+  const [filterCoach, setFilterCoach] = useState<string>('all');
 
   // Modal add
   const [addOpen, setAddOpen] = useState(false);
@@ -18,6 +21,7 @@ export default function CentroAlumnos() {
   const [results, setResults] = useState<any[]>([]);
   const [chosen, setChosen] = useState<any>(null);
   const [monthlyFee, setMonthlyFee] = useState('1000');
+  const [assignedCoach, setAssignedCoach] = useState('');
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState('');
 
@@ -27,8 +31,21 @@ export default function CentroAlumnos() {
     const { data: c } = await supabase.from('training_centers').select('*').eq('slug', slug).maybeSingle();
     if (!c) { setLoading(false); return; }
     setCentro(c);
+    // Mi rol
+    if (user) {
+      const { data: cm } = await supabase.from('center_members')
+        .select('role').eq('center_id', c.id).eq('profile_id', user.id).maybeSingle();
+      setMyRole(cm?.role ?? null);
+      // Si soy coach (no master), por default filtrar por mí
+      if (cm?.role === 'coach' || cm?.role === 'assistant') setFilterCoach(user.id);
+    }
+    // Staff para asignar coach
+    const { data: st } = await supabase.from('center_members')
+      .select('profile:profiles!profile_id(id, first_name, last_name)')
+      .eq('center_id', c.id).in('role', ['master', 'coach', 'assistant']).eq('active', true);
+    setStaff(st ?? []);
     const { data: al } = await supabase.from('center_members')
-      .select('id, monthly_fee, payment_status, joined_at, profile:profiles!profile_id(id, first_name, last_name, username, avatar_url, category, phone)')
+      .select('id, monthly_fee, payment_status, joined_at, assigned_coach_id, profile:profiles!profile_id(id, first_name, last_name, username, avatar_url, category, phone), coach:profiles!assigned_coach_id(first_name, last_name)')
       .eq('center_id', c.id).eq('role', 'student').eq('active', true)
       .order('joined_at', { ascending: false });
     setAlumnos(al ?? []);
@@ -72,10 +89,18 @@ export default function CentroAlumnos() {
       role: 'student',
       monthly_fee: monthlyFee ? Number(monthlyFee) : null,
       payment_status: 'al_dia',
+      assigned_coach_id: assignedCoach || null,
       next_billing_date: nextBilling.toISOString().slice(0, 10)
     });
     setSaving(false);
-    setAddOpen(false); setChosen(null); setSearch('');
+    setAddOpen(false); setChosen(null); setSearch(''); setAssignedCoach('');
+    load();
+  }
+
+  async function cambiarCoach(alumnoId: string, newCoachId: string) {
+    await supabase.from('center_members')
+      .update({ assigned_coach_id: newCoachId || null })
+      .eq('id', alumnoId);
     load();
   }
 
@@ -86,12 +111,23 @@ export default function CentroAlumnos() {
   }
 
   const filtered = useMemo(() => {
-    if (!q.trim()) return alumnos;
-    const s = q.trim().toLowerCase();
-    return alumnos.filter((a: any) =>
-      `${a.profile?.first_name} ${a.profile?.last_name} ${a.profile?.username}`.toLowerCase().includes(s)
-    );
-  }, [q, alumnos]);
+    let list = alumnos;
+    // Filtro por coach asignado
+    if (filterCoach === '__none__') {
+      list = list.filter((a: any) => !a.assigned_coach_id);
+    } else if (filterCoach !== 'all') {
+      list = list.filter((a: any) => a.assigned_coach_id === filterCoach);
+    }
+    if (q.trim()) {
+      const s = q.trim().toLowerCase();
+      list = list.filter((a: any) =>
+        `${a.profile?.first_name} ${a.profile?.last_name} ${a.profile?.username}`.toLowerCase().includes(s)
+      );
+    }
+    return list;
+  }, [q, alumnos, filterCoach]);
+
+  const isMaster = myRole === 'master';
 
   if (loading) return <main className="p-8 text-white/60">Cargando…</main>;
   if (!centro) return <main className="p-8"><p className="text-white/60">Centro no encontrado</p></main>;
@@ -110,6 +146,26 @@ export default function CentroAlumnos() {
       <input value={q} onChange={e => setQ(e.target.value)}
         placeholder="🔍 Buscar alumno…"
         className="input w-full mt-4" />
+
+      {/* Filtro por coach asignado */}
+      {staff.length > 0 && (
+        <div className="mt-3 flex gap-2 flex-wrap">
+          <button onClick={() => setFilterCoach('all')}
+            className={`px-3 py-1.5 rounded-full text-xs font-black ${filterCoach === 'all' ? 'bg-ball text-black' : 'bg-white/5 text-white/60 border border-white/10'}`}>
+            Todos
+          </button>
+          {staff.map((s: any) => (
+            <button key={s.profile?.id} onClick={() => setFilterCoach(s.profile?.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-black ${filterCoach === s.profile?.id ? 'bg-ball text-black' : 'bg-white/5 text-white/60 border border-white/10'}`}>
+              {s.profile?.first_name}
+            </button>
+          ))}
+          <button onClick={() => setFilterCoach('__none__')}
+            className={`px-3 py-1.5 rounded-full text-xs font-black ${filterCoach === '__none__' ? 'bg-red-500/30 text-red-200' : 'bg-white/5 text-white/60 border border-white/10'}`}>
+            Sin asignar
+          </button>
+        </div>
+      )}
 
       <div className="mt-4 space-y-2">
         {filtered.length === 0 ? (
@@ -139,6 +195,20 @@ export default function CentroAlumnos() {
                     </span>
                   </div>
                   <p className="text-white/50 text-xs">@{p.username} · cat {p.category ?? '-'} · desde {new Date(a.joined_at).toLocaleDateString('es-AR')}</p>
+                  {isMaster ? (
+                    <select value={a.assigned_coach_id ?? ''}
+                      onChange={e => cambiarCoach(a.id, e.target.value)}
+                      className="mt-1.5 text-xs bg-white/5 border border-white/10 rounded px-2 py-1 text-white/80">
+                      <option value="">Sin coach asignado</option>
+                      {staff.map((s: any) => (
+                        <option key={s.profile?.id} value={s.profile?.id}>
+                          Coach: {s.profile?.first_name} {s.profile?.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : a.coach ? (
+                    <p className="mt-1 text-[11px] text-purple-300 font-black">🎾 Coach asignado: {a.coach.first_name} {a.coach.last_name}</p>
+                  ) : null}
                   <div className="mt-2 flex items-center gap-4 text-xs">
                     <span className="text-ball font-black">🕐 {totalHs.toFixed(1)}h este mes</span>
                     {a.monthly_fee && <span className="text-white/60">💰 ${Number(a.monthly_fee).toLocaleString('es-AR')}/mes</span>}
@@ -219,6 +289,21 @@ export default function CentroAlumnos() {
                     className="input w-full" />
                   <p className="text-white/40 text-[11px] mt-1">Se le cobrará este monto todos los meses (via MP en Fase 2)</p>
                 </div>
+                {staff.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-white/70 text-xs font-black uppercase mb-1.5">Coach asignado (opcional)</p>
+                    <select value={assignedCoach} onChange={e => setAssignedCoach(e.target.value)}
+                      className="input w-full">
+                      <option value="">Sin coach asignado</option>
+                      {staff.map((s: any) => (
+                        <option key={s.profile?.id} value={s.profile?.id}>
+                          {s.profile?.first_name} {s.profile?.last_name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-white/40 text-[11px] mt-1">El coach asignado va a ver a este alumno al entrar</p>
+                  </div>
+                )}
                 <button onClick={agregar} disabled={saving} className="btn-ball w-full mt-4 disabled:opacity-50">
                   {saving ? 'Agregando…' : '+ Agregar alumno'}
                 </button>

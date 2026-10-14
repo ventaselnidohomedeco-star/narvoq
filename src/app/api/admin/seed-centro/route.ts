@@ -168,9 +168,13 @@ export async function POST(req: NextRequest) {
     if (!id) continue;
     allStudentIds.push(id);
     const nextBilling = new Date(); nextBilling.setDate(1); nextBilling.setMonth(nextBilling.getMonth() + 1);
+    // Asignar un coach random (del staff que no sea master, o master si solo hay 1)
+    const nonMasterStaff = allStaffIds.length > 1 ? allStaffIds.slice(1) : allStaffIds;
+    const assignedCoachId = pick(nonMasterStaff);
     await admin.from('center_members').upsert({
       center_id: centerId, profile_id: id, role: 'student',
       monthly_fee: 1000, payment_status: Math.random() > 0.1 ? 'al_dia' : 'vencido',
+      assigned_coach_id: assignedCoachId,
       next_billing_date: nextBilling.toISOString().slice(0, 10)
     }, { onConflict: 'center_id,profile_id' });
     for (const d of a.days) {
