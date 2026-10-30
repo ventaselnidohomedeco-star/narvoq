@@ -1,18 +1,21 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
 import { canAddMore, FREE_LIMITS } from '@/lib/limits';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
 export default function Alumnos() {
+  const router = useRouter();
   const [me, setMe] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [q, setQ] = useState('');
   const [candidates, setCandidates] = useState<any[]>([]);
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [checking, setChecking] = useState(true);
 
   const studentLimit = FREE_LIMITS.coach.students_max;
   const canAdd = canAddMore('coach', 'students_max', rows.length, isPremium);
@@ -23,6 +26,14 @@ export default function Alumnos() {
     setMe(user.id);
     const { data: prof } = await supabase.from('profiles').select('is_premium').eq('id', user.id).maybeSingle();
     setIsPremium(!!prof?.is_premium);
+    // Si pertenezco a algún centro → redirigir al centro's alumnos
+    const { data: cm } = await supabase.from('center_members')
+      .select('center:training_centers!center_id(slug)')
+      .eq('profile_id', user.id).eq('active', true)
+      .in('role', ['master', 'coach', 'assistant']).limit(1).maybeSingle();
+    const slug = (cm as any)?.center?.slug;
+    if (slug) { router.replace(`/training/centro/${slug}/alumnos`); return; }
+    setChecking(false);
     const { data } = await supabase.from('coach_students')
       .select('nickname, player:profiles!player_id(id, username, first_name, last_name, avatar_url, category)')
       .eq('coach_id', user.id)
@@ -30,6 +41,8 @@ export default function Alumnos() {
     setRows(data ?? []);
   }
   useEffect(() => { load(); }, []);
+
+  if (checking) return <main className="p-8 text-white/60">Cargando…</main>;
 
   useEffect(() => {
     if (q.trim().length < 2) return setCandidates([]);

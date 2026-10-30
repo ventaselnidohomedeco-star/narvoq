@@ -34,6 +34,41 @@ export default function TrainingDashboard() {
       .eq('profile_id', user.id).eq('active', true)
       .in('role', ['master', 'coach', 'assistant']);
     setMyCenters(centers ?? []);
+
+    // Si pertenezco a algún centro: cargar sus alumnos y sesiones (nuevo mundo)
+    if (centers && centers.length > 0) {
+      const centerIds = centers.map((c: any) => c.center?.id).filter(Boolean);
+      // Alumnos del centro (si soy master: todos; si soy coach: solo los asignados a mí)
+      const myRole = centers[0]?.role;
+      let alumnosQ = supabase.from('center_members')
+        .select('monthly_fee, assigned_coach_id, profile:profiles!profile_id(id, username, first_name, last_name, avatar_url, category)')
+        .in('center_id', centerIds).eq('role', 'student').eq('active', true);
+      if (myRole !== 'master') alumnosQ = alumnosQ.eq('assigned_coach_id', user.id);
+      const { data: cm } = await alumnosQ;
+      setStudents((cm ?? []).map((c: any) => ({ nickname: null, player: c.profile })));
+      // Sesiones del centro
+      const studentIds = (cm ?? []).map((c: any) => c.profile?.id).filter(Boolean);
+      if (studentIds.length > 0) {
+        let sesQ = supabase.from('pillar_sessions')
+          .select('id, date, hours, pillar, attended, student_id, player:profiles!student_id(id, username, first_name, last_name, avatar_url)')
+          .in('center_id', centerIds).in('student_id', studentIds)
+          .order('date', { ascending: false }).limit(2000);
+        if (myRole !== 'master') sesQ = sesQ.eq('coach_id', user.id);
+        const { data: ses } = await sesQ;
+        // Mapear al formato esperado por el resto del componente
+        setItems((ses ?? []).map((s: any) => ({
+          ...s,
+          player_id: s.student_id,
+          duration_min: Math.round(Number(s.hours) * 60),
+          technical_score: null, tactical_score: null, physical_score: null, intensity: null
+        })));
+      } else {
+        setItems([]);
+      }
+      return;
+    }
+
+    // Sin centro: cargar del mundo viejo (coach_students / trainings)
     const { data: cs } = await supabase.from('coach_students')
       .select('nickname, player:profiles!player_id(id, username, first_name, last_name, avatar_url, category)')
       .eq('coach_id', user.id);
