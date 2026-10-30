@@ -237,8 +237,8 @@ export default function CentroPanel() {
           </div>
         ))}
 
-        {/* Botón SEED demo (solo super_admin) */}
-        {me?.role === 'super_admin' && (
+        {/* Botón SEED demo (solo super_admin + con query ?demo=1 para ocultarlo normalmente) */}
+        {me?.role === 'super_admin' && typeof window !== 'undefined' && window.location.search.includes('demo=1') && (
           <div className="mt-6 rounded-2xl bg-purple-500/10 border border-purple-500/40 p-4">
             <p className="text-purple-300 text-[11px] font-black tracking-widest">🧪 SUPER ADMIN · DEMO ODPRO</p>
             <p className="font-black mt-1">Cargar simulacro completo</p>
