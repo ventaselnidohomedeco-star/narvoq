@@ -102,25 +102,17 @@ export default function CentroDashboard() {
       <h1 className="font-display font-black text-2xl mt-1">📊 Dashboard</h1>
       <p className="text-white/50 text-sm">Mes en curso · {new Date().toLocaleString('es-AR', { month: 'long', year: 'numeric' })}</p>
 
-      {/* KPIs principales */}
+      {/* KPIs principales — horas dictadas por los coaches */}
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/20 to-transparent border border-emerald-500/40 p-4">
-          <p className="text-emerald-300 text-[10px] font-black uppercase">Ingresos previstos</p>
-          <p className="font-display font-black text-2xl mt-1 text-emerald-100">${kpi.ingresos_mes.toLocaleString('es-AR')}</p>
-          <p className="text-emerald-200/60 text-[11px]">Cuotas de {kpi.alumnos_activos} alumnos</p>
+        <div className="rounded-2xl bg-gradient-to-br from-ball/20 to-transparent border border-ball/40 p-4">
+          <p className="text-ball text-[10px] font-black uppercase">Horas dictadas · mes</p>
+          <p className="font-display font-black text-3xl mt-1 text-ball">{kpi.horas_totales_mes.toFixed(1)}h</p>
+          <p className="text-white/50 text-[11px]">Sumatoria de staff</p>
         </div>
         <div className="rounded-2xl bg-gradient-to-br from-red-500/15 to-transparent border border-red-500/30 p-4">
-          <p className="text-red-300 text-[10px] font-black uppercase">Egresos (staff)</p>
+          <p className="text-red-300 text-[10px] font-black uppercase">Costo de staff (mes)</p>
           <p className="font-display font-black text-2xl mt-1 text-red-100">${Math.round(kpi.egresos_mes).toLocaleString('es-AR')}</p>
-          <p className="text-red-200/60 text-[11px]">Pago por hora dictada</p>
-        </div>
-        <div className={`col-span-2 rounded-2xl border p-4 ${
-          kpi.ganancia_mes >= 0 ? 'bg-ball/15 border-ball/40' : 'bg-red-500/20 border-red-500/50'
-        }`}>
-          <p className="text-ball text-[10px] font-black uppercase">Ganancia neta del mes</p>
-          <p className={`font-display font-black text-4xl mt-1 ${kpi.ganancia_mes >= 0 ? 'text-ball' : 'text-red-200'}`}>
-            ${Math.round(kpi.ganancia_mes).toLocaleString('es-AR')}
-          </p>
+          <p className="text-red-200/60 text-[11px]">Horas × $/h por coach</p>
         </div>
       </div>
 
@@ -142,10 +134,6 @@ export default function CentroDashboard() {
         </div>
       </div>
 
-      <div className="mt-3 rounded-xl bg-white/5 border border-white/10 p-4">
-        <p className="text-white/60 text-[10px] font-black uppercase">Horas dictadas este mes</p>
-        <p className="font-display font-black text-3xl text-ball mt-1">{kpi.horas_totales_mes.toFixed(1)}h</p>
-      </div>
 
       {/* Ranking coaches */}
       <div className="mt-6">

@@ -149,6 +149,21 @@ export default function TrainingDashboard() {
               </Link>
             );
           })}
+          {/* Shortcut: cargar mi disponibilidad */}
+          {myCenters[0]?.center?.slug && (
+            <Link href={`/training/centro/${myCenters[0].center.slug}/disponibilidad`}
+              className="block rounded-2xl bg-orange-500/15 border border-orange-500/40 p-4 active:scale-95 transition">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">⏰</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-orange-200 text-[11px] font-black tracking-widest">CRITICO PARA COORDINAR</p>
+                  <p className="font-display font-black text-base leading-tight">Cargá tu disponibilidad horaria</p>
+                  <p className="text-white/60 text-xs mt-0.5">Qué días y en qué horarios podés dar clases. Sin esto, no aparecés en Coordinar turno.</p>
+                </div>
+                <span className="text-orange-300 text-xl">→</span>
+              </div>
+            </Link>
+          )}
           <Link href="/training/centro/nuevo"
             className="block text-center text-white/50 text-xs font-black py-2 underline">
             + Crear otro centro

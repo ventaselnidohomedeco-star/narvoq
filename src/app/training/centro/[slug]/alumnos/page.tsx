@@ -138,7 +138,7 @@ export default function CentroAlumnos() {
         <div>
           <Link href={`/training/centro/${slug}`} className="text-white/50 text-xs font-black">← {centro.name}</Link>
           <h1 className="font-display font-black text-2xl mt-1">🎓 Alumnos</h1>
-          <p className="text-white/50 text-sm">{alumnos.length} activos · Ingresos previstos: ${alumnos.reduce((s, a) => s + (Number(a.monthly_fee) || 0), 0).toLocaleString('es-AR')}/mes</p>
+          <p className="text-white/50 text-sm">{alumnos.length} alumnos activos</p>
         </div>
         <button onClick={() => setAddOpen(true)} className="btn-ball !py-2 !px-4 text-sm">+ Alumno</button>
       </div>
@@ -186,13 +186,6 @@ export default function CentroAlumnos() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <p className="font-black">{p.first_name} {p.last_name}</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${
-                      a.payment_status === 'al_dia' ? 'bg-emerald-500/20 text-emerald-300' :
-                      a.payment_status === 'vencido' ? 'bg-red-500/20 text-red-300' :
-                      'bg-yellow-500/20 text-yellow-300'
-                    }`}>
-                      {a.payment_status === 'al_dia' ? '✓ al día' : a.payment_status}
-                    </span>
                   </div>
                   <p className="text-white/50 text-xs">@{p.username} · cat {p.category ?? '-'} · desde {new Date(a.joined_at).toLocaleDateString('es-AR')}</p>
                   {isMaster ? (
@@ -211,7 +204,6 @@ export default function CentroAlumnos() {
                   ) : null}
                   <div className="mt-2 flex items-center gap-4 text-xs">
                     <span className="text-ball font-black">🕐 {totalHs.toFixed(1)}h este mes</span>
-                    {a.monthly_fee && <span className="text-white/60">💰 ${Number(a.monthly_fee).toLocaleString('es-AR')}/mes</span>}
                   </div>
                   {/* Pilares mini */}
                   {prog.length > 0 && (
@@ -282,12 +274,6 @@ export default function CentroAlumnos() {
                     <p className="text-white/50 text-xs">@{chosen.username}</p>
                   </div>
                   <button onClick={() => setChosen(null)} className="text-white/50 text-xs font-black">Cambiar</button>
-                </div>
-                <div className="mt-4">
-                  <p className="text-white/70 text-xs font-black uppercase mb-1.5">Cuota mensual (ARS)</p>
-                  <input type="number" value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)}
-                    className="input w-full" />
-                  <p className="text-white/40 text-[11px] mt-1">Se le cobrará este monto todos los meses (via MP en Fase 2)</p>
                 </div>
                 {staff.length > 0 && (
                   <div className="mt-3">

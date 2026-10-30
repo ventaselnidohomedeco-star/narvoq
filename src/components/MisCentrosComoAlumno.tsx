@@ -120,6 +120,22 @@ export default function MisCentrosComoAlumno({ profileId }: { profileId: string 
           🏫 Ver todas mis clases y evaluaciones →
         </Link>
       )}
+
+      {/* Cargar disponibilidad horaria del alumno */}
+      {centros.length > 0 && centros[0]?.slug && (
+        <Link href={`/training/centro/${centros[0].slug}/disponibilidad`}
+          className="block rounded-2xl bg-orange-500/15 border border-orange-500/40 p-4 active:scale-95 transition">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⏰</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-orange-200 text-[11px] font-black tracking-widest">IMPORTANTE</p>
+              <p className="font-black text-sm">Cargá tus horarios disponibles</p>
+              <p className="text-white/60 text-[11px] mt-0.5">Para que tu coach pueda coordinar clases en los horarios que podés</p>
+            </div>
+            <span className="text-orange-300">→</span>
+          </div>
+        </Link>
+      )}
     </div>
   );
 }
