@@ -6,13 +6,13 @@ export default function PropuestaODpro() {
     document.title = 'NarvoQ — Propuesta Comercial ODpro Experience';
   }, []);
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white">
+    <main className="min-h-screen bg-white text-gray-900">
       <style jsx global>{`
         @media print {
           @page { size: A4; margin: 10mm; }
           .no-print { display: none !important; }
           .page-break { page-break-after: always; }
-          body { background: #0a0a0a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
@@ -20,26 +20,26 @@ export default function PropuestaODpro() {
       {/* Botón imprimir — se oculta al imprimir */}
       <div className="no-print fixed top-4 right-4 z-50 flex gap-2">
         <button onClick={() => window.print()}
-          className="px-5 py-3 rounded-xl bg-[#B4FF39] text-black font-black shadow-2xl shadow-[#B4FF39]/30 active:scale-95">
+          className="px-5 py-3 rounded-xl bg-black text-[#B4FF39] font-black shadow-2xl active:scale-95">
           🖨 Descargar PDF
         </button>
       </div>
 
       <article className="max-w-[820px] mx-auto px-8 py-10">
 
-        {/* HEADER con logo */}
-        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#B4FF39]/20 via-[#B4FF39]/5 to-transparent border border-[#B4FF39]/40 p-8">
+        {/* HEADER con fondo negro + verde lima */}
+        <header className="relative overflow-hidden rounded-2xl bg-black p-8 border-l-8 border-[#B4FF39]">
           <div className="flex items-start justify-between gap-6">
             <div>
               <img src="/brand/logo.png?v=9"
                 alt="NarvoQ"
-                style={{ height: 72, width: 'auto', objectFit: 'contain' }} />
+                style={{ height: 72, width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
               <p className="text-[#B4FF39] text-[11px] font-black tracking-[0.2em] mt-3">PROPUESTA COMERCIAL · B2B</p>
-              <p className="text-white/90 text-lg font-black mt-1">Centro de Entrenamiento</p>
+              <p className="text-white text-lg font-black mt-1">Centro de Entrenamiento</p>
             </div>
             <div className="text-right">
               <p className="text-[#B4FF39] text-[10px] font-black tracking-widest">CLIENTE</p>
-              <p className="font-black text-xl mt-1">ODpro Experience</p>
+              <p className="font-black text-xl mt-1 text-white">ODpro Experience</p>
               <p className="text-white/60 text-xs mt-1">San Miguel del Monte</p>
               <p className="text-white/60 text-xs">Buenos Aires · Argentina</p>
               <p className="text-white/60 text-xs mt-2">A/C: <b className="text-white">Marcelo Terre</b></p>
@@ -53,17 +53,17 @@ export default function PropuestaODpro() {
         {/* RESUMEN */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">01</span>
-            <h2 className="text-2xl font-black">Resumen ejecutivo</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">01</span>
+            <h2 className="text-2xl font-black text-gray-900">Resumen ejecutivo</h2>
           </div>
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-6">
-            <p className="leading-relaxed text-[15px] text-white/90">
-              <b className="text-[#B4FF39]">NarvoQ</b> es una plataforma integral de gestión para centros de entrenamiento de pádel.
+          <div className="rounded-2xl bg-gray-50 border border-gray-200 p-6">
+            <p className="leading-relaxed text-[15px] text-gray-800">
+              <b className="text-gray-900">NarvoQ</b> es una plataforma integral de gestión para centros de entrenamiento de pádel.
               Esta propuesta cubre el módulo <b>Centro de Entrenamiento</b> para <b>ODpro Experience</b>,
               su equipo de coaches y sus 70 alumnos activos.
             </p>
-            <p className="mt-3 leading-relaxed text-[15px] text-white/80">
-              El objetivo es <b className="text-[#B4FF39]">eliminar la gestión manual por WhatsApp</b> y centralizar en una app
+            <p className="mt-3 leading-relaxed text-[15px] text-gray-700">
+              El objetivo es <b className="text-gray-900">eliminar la gestión manual por WhatsApp</b> y centralizar en una app
               la coordinación de turnos, el seguimiento de alumnos en los 5 pilares de formación,
               las evaluaciones periódicas, las confirmaciones de asistencia y el dashboard operativo.
             </p>
@@ -73,8 +73,8 @@ export default function PropuestaODpro() {
         {/* PROBLEMAS */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">02</span>
-            <h2 className="text-2xl font-black">Problemas que resuelve</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">02</span>
+            <h2 className="text-2xl font-black text-gray-900">Problemas que resuelve</h2>
           </div>
           <div className="grid grid-cols-1 gap-3">
             {[
@@ -84,9 +84,9 @@ export default function PropuestaODpro() {
               ['💰 Visibilidad financiera', 'Dashboard de horas dictadas, costos de staff y ranking de coaches.'],
               ['📱 Experiencia del alumno', 'El jugador accede a su propia app con historial, evaluaciones y confirmación de asistencia.']
             ].map(([icon, txt]) => (
-              <div key={icon} className="rounded-xl bg-white/[0.03] border border-white/10 p-4 flex gap-4">
-                <div className="font-black text-white w-[200px] shrink-0">{icon}</div>
-                <div className="text-white/80 text-sm">{txt}</div>
+              <div key={icon} className="rounded-xl bg-gray-50 border border-gray-200 p-4 flex gap-4">
+                <div className="font-black text-gray-900 w-[200px] shrink-0">{icon}</div>
+                <div className="text-gray-700 text-sm">{txt}</div>
               </div>
             ))}
           </div>
@@ -97,10 +97,10 @@ export default function PropuestaODpro() {
         {/* PRESTACIONES CENTRO */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">03</span>
-            <h2 className="text-2xl font-black">Prestaciones para el Centro</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">03</span>
+            <h2 className="text-2xl font-black text-gray-900">Prestaciones para el Centro</h2>
           </div>
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
+          <div className="rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden">
             {[
               ['🏫', 'Jerarquía Master / Coach / Asistente', 'Permisos y vistas separadas por rol'],
               ['🎓', 'Alumnos con coach asignado', 'Cada coach gestiona solo sus alumnos'],
@@ -115,11 +115,11 @@ export default function PropuestaODpro() {
               ['🏟', 'Integración con canchas', 'Si tenés complejo asociado, cruza con disponibilidad real de canchas'],
               ['🔔', 'Push notifications', 'A alumnos y coaches en todos los eventos clave']
             ].map(([icon, titulo, desc], i) => (
-              <div key={titulo} className={`p-4 flex items-start gap-4 ${i !== 0 ? 'border-t border-white/5' : ''}`}>
+              <div key={titulo} className={`p-4 flex items-start gap-4 bg-white ${i !== 0 ? 'border-t border-gray-200' : ''}`}>
                 <span className="text-2xl shrink-0">{icon}</span>
                 <div className="flex-1">
-                  <p className="font-black text-white text-[15px]">{titulo}</p>
-                  <p className="text-white/60 text-sm mt-0.5">{desc}</p>
+                  <p className="font-black text-gray-900 text-[15px]">{titulo}</p>
+                  <p className="text-gray-600 text-sm mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -131,10 +131,10 @@ export default function PropuestaODpro() {
         {/* PRESTACIONES ALUMNO */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">04</span>
-            <h2 className="text-2xl font-black">Prestaciones para el Alumno</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">04</span>
+            <h2 className="text-2xl font-black text-gray-900">Prestaciones para el Alumno</h2>
           </div>
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
+          <div className="rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden">
             {[
               ['📅', 'Mis clases', 'Lista de clases próximas con botón "✓ Voy" / "✗ No puedo"'],
               ['🏋️', 'Balance por pilar', 'Horas acumuladas en Cancha, GYM, Filosofía, Psicología y Nutrición'],
@@ -145,11 +145,11 @@ export default function PropuestaODpro() {
               ['🏆', 'Torneos', 'Inscripción y seguimiento de torneos propios y externos'],
               ['📰', 'Feed + Smashe@', 'Comunidad de pádel de la zona + chat 24hs']
             ].map(([icon, titulo, desc], i) => (
-              <div key={titulo} className={`p-4 flex items-start gap-4 ${i !== 0 ? 'border-t border-white/5' : ''}`}>
+              <div key={titulo} className={`p-4 flex items-start gap-4 bg-white ${i !== 0 ? 'border-t border-gray-200' : ''}`}>
                 <span className="text-2xl shrink-0">{icon}</span>
                 <div className="flex-1">
-                  <p className="font-black text-white text-[15px]">{titulo}</p>
-                  <p className="text-white/60 text-sm mt-0.5">{desc}</p>
+                  <p className="font-black text-gray-900 text-[15px]">{titulo}</p>
+                  <p className="text-gray-600 text-sm mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -159,20 +159,20 @@ export default function PropuestaODpro() {
         {/* PLANES */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">05</span>
-            <h2 className="text-2xl font-black">Planes y precios</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">05</span>
+            <h2 className="text-2xl font-black text-gray-900">Planes y precios</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {/* PRO — plan recomendado */}
-            <div className="rounded-2xl bg-[#B4FF39]/10 border-2 border-[#B4FF39]/50 p-6 relative overflow-hidden">
+            <div className="rounded-2xl bg-black border-2 border-[#B4FF39] p-6 relative overflow-hidden text-white">
               <div className="absolute top-0 right-0 bg-[#B4FF39] text-black font-black text-[10px] px-3 py-1 tracking-widest rounded-bl-xl">
                 RECOMENDADO
               </div>
               <p className="text-[#B4FF39] text-[11px] font-black tracking-widest">🥇 PLAN PRO</p>
-              <p className="font-black text-5xl mt-2 text-white">$55.000</p>
-              <p className="text-white/50 text-sm">ARS / mes</p>
-              <p className="text-white/70 text-sm mt-3 font-black">Hasta 80 alumnos</p>
-              <div className="mt-5 pt-5 border-t border-white/10 space-y-2 text-sm text-white/85">
+              <p className="font-black text-5xl mt-2">$55.000</p>
+              <p className="text-white/60 text-sm">ARS / mes</p>
+              <p className="text-white/80 text-sm mt-3 font-black">Hasta 80 alumnos</p>
+              <div className="mt-5 pt-5 border-t border-white/20 space-y-2 text-sm text-white/90">
                 <p>✓ Jerarquía Master / Coach / Asistente</p>
                 <p>✓ Alumnos con coach asignado</p>
                 <p>✓ Importador masivo CSV / Excel</p>
@@ -190,16 +190,16 @@ export default function PropuestaODpro() {
             </div>
 
             {/* ELITE — upgrade */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-white/20 text-white font-black text-[10px] px-3 py-1 tracking-widest rounded-bl-xl">
+            <div className="rounded-2xl bg-gray-50 border-2 border-gray-200 p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-gray-900 text-white font-black text-[10px] px-3 py-1 tracking-widest rounded-bl-xl">
                 UPGRADE
               </div>
-              <p className="text-white/50 text-[11px] font-black tracking-widest">💎 PLAN ELITE</p>
-              <p className="font-black text-5xl mt-2 text-white">$120.000</p>
-              <p className="text-white/50 text-sm">ARS / mes</p>
-              <p className="text-white/70 text-sm mt-3 font-black">Alumnos ilimitados</p>
-              <div className="mt-5 pt-5 border-t border-white/10 space-y-2 text-sm text-white/85">
-                <p className="text-white/60 italic">Todo lo del PRO más:</p>
+              <p className="text-gray-500 text-[11px] font-black tracking-widest">💎 PLAN ELITE</p>
+              <p className="font-black text-5xl mt-2 text-gray-900">$120.000</p>
+              <p className="text-gray-500 text-sm">ARS / mes</p>
+              <p className="text-gray-700 text-sm mt-3 font-black">Alumnos ilimitados</p>
+              <div className="mt-5 pt-5 border-t border-gray-200 space-y-2 text-sm text-gray-800">
+                <p className="text-gray-500 italic">Todo lo del PRO más:</p>
                 <p>⭐ Sin límite de alumnos</p>
                 <p>⭐ <b>WhatsApp Business API automático</b> incluido (hasta 2000 msgs/mes)</p>
                 <p>⭐ Tus alumnos reciben el <b>Perfil Pro gratis</b> (valor $105.000 para 70 alumnos)</p>
@@ -209,7 +209,7 @@ export default function PropuestaODpro() {
               </div>
             </div>
           </div>
-          <p className="mt-4 text-xs text-white/50 text-center">
+          <p className="mt-4 text-xs text-gray-500 text-center">
             Setup gratuito · Carga de datos iniciales incluida · Actualizaciones continuas · Facturación mensual
           </p>
         </section>
@@ -217,10 +217,10 @@ export default function PropuestaODpro() {
         {/* ADD-ONS */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">06</span>
-            <h2 className="text-2xl font-black">Add-ons opcionales</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">06</span>
+            <h2 className="text-2xl font-black text-gray-900">Add-ons opcionales</h2>
           </div>
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
+          <div className="rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden">
             {[
               ['WhatsApp Business API automático (hasta 1000 msgs/mes)', '+ $35.000 / mes'],
               ['Cobro mensual a alumnos vía Mercado Pago', '5% sobre lo cobrado'],
@@ -228,9 +228,9 @@ export default function PropuestaODpro() {
               ['Capacitación 1-a-1 completa al equipo', '$80.000 one-time'],
               ['Soporte prioritario 24hs', '+ $20.000 / mes']
             ].map(([txt, precio], i) => (
-              <div key={txt} className={`flex items-center justify-between p-4 ${i !== 0 ? 'border-t border-white/5' : ''}`}>
-                <span className="text-white/80 text-sm">{txt}</span>
-                <span className="font-black text-[#B4FF39]">{precio}</span>
+              <div key={txt} className={`flex items-center justify-between p-4 bg-white ${i !== 0 ? 'border-t border-gray-200' : ''}`}>
+                <span className="text-gray-700 text-sm">{txt}</span>
+                <span className="font-black text-gray-900">{precio}</span>
               </div>
             ))}
           </div>
@@ -241,8 +241,8 @@ export default function PropuestaODpro() {
         {/* ONBOARDING */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">07</span>
-            <h2 className="text-2xl font-black">Puesta en marcha</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">07</span>
+            <h2 className="text-2xl font-black text-gray-900">Puesta en marcha</h2>
           </div>
           <div className="space-y-3">
             {[
@@ -253,13 +253,13 @@ export default function PropuestaODpro() {
               ['Desde el día 3', 'Uso real',
                 'Arrancás a usar la app en el día a día del centro. Soporte diario por WhatsApp.']
             ].map(([dia, titulo, desc]) => (
-              <div key={titulo} className="rounded-xl bg-white/[0.03] border border-white/10 p-5 flex gap-5">
+              <div key={titulo} className="rounded-xl bg-gray-50 border border-gray-200 p-5 flex gap-5">
                 <div className="shrink-0">
-                  <div className="bg-[#B4FF39] text-black font-black text-xs px-3 py-1.5 rounded-full">{dia}</div>
+                  <div className="bg-black text-[#B4FF39] font-black text-xs px-3 py-1.5 rounded-full">{dia}</div>
                 </div>
                 <div>
-                  <p className="font-black text-white text-base">{titulo}</p>
-                  <p className="text-white/70 text-sm mt-1 leading-relaxed">{desc}</p>
+                  <p className="font-black text-gray-900 text-base">{titulo}</p>
+                  <p className="text-gray-600 text-sm mt-1 leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -269,14 +269,14 @@ export default function PropuestaODpro() {
         {/* OFERTA CERRADA */}
         <section className="mt-8">
           <div className="flex items-center gap-3 mb-3">
-            <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">08</span>
-            <h2 className="text-2xl font-black">Nuestra oferta para ODpro</h2>
+            <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">08</span>
+            <h2 className="text-2xl font-black text-gray-900">Nuestra oferta para ODpro</h2>
           </div>
-          <div className="rounded-2xl bg-gradient-to-br from-[#B4FF39] to-[#9ADD1E] text-black p-8">
-            <p className="text-black/60 text-[11px] font-black tracking-[0.2em]">PLAN SELECCIONADO</p>
+          <div className="rounded-2xl bg-black text-white p-8 border-l-8 border-[#B4FF39]">
+            <p className="text-[#B4FF39] text-[11px] font-black tracking-[0.2em]">PLAN SELECCIONADO</p>
             <p className="font-black text-4xl mt-1">🥇 PRO</p>
-            <p className="font-black text-5xl mt-2">$55.000 <span className="text-xl">ARS/mes</span></p>
-            <div className="mt-5 pt-5 border-t border-black/20 space-y-2 text-[15px] font-bold">
+            <p className="font-black text-5xl mt-2 text-[#B4FF39]">$55.000 <span className="text-xl text-white">ARS/mes</span></p>
+            <div className="mt-5 pt-5 border-t border-white/20 space-y-2 text-[15px] font-bold">
               <p>✓ Hasta 80 alumnos</p>
               <p>✓ Todas las features del centro</p>
               <p>✓ Setup, importación y carga de datos SIN COSTO</p>
@@ -285,11 +285,11 @@ export default function PropuestaODpro() {
               <p>✓ Soporte diario por WhatsApp</p>
               <p>✓ Facturación mensual desde el día 1</p>
             </div>
-            <div className="mt-6 pt-6 border-t border-black/20">
-              <p className="text-sm font-black">💡 Oferta anual: $528.000/año (20% off · ahorrás $132.000)</p>
+            <div className="mt-6 pt-6 border-t border-white/20">
+              <p className="text-sm font-black text-[#B4FF39]">💡 Oferta anual: $528.000/año (20% off · ahorrás $132.000)</p>
             </div>
           </div>
-          <p className="mt-4 text-xs text-white/40 italic text-center">
+          <p className="mt-4 text-xs text-gray-500 italic text-center">
             La inversión en diseño, desarrollo, infraestructura, soporte y mantenimiento está incluida en el abono mensual.
           </p>
         </section>
@@ -297,29 +297,31 @@ export default function PropuestaODpro() {
         {/* FIRMA */}
         <section className="mt-10">
           <div className="grid grid-cols-2 gap-6">
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-6">
-              <p className="text-[#B4FF39] text-[10px] font-black tracking-widest">POR NARVOQ</p>
-              <div className="mt-12 border-b border-white/30" />
-              <p className="font-black mt-2 text-white">Matías Hernandez</p>
-              <p className="text-xs text-white/50">Fundador · NarvoQ</p>
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-6">
+              <p className="text-gray-500 text-[10px] font-black tracking-widest">POR NARVOQ</p>
+              <div className="mt-12 border-b-2 border-gray-900" />
+              <p className="font-black mt-2 text-gray-900">Matías Hernandez</p>
+              <p className="text-xs text-gray-500">Fundador · NarvoQ</p>
             </div>
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-6">
-              <p className="text-[#B4FF39] text-[10px] font-black tracking-widest">POR ODPRO EXPERIENCE</p>
-              <div className="mt-12 border-b border-white/30" />
-              <p className="font-black mt-2 text-white">Marcelo Terre</p>
-              <p className="text-xs text-white/50">Director · ODpro Experience</p>
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-6">
+              <p className="text-gray-500 text-[10px] font-black tracking-widest">POR ODPRO EXPERIENCE</p>
+              <div className="mt-12 border-b-2 border-gray-900" />
+              <p className="font-black mt-2 text-gray-900">Marcelo Terre</p>
+              <p className="text-xs text-gray-500">Director · ODpro Experience</p>
             </div>
           </div>
         </section>
 
         {/* FOOTER */}
-        <footer className="mt-10 pt-6 border-t border-white/10 text-center">
-          <img src="/brand/logo.png?v=9" alt="NarvoQ"
-            style={{ height: 32, width: 'auto', margin: '0 auto', opacity: 0.8 }} />
-          <p className="text-white/40 text-[11px] mt-3">
+        <footer className="mt-10 pt-6 border-t border-gray-200 text-center">
+          <div className="inline-block bg-black rounded-xl px-4 py-2">
+            <img src="/brand/logo.png?v=9" alt="NarvoQ"
+              style={{ height: 28, width: 'auto', mixBlendMode: 'screen' }} />
+          </div>
+          <p className="text-gray-500 text-[11px] mt-3">
             narvoqapp@gmail.com · narvoq.com.ar
           </p>
-          <p className="text-white/30 text-[10px] mt-1">
+          <p className="text-gray-400 text-[10px] mt-1">
             Propuesta válida por 30 días desde la fecha de emisión
           </p>
         </footer>
