@@ -162,32 +162,55 @@ export default function PropuestaODpro() {
             <span className="bg-[#B4FF39] text-black font-black text-sm px-3 py-1 rounded">05</span>
             <h2 className="text-2xl font-black">Planes y precios</h2>
           </div>
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
-            <div className="grid grid-cols-4 bg-black border-b border-white/10 text-[11px] font-black text-white/60 tracking-widest">
-              <div className="p-3">PLAN</div>
-              <div className="p-3">ALUMNOS</div>
-              <div className="p-3">FEATURES</div>
-              <div className="p-3 text-right">PRECIO ARS/MES</div>
-            </div>
-            {[
-              { name: '🥉 Basic', alumnos: 'Hasta 15', features: 'Features core', precio: '$10.000', highlight: false },
-              { name: '🥈 Starter', alumnos: 'Hasta 30', features: 'Core + Coaching', precio: '$25.000', highlight: false },
-              { name: '🥇 PRO', badge: 'RECOMENDADO', alumnos: 'Hasta 80', features: 'Todo + Confirmaciones + Coordinación', precio: '$55.000', highlight: true },
-              { name: '💎 Elite', alumnos: 'Ilimitado', features: 'PRO + WhatsApp Auto + Perfil Pro gratis a tus alumnos', precio: '$120.000', highlight: false }
-            ].map((p, i) => (
-              <div key={p.name} className={`grid grid-cols-4 items-center text-sm ${i !== 0 ? 'border-t border-white/5' : ''} ${p.highlight ? 'bg-[#B4FF39]/10' : ''}`}>
-                <div className="p-4">
-                  <p className={`font-black ${p.highlight ? 'text-[#B4FF39]' : 'text-white'}`}>{p.name}</p>
-                  {p.badge && <p className="text-[9px] text-[#B4FF39] font-black mt-0.5">{p.badge}</p>}
-                </div>
-                <div className="p-4 text-white/80">{p.alumnos}</div>
-                <div className="p-4 text-white/70 text-xs">{p.features}</div>
-                <div className={`p-4 text-right font-black ${p.highlight ? 'text-[#B4FF39] text-xl' : 'text-white text-lg'}`}>{p.precio}</div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* PRO — plan recomendado */}
+            <div className="rounded-2xl bg-[#B4FF39]/10 border-2 border-[#B4FF39]/50 p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-[#B4FF39] text-black font-black text-[10px] px-3 py-1 tracking-widest rounded-bl-xl">
+                RECOMENDADO
               </div>
-            ))}
+              <p className="text-[#B4FF39] text-[11px] font-black tracking-widest">🥇 PLAN PRO</p>
+              <p className="font-black text-5xl mt-2 text-white">$55.000</p>
+              <p className="text-white/50 text-sm">ARS / mes</p>
+              <p className="text-white/70 text-sm mt-3 font-black">Hasta 80 alumnos</p>
+              <div className="mt-5 pt-5 border-t border-white/10 space-y-2 text-sm text-white/85">
+                <p>✓ Jerarquía Master / Coach / Asistente</p>
+                <p>✓ Alumnos con coach asignado</p>
+                <p>✓ Importador masivo CSV / Excel</p>
+                <p>✓ 5 pilares de formación</p>
+                <p>✓ Coordinación automática de turnos</p>
+                <p>✓ Disponibilidad semanal (alumnos + coaches)</p>
+                <p>✓ Evaluaciones periódicas (6 dimensiones)</p>
+                <p>✓ Confirmaciones de clase centralizadas</p>
+                <p>✓ Dashboard operativo completo</p>
+                <p>✓ Torneos propios con bracket automático</p>
+                <p>✓ Integración con canchas del complejo</p>
+                <p>✓ Push notifications</p>
+                <p>✓ Soporte diario por WhatsApp</p>
+              </div>
+            </div>
+
+            {/* ELITE — upgrade */}
+            <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-white/20 text-white font-black text-[10px] px-3 py-1 tracking-widest rounded-bl-xl">
+                UPGRADE
+              </div>
+              <p className="text-white/50 text-[11px] font-black tracking-widest">💎 PLAN ELITE</p>
+              <p className="font-black text-5xl mt-2 text-white">$120.000</p>
+              <p className="text-white/50 text-sm">ARS / mes</p>
+              <p className="text-white/70 text-sm mt-3 font-black">Alumnos ilimitados</p>
+              <div className="mt-5 pt-5 border-t border-white/10 space-y-2 text-sm text-white/85">
+                <p className="text-white/60 italic">Todo lo del PRO más:</p>
+                <p>⭐ Sin límite de alumnos</p>
+                <p>⭐ <b>WhatsApp Business API automático</b> incluido (hasta 2000 msgs/mes)</p>
+                <p>⭐ Tus alumnos reciben el <b>Perfil Pro gratis</b> (valor $105.000 para 70 alumnos)</p>
+                <p>⭐ Branding del centro en comunicaciones</p>
+                <p>⭐ Dashboard de bonos a coaches</p>
+                <p>⭐ Soporte prioritario</p>
+              </div>
+            </div>
           </div>
-          <p className="mt-4 text-xs text-white/50">
-            Todos los planes incluyen: setup gratuito, carga de datos iniciales, soporte por WhatsApp, actualizaciones continuas y nuevas features sin costo adicional.
+          <p className="mt-4 text-xs text-white/50 text-center">
+            Setup gratuito · Carga de datos iniciales incluida · Actualizaciones continuas · Facturación mensual
           </p>
         </section>
 
