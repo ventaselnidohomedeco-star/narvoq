@@ -12,8 +12,11 @@ export default function PropuestaODpro() {
           @page { size: A4; margin: 10mm; }
           .no-print { display: none !important; }
           .page-break { page-break-after: always; }
+          .avoid-break, .avoid-break * { break-inside: avoid-page !important; page-break-inside: avoid !important; }
+          .avoid-break { page-break-before: auto; }
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          section { page-break-inside: avoid; break-inside: avoid-page; }
         }
       `}</style>
 
@@ -156,15 +159,16 @@ export default function PropuestaODpro() {
           </div>
         </section>
 
-        {/* PLANES */}
-        <section className="mt-8">
+        {/* PLANES — fuerzo page-break antes para que entre entera en 1 página */}
+        <div className="page-break" />
+        <section className="mt-8 avoid-break">
           <div className="flex items-center gap-3 mb-3">
             <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">05</span>
             <h2 className="text-2xl font-black text-gray-900">Planes y precios</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {/* PRO — plan recomendado */}
-            <div className="rounded-2xl bg-black border-2 border-[#B4FF39] p-6 relative overflow-hidden text-white">
+            <div className="rounded-2xl bg-black border-2 border-[#B4FF39] p-6 relative overflow-hidden text-white avoid-break">
               <div className="absolute top-0 right-0 bg-[#B4FF39] text-black font-black text-[10px] px-3 py-1 tracking-widest rounded-bl-xl">
                 RECOMENDADO
               </div>
@@ -190,7 +194,7 @@ export default function PropuestaODpro() {
             </div>
 
             {/* ELITE — upgrade */}
-            <div className="rounded-2xl bg-gray-50 border-2 border-gray-200 p-6 relative overflow-hidden">
+            <div className="rounded-2xl bg-gray-50 border-2 border-gray-200 p-6 relative overflow-hidden avoid-break">
               <div className="absolute top-0 right-0 bg-gray-900 text-white font-black text-[10px] px-3 py-1 tracking-widest rounded-bl-xl">
                 UPGRADE
               </div>
@@ -267,12 +271,12 @@ export default function PropuestaODpro() {
         </section>
 
         {/* OFERTA CERRADA */}
-        <section className="mt-8">
+        <section className="mt-8 avoid-break">
           <div className="flex items-center gap-3 mb-3">
             <span className="bg-black text-[#B4FF39] font-black text-sm px-3 py-1 rounded">08</span>
             <h2 className="text-2xl font-black text-gray-900">Nuestra oferta para ODpro</h2>
           </div>
-          <div className="rounded-2xl bg-black text-white p-8 border-l-8 border-[#B4FF39]">
+          <div className="rounded-2xl bg-black text-white p-8 border-l-8 border-[#B4FF39] avoid-break">
             <p className="text-[#B4FF39] text-[11px] font-black tracking-[0.2em]">PLAN SELECCIONADO</p>
             <p className="font-black text-4xl mt-1">🥇 PRO</p>
             <p className="font-black text-5xl mt-2 text-[#B4FF39]">$55.000 <span className="text-xl text-white">ARS/mes</span></p>
@@ -295,7 +299,7 @@ export default function PropuestaODpro() {
         </section>
 
         {/* FIRMA */}
-        <section className="mt-10">
+        <section className="mt-10 avoid-break">
           <div className="grid grid-cols-2 gap-6">
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-6">
               <p className="text-gray-500 text-[10px] font-black tracking-widest">POR NARVOQ</p>
