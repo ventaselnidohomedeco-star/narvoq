@@ -1,8 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
 type CookieToSet = { name: string; value: string; options?: any };
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'NarvoQ <noreply@narvoq.com.ar>';
+
+async function sendActivationEmail(toEmail: string, nombre: string, centroName: string, link: string) {
+  if (!resend) return { sent: false, reason: 'RESEND_API_KEY no configurado' };
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: `${centroName} te sumó a NarvoQ 🎾`,
+      html: `
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#0a0a0a;color:#fff;">
+  <div style="max-width:560px;margin:0 auto;padding:40px 24px;background:#111;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <h1 style="color:#B4FF39;font-size:32px;margin:0;font-weight:900;letter-spacing:-1px;">NARVOQ</h1>
+      <p style="color:#999;font-size:12px;margin-top:4px;">La app de pádel</p>
+    </div>
+    <div style="background:#1a1a1a;border-radius:16px;padding:32px;border:1px solid #333;">
+      <p style="color:#fff;font-size:16px;margin:0;">¡Hola <strong>${nombre}</strong>! 👋</p>
+      <p style="color:#ccc;font-size:15px;margin-top:16px;line-height:1.6;">
+        <strong>${centroName}</strong> te sumó a su centro de entrenamiento en <strong>NarvoQ</strong>.
+      </p>
+      <p style="color:#ccc;font-size:15px;line-height:1.6;">
+        En la app vas a poder:
+      </p>
+      <ul style="color:#ccc;font-size:14px;line-height:1.8;">
+        <li>Ver tus clases y confirmar asistencia</li>
+        <li>Seguir tu progreso en los 5 pilares</li>
+        <li>Ver las evaluaciones de tu coach</li>
+        <li>Reservar canchas</li>
+        <li>Chatear y conocer otros jugadores</li>
+      </ul>
+      <div style="text-align:center;margin-top:32px;">
+        <a href="${link}" style="display:inline-block;background:#B4FF39;color:#000;padding:14px 32px;border-radius:12px;font-weight:900;text-decoration:none;font-size:16px;">
+          Activar mi cuenta →
+        </a>
+      </div>
+      <p style="color:#666;font-size:12px;text-align:center;margin-top:24px;">
+        O copiá este link: <br/>
+        <span style="color:#999;word-break:break-all;">${link}</span>
+      </p>
+    </div>
+    <p style="color:#555;font-size:11px;text-align:center;margin-top:24px;">
+      ¡Nos vemos en la cancha! 🎾<br/>
+      NarvoQ · narvoq.com.ar
+    </p>
+  </div>
+</body>
+</html>`,
+      text: `¡Hola ${nombre}! ${centroName} te sumó a NarvoQ. Activá tu cuenta: ${link}`
+    });
+    if (error) return { sent: false, reason: error.message };
+    return { sent: true };
+  } catch (e: any) {
+    return { sent: false, reason: e?.message ?? 'error' };
+  }
+}
 
 // POST /api/admin/importar-alumnos
 // Body: { center_slug, alumnos: [{nombre, apellido, celular, categoria?, email?, assigned_coach_id?}] }
@@ -111,7 +172,14 @@ export async function POST(req: NextRequest) {
         recoveryLink = linkData?.properties?.action_link ?? null;
       } catch {}
 
-      // Mensaje WhatsApp pre-escrito
+      // Enviar email de activación (solo si tenemos un email real, no el autogenerado)
+      let emailResult: any = { sent: false, reason: 'sin email real' };
+      const emailReal = a.email && a.email.trim() && !email.endsWith('@odpro.narvoq');
+      if (emailReal && recoveryLink) {
+        emailResult = await sendActivationEmail(email, nombre, centro.name, recoveryLink);
+      }
+
+      // Fallback WhatsApp (siempre disponible como backup)
       const waMsg = encodeURIComponent(
         `¡Hola ${nombre}! 👋\n\n` +
         `${centro.name} te sumó a NarvoQ, la app donde vas a ver tus clases, confirmar asistencias, ver evaluaciones y mucho más.\n\n` +
@@ -122,12 +190,17 @@ export async function POST(req: NextRequest) {
       const waLink = `https://wa.me/${celular.startsWith('54') ? celular : '54' + celular}?text=${waMsg}`;
 
       (yaExistia ? results.existentes : results.creados).push({
-        nombre, apellido, celular, email, userId, waLink, recoveryLink
+        nombre, apellido, celular, email, userId, waLink, recoveryLink,
+        emailSent: emailResult.sent,
+        emailError: emailResult.sent ? null : emailResult.reason
       });
     } catch (e: any) {
       results.errores.push({ nombre, apellido, celular, error: e?.message ?? 'desconocido' });
     }
   }
+
+  const emailsEnviados = results.creados.filter((c: any) => c.emailSent).length;
+  const sinEmail = results.creados.filter((c: any) => !c.emailSent).length;
 
   return NextResponse.json({
     ok: true,
@@ -136,6 +209,9 @@ export async function POST(req: NextRequest) {
     nuevos: results.creados.length,
     existentes: results.existentes.length,
     errores: results.errores.length,
+    emails_enviados: emailsEnviados,
+    sin_email: sinEmail,
+    resend_configurado: !!resend,
     detalle: results
   });
 }

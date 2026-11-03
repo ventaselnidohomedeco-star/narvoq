@@ -193,19 +193,13 @@ export default function PropuestaODpro() {
           <h2 className="text-2xl font-black">7. Puesta en marcha</h2>
           <ol className="mt-3 space-y-3 text-[15px] list-decimal pl-6">
             <li>
-              <b>Semana 1 — Setup:</b> creamos el centro ODpro Experience en NarvoQ. Dejamos cargada la jerarquía (vos como Master Coach + tus 4 coaches). Configuramos los 5 pilares y la grilla de disponibilidad del complejo.
+              <b>Día 1 — Setup e importación:</b> creamos el centro ODpro Experience en NarvoQ. Dejamos cargada la jerarquía (vos como Master Coach + tus coaches) y los 5 pilares. Importás tu Excel/CSV con los alumnos y el sistema <b>envía automáticamente un email de activación a cada uno</b>. En el mismo día están todos adentro.
             </li>
             <li>
-              <b>Semana 1 — Carga de alumnos:</b> importás tu Excel/CSV con los 70 alumnos (nombre, apellido, celular, categoría). El sistema crea sus cuentas y les manda WhatsApp con el link de activación. En menos de 1 hora todos tus alumnos están en la app.
+              <b>Día 2 — Capacitación:</b> sesión en vivo de 1hs con vos y tu equipo. Les mostramos cómo registrar sesiones, evaluar, coordinar turnos y confirmar asistencia.
             </li>
             <li>
-              <b>Semana 2 — Entrenamiento del equipo:</b> capacitación en vivo de 1hs con vos y los 4 coaches. Les mostramos cómo registrar sesiones, evaluar, coordinar turnos y confirmar asistencia.
-            </li>
-            <li>
-              <b>Semanas 3 a 8 — Trial 60 días gratis:</b> uso real sin pagar un peso. Soporte diario por WhatsApp. Si algo no te gusta, lo ajustamos.
-            </li>
-            <li>
-              <b>Semana 9 — Decisión:</b> si funciona, arrancamos con el plan elegido (recomendado: PRO $55.000/mes). Si no, chau sin costo.
+              <b>Desde el día 3 — Uso real:</b> arrancás a usar la app en el día a día del centro. Soporte diario por WhatsApp.
             </li>
           </ol>
         </section>
@@ -215,11 +209,17 @@ export default function PropuestaODpro() {
           <h2 className="text-2xl font-black">8. Nuestra oferta para ODpro</h2>
           <div className="mt-4 space-y-2 text-[15px]">
             <p>✅ <b>Plan PRO</b> — hasta 80 alumnos, todas las features</p>
-            <p>✅ <b>Trial 60 días GRATIS</b> para probar con los 70 alumnos reales</p>
-            <p>✅ <b>Setup y carga de datos sin costo</b> (incluye capacitación al equipo)</p>
-            <p>✅ <b>Soporte diario por WhatsApp</b> durante el trial</p>
-            <p>✅ Después del trial: <b>$55.000 ARS/mes</b> facturado mensual</p>
+            <p>✅ <b>Setup, importación y carga de datos SIN COSTO</b></p>
+            <p>✅ <b>Capacitación al equipo incluida</b> (1hs en vivo)</p>
+            <p>✅ <b>Email automático de activación</b> a tus 70 alumnos</p>
+            <p>✅ <b>Soporte diario por WhatsApp</b></p>
+            <p>✅ <b>$55.000 ARS/mes</b> facturado mensualmente desde el día 1</p>
             <p>✅ Opción anual con <b>20% off: $528.000/año</b> (ahorrás $132.000)</p>
+          </div>
+          <div className="mt-5 pt-5 border-t border-white/20">
+            <p className="text-xs text-gray-400 italic">
+              La inversión en diseño, desarrollo, infraestructura, soporte y mantenimiento está incluida en el abono mensual.
+            </p>
           </div>
         </section>
 

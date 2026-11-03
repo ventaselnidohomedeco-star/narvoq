@@ -50,13 +50,15 @@ export default function ImportarAlumnos() {
 
   function enviarWaMasivo() {
     if (!resultado?.detalle?.creados) return;
-    const total = resultado.detalle.creados.length;
+    // Solo los que no tienen email enviado
+    const pendientes = resultado.detalle.creados.filter((c: any) => !c.emailSent);
+    const total = pendientes.length;
+    if (total === 0) return alert('¡Todos recibieron email! No hace falta WhatsApp.');
     if (!confirm(`Se van a abrir ${total} ventanas de WhatsApp. Vas a tener que tocar "Enviar" en cada una. ¿Seguir?`)) return;
     let i = 0;
     const int = setInterval(() => {
       if (i >= total) { clearInterval(int); return; }
-      const alumno = resultado.detalle.creados[i];
-      window.open(alumno.waLink, '_blank');
+      window.open(pendientes[i].waLink, '_blank');
       setSentCount(i + 1);
       i++;
     }, 500);
@@ -135,10 +137,14 @@ export default function ImportarAlumnos() {
         <div className="mt-5 space-y-4">
           <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/40 p-4">
             <p className="text-emerald-200 text-[11px] font-black tracking-widest">✓ IMPORTACIÓN COMPLETA</p>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+            <div className="mt-2 grid grid-cols-4 gap-2 text-center">
               <div className="bg-black/30 rounded p-2">
                 <p className="font-display font-black text-2xl text-ball">{resultado.nuevos}</p>
                 <p className="text-white/60 text-[10px]">NUEVOS</p>
+              </div>
+              <div className="bg-black/30 rounded p-2">
+                <p className="font-display font-black text-2xl text-blue-300">{resultado.emails_enviados ?? 0}</p>
+                <p className="text-white/60 text-[10px]">EMAILS ✉️</p>
               </div>
               <div className="bg-black/30 rounded p-2">
                 <p className="font-display font-black text-2xl text-yellow-300">{resultado.existentes}</p>
@@ -151,27 +157,57 @@ export default function ImportarAlumnos() {
             </div>
           </div>
 
-          {resultado.detalle?.creados?.length > 0 && (
+          {/* Email: enviado automático */}
+          {resultado.emails_enviados > 0 && (
+            <div className="rounded-2xl bg-blue-500/10 border border-blue-500/40 p-4">
+              <p className="font-black text-blue-200 text-sm">✉️ {resultado.emails_enviados} emails de activación enviados</p>
+              <p className="text-white/70 text-xs mt-1">
+                Cada alumno con email recibió un link único para elegir su password y activar la cuenta.
+                No necesitás hacer nada más por ellos.
+              </p>
+            </div>
+          )}
+
+          {/* Resend no configurado */}
+          {resultado.resend_configurado === false && (
+            <div className="rounded-2xl bg-yellow-500/10 border border-yellow-500/40 p-4">
+              <p className="font-black text-yellow-200 text-sm">⚠ Email automático NO configurado</p>
+              <p className="text-white/70 text-xs mt-1">
+                Para enviar emails automáticos, agregá <code className="bg-black/40 px-1 rounded">RESEND_API_KEY</code> y <code className="bg-black/40 px-1 rounded">RESEND_FROM_EMAIL</code> a las env vars de Vercel.
+                Mientras tanto, usá los links de WhatsApp abajo.
+              </p>
+            </div>
+          )}
+
+          {/* WhatsApp fallback (solo para alumnos sin email) */}
+          {resultado.detalle?.creados?.some((c: any) => !c.emailSent) && (
             <div className="rounded-2xl bg-[#25D366]/10 border border-[#25D366]/40 p-4">
-              <p className="font-black text-[#25D366] text-sm">💬 Mandales el link de activación por WhatsApp</p>
-              <p className="text-white/70 text-xs mt-1">Cada alumno recibe su link único para elegir su contraseña y empezar a usar la app.</p>
+              <p className="font-black text-[#25D366] text-sm">💬 Backup: Enviar por WhatsApp a los que no tienen email</p>
+              <p className="text-white/70 text-xs mt-1">
+                {resultado.detalle.creados.filter((c: any) => !c.emailSent).length} alumnos no tienen email o el envío falló. Mandales el link por WhatsApp:
+              </p>
               <button onClick={enviarWaMasivo}
                 className="mt-3 w-full py-3 rounded-xl bg-[#25D366] text-white font-black">
-                📱 Abrir WhatsApp para los {resultado.detalle.creados.length} nuevos
+                📱 Abrir WhatsApp para los que faltan
               </button>
               {sentCount > 0 && (
                 <p className="text-emerald-300 text-xs text-center mt-2">
-                  ✓ {sentCount}/{resultado.detalle.creados.length} ventanas abiertas
+                  ✓ {sentCount} ventanas abiertas
                 </p>
               )}
               <details className="mt-3">
-                <summary className="text-white/60 text-xs cursor-pointer">Ver lista + links individuales</summary>
+                <summary className="text-white/60 text-xs cursor-pointer">Ver lista completa</summary>
                 <div className="mt-2 space-y-1 max-h-72 overflow-y-auto">
                   {resultado.detalle.creados.map((c: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 bg-black/30 rounded p-2 text-xs">
-                      <span className="flex-1 truncate">{c.nombre} {c.apellido} · {c.celular}</span>
-                      <a href={c.waLink} target="_blank" rel="noopener"
-                        className="shrink-0 px-2 py-1 rounded bg-[#25D366] text-white font-black">📱</a>
+                      <span className="flex-1 truncate">
+                        {c.nombre} {c.apellido} · {c.celular}
+                        {c.emailSent ? <span className="text-blue-300 ml-2">✉️ email</span> : <span className="text-yellow-300 ml-2">📱 wa</span>}
+                      </span>
+                      {!c.emailSent && (
+                        <a href={c.waLink} target="_blank" rel="noopener"
+                          className="shrink-0 px-2 py-1 rounded bg-[#25D366] text-white font-black">📱</a>
+                      )}
                     </div>
                   ))}
                 </div>
