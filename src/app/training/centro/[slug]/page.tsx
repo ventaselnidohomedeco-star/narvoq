@@ -117,6 +117,11 @@ export default function CentroPanel() {
                 <p className="font-black text-sm mt-1">Alumnos</p>
                 <p className="text-white/50 text-[11px]">Alta y seguimiento</p>
               </Link>
+              <Link href={`/training/centro/${slug}/importar`} className="rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/40 p-4">
+                <p className="text-2xl">📥</p>
+                <p className="font-black text-sm mt-1 text-blue-200">Importar lote</p>
+                <p className="text-white/60 text-[11px]">Pegá Excel/CSV y creá todos</p>
+              </Link>
               <Link href={`/training/centro/${slug}/coordinar`} className="rounded-xl bg-ball/10 hover:bg-ball/20 border border-ball/40 p-4">
                 <p className="text-2xl">✨</p>
                 <p className="font-black text-sm mt-1 text-ball">Coordinar turno</p>
